@@ -59,3 +59,4 @@ serve(async (req: Request): Promise<Response> => {
     return new Response("Server error: " + err.message, { status: 500 });
   }
 });
+// trigger deploy to deno
