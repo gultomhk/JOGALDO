@@ -1,7 +1,7 @@
 name: Fetch Hodalmi Kawan
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:  # Bisa dijalankan manual
   schedule:
     - cron: "0 * * * *"  # Setiap 1 jam (UTC)
 
@@ -26,7 +26,7 @@ jobs:
           git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} private
           cp private/cool_mapping.txt $HOME/cool_mapping.txt
 
-      - name: Jalankan script Python
+      - name: Jalankan script Python dan simpan output
         run: |
           python serudoon.py > hodalmi.m3u
 
@@ -37,7 +37,7 @@ jobs:
           git config --global user.email "github-actions@github.com"
 
           git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} repo-output
-          cp hodalmi.m3u repo-output/
+          cp $GITHUB_WORKSPACE/hodalmi.m3u repo-output/
 
           cd repo-output
           git add hodalmi.m3u
