@@ -128,7 +128,7 @@ def main():
             if data:
                 tampilkan_playlist(data)
                 print(f"[✓] Playlist disimpan ke stdout", file=sys.stderr)
-                return
+                return 0
             simpan_proxy_gagal(cached)
             tried.add(cached)
 
@@ -140,13 +140,13 @@ def main():
             simpan_proxy_berhasil(proxy)
             tampilkan_playlist(data)
             print(f"[✓] Playlist disimpan ke stdout", file=sys.stderr)
-            return
+            return 0
         simpan_proxy_gagal(proxy)
         tried.add(proxy)
         time.sleep(1)
 
     print("❌ Semua proxy gagal.", file=sys.stderr)
-
+    return 1
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
