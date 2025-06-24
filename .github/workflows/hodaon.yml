@@ -28,9 +28,22 @@ jobs:
 
       - name: Jalankan script Python dan simpan output
         run: |
-          python serudoon.py > hodalmi.m3u
+          if python serudoon.py > hodalmi.m3u; then
+            echo "✅ Skrip selesai."
+          else
+            echo "❌ Skrip gagal. Tidak akan push file kosong."
+            echo "SKIP_PUSH=true" >> $GITHUB_ENV
+          fi
+
+      - name: Cek jika file kosong atau terlalu kecil
+        run: |
+          if [ ! -s hodalmi.m3u ] || [ "$(wc -c < hodalmi.m3u)" -lt 500 ]; then
+            echo "❌ File kosong atau terlalu kecil, skip push."
+            echo "SKIP_PUSH=true" >> $GITHUB_ENV
+          fi
 
       - name: Push output ke repo privat
+        if: env.SKIP_PUSH != 'true'
         run: |
           cd $HOME
           git config --global user.name "github-actions"
