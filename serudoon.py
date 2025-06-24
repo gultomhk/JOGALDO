@@ -2,10 +2,12 @@ import requests
 from datetime import datetime, timezone, timedelta
 import random, time
 from pathlib import Path
+import sys
 
 mapping_file = Path.home() / "cool_mapping.txt"
 CACHE_FILE = Path("proxy_cache.txt")
 FAILED_FILE = Path("proxy_failed.txt")
+
 
 def parse_mapping_file(path):
     headers = {}
@@ -37,9 +39,11 @@ def parse_mapping_file(path):
 
     return headers, constants, mapping, default
 
+
 HEADERS, CONSTANTS, MAPPING, DEFAULT = parse_mapping_file(mapping_file)
 PROXY_LIST_URL = CONSTANTS.get("PROXY_LIST_URL")
 API_URL = CONSTANTS.get("URL")
+
 
 def get_proxy_list():
     try:
@@ -47,30 +51,34 @@ def get_proxy_list():
         res.raise_for_status()
         return res.text.strip().splitlines()
     except Exception as e:
-        print(f"[!] Gagal ambil proxy list: {e}")
+        print(f"[!] Gagal ambil proxy list: {e}", file=sys.stderr)
         return []
+
 
 def try_proxy(proxy):
     proxies = {"http": proxy, "https": proxy}
     try:
-        print(f"[•] Coba proxy: {proxy}")
+        print(f"[•] Coba proxy: {proxy}", file=sys.stderr)
         res = requests.get(API_URL, headers=HEADERS, proxies=proxies, timeout=10)
         res.raise_for_status()
         return res.json()
     except Exception as e:
-        print(f"[×] Gagal dengan proxy {proxy}: {e}")
+        print(f"[×] Gagal dengan proxy {proxy}: {e}", file=sys.stderr)
         return None
+
 
 def simpan_proxy_berhasil(proxy):
     CACHE_FILE.write_text(proxy)
-    print(f"[✓] Proxy berhasil disimpan ke cache: {proxy}")
+    print(f"[✓] Proxy berhasil disimpan ke cache: {proxy}", file=sys.stderr)
+
 
 def simpan_proxy_gagal(proxy):
     with open(FAILED_FILE, "a") as f:
         f.write(proxy + "\n")
 
-def tampilkan_playlist(data, output_path):
-    lines = ["#EXTM3U"]
+
+def tampilkan_playlist(data):
+    print("#EXTM3U")
 
     for item in data.get("included", []):
         attr = item.get("attributes", {})
@@ -88,41 +96,38 @@ def tampilkan_playlist(data, output_path):
         wib = dt.astimezone(timezone(timedelta(hours=7)))
         waktu = wib.strftime("%d/%m-%H.%M")
 
-        lines.append(f'#EXTINF:-1 tvg-logo="{logo}" group-title="⚽️| LIVE EVENT", {waktu} {title}')
-        lines.append('#EXTVLCOPT:http-user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/534.24 (KHTML, like Gecko) Chrome/11.0.696.34 Safari/534.24')
+        print(f'#EXTINF:-1 tvg-logo="{logo}" group-title="⚽️| LIVE EVENT", {waktu} {title}')
+        print('#EXTVLCOPT:http-user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/534.24 (KHTML, like Gecko) Chrome/11.0.696.34 Safari/534.24')
 
         if livestreaming_id in CONSTANTS:
-            lines.append(CONSTANTS[livestreaming_id])
+            print(CONSTANTS[livestreaming_id])
         elif livestreaming_id in MAPPING and MAPPING[livestreaming_id].get("type") == "hls":
-            lines.append(MAPPING[livestreaming_id].get("url"))
+            print(MAPPING[livestreaming_id].get("url"))
         else:
             license_key = DEFAULT["license"].replace("{id}", livestreaming_id)
             dash_url = DEFAULT["url"].replace("{id}", livestreaming_id)
-            lines.append('#KODIPROP:inputstreamaddon=inputstream.adaptive')
-            lines.append('#KODIPROP:inputstream.adaptive.manifest_type=dash')
-            lines.append('#KODIPROP:inputstream.adaptive.license_type=com.widevine.alpha')
-            lines.append(f'#KODIPROP:inputstream.adaptive.license_key={license_key}')
-            lines.append(dash_url)
+            print('#KODIPROP:inputstreamaddon=inputstream.adaptive')
+            print('#KODIPROP:inputstream.adaptive.manifest_type=dash')
+            print('#KODIPROP:inputstream.adaptive.license_type=com.widevine.alpha')
+            print(f'#KODIPROP:inputstream.adaptive.license_key={license_key}')
+            print(dash_url)
 
-        lines.append("")  # spacer
+        print()  # Spasi antar entry
 
-    with open(output_path, "w", encoding="utf-8") as f:
-        f.write("\n".join(lines))
-    print(f"[✓] Playlist disimpan ke {output_path}")
-    
+
 def main():
     proxies = get_proxy_list()
     random.shuffle(proxies)
     tried = set()
-    output_path = "hodalmi.m3u"
 
     if CACHE_FILE.exists():
         cached = CACHE_FILE.read_text().strip()
         if cached:
-            print(f"[•] Coba proxy dari cache: {cached}")
+            print(f"[•] Coba proxy dari cache: {cached}", file=sys.stderr)
             data = try_proxy(cached)
             if data:
-                tampilkan_playlist(data, output_path)
+                tampilkan_playlist(data)
+                print(f"[✓] Playlist disimpan ke stdout", file=sys.stderr)
                 return
             simpan_proxy_gagal(cached)
             tried.add(cached)
@@ -133,13 +138,15 @@ def main():
         data = try_proxy(proxy)
         if data:
             simpan_proxy_berhasil(proxy)
-            tampilkan_playlist(data, output_path)
+            tampilkan_playlist(data)
+            print(f"[✓] Playlist disimpan ke stdout", file=sys.stderr)
             return
         simpan_proxy_gagal(proxy)
         tried.add(proxy)
         time.sleep(1)
 
-    print("❌ Semua proxy gagal.")
-    
+    print("❌ Semua proxy gagal.", file=sys.stderr)
+
+
 if __name__ == "__main__":
     main()
