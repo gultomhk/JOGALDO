@@ -74,10 +74,16 @@ def tampilkan_playlist(data, constants, mapping, default):
             continue
 
         attr = item.get("attributes", {})
+        meta = item.get("links", {}).get("self", {}).get("meta", {})
+
         title = attr.get("title", "").strip().replace(":", "")
         logo = attr.get("cover_url", "").strip()
         start_time = attr.get("start_time")
-        livestreaming_id = str(attr.get("content_id") or item.get("id") or "").strip()
+
+        # Urutan prioritas ID: meta → content_id → id
+        livestreaming_id = str(
+            meta.get("livestreaming_id") or attr.get("content_id") or item.get("id") or ""
+        ).strip()
 
         if not livestreaming_id or not start_time:
             continue
@@ -104,7 +110,7 @@ def tampilkan_playlist(data, constants, mapping, default):
             print(f'#KODIPROP:inputstream.adaptive.license_key={license_key}')
             print(dash_url)
 
-        print()  # spasi antar entry
+        print()
 
 
 def main():
