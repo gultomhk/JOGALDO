@@ -3,7 +3,7 @@ name: Fetch Hodalmi Kawan
 on:
   workflow_dispatch:  # Bisa dijalankan manual
   schedule:
-    - cron: "*/30 * * * *"
+    - cron: "0 * * * *"
 
 jobs:
   run-script:
