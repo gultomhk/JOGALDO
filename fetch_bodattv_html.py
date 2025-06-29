@@ -4,7 +4,7 @@ from pathlib import Path
 from playwright.async_api import async_playwright
 
 # Baca config dari file
-FSTVDATA_FILE = Path.home() / "fstvdata_file.txt"
+BODATTVDATA_FILE = Path.home() / "bodattvdata_file.txt"
 
 def load_config(filepath):
     config = {}
@@ -15,7 +15,7 @@ def load_config(filepath):
                 config[key.strip()] = val.strip().strip('"')
     return config
 
-config = load_config(FSTVDATA_FILE)
+config = load_config(BODATTVDATA_FILE)
 DEFAULT_URL = config.get("DEFAULT_URL")
 
 async def fetch_fstv_html():
@@ -33,9 +33,9 @@ async def fetch_fstv_html():
         await page.wait_for_timeout(3000)
 
         html = await page.content()
-        with open("FSTV_PAGE_SOURCE.html", "w", encoding="utf-8") as f:
+        with open("BODATTV_PAGE_SOURCE.html", "w", encoding="utf-8") as f:
             f.write(html)
-        print("✅ Saved full page source to FSTV_PAGE_SOURCE.html")
+        print("✅ Saved full page source to BODATTV_PAGE_SOURCE.html")
 
         await browser.close()
 
