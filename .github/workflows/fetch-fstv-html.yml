@@ -1,0 +1,40 @@
+name: Fetch FSTV HTML
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/30 * * * *'  # Setiap 30 menit
+
+jobs:
+  fetch_fstv:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: |
+          pip install playwright
+          playwright install --with-deps
+
+      - name: Ambil config fstvdata dari repo privat
+        run: |
+          git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} configrepo
+          cp configrepo/bodattvdata_file.txt $HOME/bodattvdata_file.txt
+
+      - name: Jalankan fetch_bodattv_html.py
+        run: python fetch_bodattv_html.py
+
+      - name: Commit & Push Output HTML
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add BODATTV_PAGE_SOURCE.html
+          git commit -m "🔄 Update BODATTV_PAGE_SOURCE.html [bot]" || echo "No changes to commit"
+          git push
