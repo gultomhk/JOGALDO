@@ -4,7 +4,7 @@ from dateutil import tz
 from pathlib import Path
 
 # Load config from file
-FSTVDATA_FILE = Path.home() / "fstvdata_file.txt"
+BODATTVDATA_FILE = Path.home() / "bodattvdata_file.txt"
 
 def load_config(filepath):
     config = {}
@@ -15,10 +15,10 @@ def load_config(filepath):
                 config[key.strip()] = val.strip().strip('"')
     return config
 
-if not FSTVDATA_FILE.exists():
-    raise FileNotFoundError(f"❌ File config tidak ditemukan: {FSTVDATA_FILE}")
+if not BODATTVDATA_FILE.exists():
+    raise FileNotFoundError(f"❌ File config tidak ditemukan: {BODATTVDATA_FILE}")
 
-config = load_config(FSTVDATA_FILE)
+config = load_config(BODATTVDATA_FILE)
 required_keys = ["DEFAULT_URL", "BASE_URL", "WORKER_URL", "LOGO", "USER_AGENT"]
 missing = [key for key in required_keys if key not in config]
 if missing:
@@ -132,9 +132,9 @@ def extract_matches_from_html(html):
     return "\n".join(output)
 
 if __name__ == "__main__":
-    with open("FSTV_PAGE_SOURCE.html", "r", encoding="utf-8") as f:
+    with open("BODATTV_PAGE_SOURCE.html", "r", encoding="utf-8") as f:
         html = f.read()
     result = extract_matches_from_html(html)
-    with open("fstv_live.m3u", "w", encoding="utf-8") as f:
+    with open("bodattv_live.m3u", "w", encoding="utf-8") as f:
         f.write(result)
-    print("\n✅ File fstv_live.m3u berhasil dibuat dengan filter waktu (2 jam ke depan atau lebih)")
+    print("\n✅ File bodattv_live.m3u berhasil dibuat dengan filter waktu (2 jam ke depan atau lebih)")
