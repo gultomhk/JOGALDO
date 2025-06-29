@@ -35,8 +35,9 @@ now = datetime.now(tz.gettz("Asia/Jakarta"))
 # ====== Fungsi Pembersih Judul ======
 def clean_title(title):
     title = title.replace("football", "")
-    title = re.sub(r"\s*[:|•]\s*", " ", title)  # hilangkan : | • dengan spasi
-    title = re.sub(r"\s{2,}", " ", title)       # ganti spasi ganda dengan satu
+    title = re.sub(r"\s*[:|•]\s*", " ", title)  # hapus simbol umum
+    title = re.sub(r",\s*", " ", title)         # hilangkan koma di tengah
+    title = re.sub(r"\s{2,}", " ", title)       # hilangkan spasi ganda
     return title.strip(" -")
 
 # ====== Ekstraksi dari HTML ======
