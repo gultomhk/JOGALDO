@@ -1,4 +1,4 @@
-name: Fetch FSTV HTML
+name: Fetch BODATTV HTML
 
 on:
   workflow_dispatch:
@@ -31,10 +31,10 @@ jobs:
       - name: Jalankan fetch_bodattv_html.py
         run: python fetch_bodattv_html.py
 
-      - name: Commit & Push Output HTML
-        run: |
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          git add BODATTV_PAGE_SOURCE.html
-          git commit -m "🔄 Update BODATTV_PAGE_SOURCE.html [bot]" || echo "No changes to commit"
-          git push
+- name: Commit & Push
+  run: |
+    git config user.name "github-actions"
+    git config user.email "actions@github.com"
+    git add BODATTV_PAGE_SOURCE.html
+    git commit -m "🔄 Update BODATTV_PAGE_SOURCE.html [bot]" || echo "No changes to commit"
+    git push
