@@ -1,9 +1,10 @@
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup 
 from datetime import datetime, timedelta, timezone
 from dateutil import tz
 from pathlib import Path
+import re
 
-# Load config from file
+# ====== Konfigurasi ======
 BODATTVDATA_FILE = Path.home() / "bodattvdata_file.txt"
 
 def load_config(filepath):
@@ -31,12 +32,20 @@ USER_AGENT = config["USER_AGENT"]
 
 now = datetime.now(tz.gettz("Asia/Jakarta"))
 
+# ====== Fungsi Pembersih Judul ======
+def clean_title(title):
+    title = title.replace("football", "")
+    title = re.sub(r"\s*[:|•]\s*", " ", title)  # hilangkan : | • dengan spasi
+    title = re.sub(r"\s{2,}", " ", title)       # ganti spasi ganda dengan satu
+    return title.strip(" -")
+
+# ====== Ekstraksi dari HTML ======
 def extract_matches_from_html(html):
     soup = BeautifulSoup(html, "html.parser")
     output = ["#EXTM3U"]
     seen = set()
 
-    # 1. slide-item (Football, MMA, etc.)
+    # === 1. slide-item (Sepakbola utama) ===
     matches_slide = soup.select("div.slide-item")
     print(f"⛓️ Found {len(matches_slide)} slide-item matches")
 
@@ -44,18 +53,16 @@ def extract_matches_from_html(html):
         a_tag = match.select_one('a.btn-club[href]')
         if not a_tag:
             continue
-
         slug = a_tag['href'].replace('/match/', '').strip()
         if slug in seen:
             continue
         seen.add(slug)
 
+        # Waktu
         ts_tag = match.select_one('.timestamp')
         ts_value = ts_tag.get('data-timestamp') if ts_tag else None
-
         if ts_value:
-            timestamp = int(ts_value)
-            event_time_utc = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+            event_time_utc = datetime.fromtimestamp(int(ts_value), tz=timezone.utc)
             event_time_local = event_time_utc.astimezone(tz.gettz("Asia/Jakarta"))
             if event_time_local < (now - timedelta(hours=2)):
                 continue
@@ -63,16 +70,16 @@ def extract_matches_from_html(html):
         else:
             waktu = "00/00-00.00"
 
+        # Judul
         teams = match.select('.club-name')
-        team1 = teams[0].text.strip() if len(teams) >= 1 else ""
-        team2 = teams[1].text.strip() if len(teams) >= 2 else ""
-
-        if team1:
-            title = f"{team1} vs {team2}" if team2 else team1
+        if len(teams) >= 2:
+            title = f"{teams[0].text.strip()} vs {teams[1].text.strip()}"
+        elif len(teams) == 1:
+            title = teams[0].text.strip()
         else:
-            title_raw = slug.replace("-", " ")
-            title = title_raw.replace("football", "").strip(" -")
+            title = clean_title(slug.replace("-", " "))
 
+        title = clean_title(title)
         print(f"📃 Parsed: {waktu} | {title}")
 
         output += [
@@ -82,7 +89,7 @@ def extract_matches_from_html(html):
             f'{WORKER_URL}{slug}'
         ]
 
-    # 2. common-table-row (F1, MotoGP, PPV, etc.)
+    # === 2. common-table-row (F1, MotoGP, PPV, dll) ===
     matches_table = soup.select("div.common-table-row.table-row")
     print(f"⛵️ Found {len(matches_table)} table-row matches")
 
@@ -107,7 +114,6 @@ def extract_matches_from_html(html):
             else:
                 waktu = "00/00-00.00"
 
-            # ambil kedua tim dari struktur baru jika ada
             team_tags = row.select(".list-club-wrapper .club-name.text-overflow")
             if len(team_tags) >= 2:
                 team1 = team_tags[0].text.strip()
@@ -115,8 +121,9 @@ def extract_matches_from_html(html):
                 title = f"{team1} vs {team2}"
             else:
                 title_tag = row.select_one(".list-club-wrapper span")
-                title = title_tag.text.strip() if title_tag else slug.replace("-", " ").replace("football", "").strip(" -")
+                title = title_tag.text.strip() if title_tag else clean_title(slug.replace("-", " "))
 
+            title = clean_title(title)
             print(f"📃 Parsed: {waktu} | {title}")
 
             output += [
@@ -131,10 +138,14 @@ def extract_matches_from_html(html):
 
     return "\n".join(output)
 
+# ====== Jalankan Script Utama ======
 if __name__ == "__main__":
     with open("BODATTV_PAGE_SOURCE.html", "r", encoding="utf-8") as f:
         html = f.read()
+
     result = extract_matches_from_html(html)
+
     with open("bodattv_live.m3u", "w", encoding="utf-8") as f:
         f.write(result)
+
     print("\n✅ File bodattv_live.m3u berhasil dibuat dengan filter waktu (2 jam ke depan atau lebih)")
