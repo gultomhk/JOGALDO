@@ -5,13 +5,18 @@ on:
   schedule:
     - cron: '*/30 * * * *'  # Setiap 30 menit
 
+permissions:
+  contents: write  # Wajib agar bisa push jika pakai GITHUB_TOKEN
+
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repo
+      - name: Checkout Repo (Privat)
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.TOKEN_PRIVATE }}
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -24,19 +29,20 @@ jobs:
           pip install playwright beautifulsoup4 python-dateutil
           playwright install --with-deps
 
-      - name: Ambil file bodattvdata dari repo privat
+      - name: Ambil file bodattvdata dari repo privat lain
         run: |
-          git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} private
-          cp private/bodattvdata_file.txt $HOME/bodattvdata_file.txt
+          git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} configrepo
+          cp configrepo/bodattvdata_file.txt $HOME/bodattvdata_file.txt
 
-      - name: Fetch and Parse BODATTV Data
-        run: |
-          python getftv.py
+      - name: Jalankan Script BODATTV
+        run: python getftv.py
 
-      - name: Commit and Push Changes
+      - name: Commit and Push Changes to Current Private Repo
+        env:
+          GH_PAT: ${{ secrets.TOKEN_PRIVATE }}
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git add bodattv_live.m3u
           git commit -m "🔄 Update bodattv_live.m3u [bot]" || echo "No changes to commit"
-          git push
+          git push https://x-access-token:${GH_PAT}@github.com/${{ github.repository }} HEAD:main
