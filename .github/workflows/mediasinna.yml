@@ -5,15 +5,16 @@ on:
   schedule:
     - cron: '*/30 * * * *'  # Setiap 30 menit
 
+permissions:
+  contents: write  # wajib agar checkout dan push bisa
+
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repo (Privat)
+      - name: Checkout Repo Ini (untuk akses script)
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.TOKEN_PRIVATE }}
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -30,25 +31,24 @@ jobs:
           git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} configrepo
           cp configrepo/mediasdata_file.txt $HOME/mediasdata_file.txt
 
-      - name: Jalankan script Python untuk ambil M3U
+      - name: Jalankan script Python
         run: |
-          python mediasinna.py 
+          python mediasinna.py > mediasinna.m3u
 
       - name: Push output ke repo privat
-        if: env.SKIP_PUSH != 'true'
         run: |
-          cd $HOME
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
 
           git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} repo-output
-          cp $GITHUB_WORKSPACE/mediasinna.m3u repo-output/
+          cp mediasinna.m3u repo-output/
 
           cd repo-output
           git add mediasinna.m3u
+
           if git diff --cached --quiet; then
-            echo "✅ Tidak ada perubahan"
+            echo "✅ Tidak ada perubahan pada mediasinna.m3u"
           else
-            git commit -m "auto: update mediasinna.m3u"
+            git commit -m "🔄 auto: update mediasinna.m3u"
             git push
           fi
