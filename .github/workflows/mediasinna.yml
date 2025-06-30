@@ -6,36 +6,41 @@ on:
     - cron: '0 * * * *'  # Setiap 1 jam
 
 permissions:
-  contents: write  # wajib agar checkout dan push bisa
+  contents: write  # Diperlukan agar bisa push
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 10  # Tambahan: batasi waktu job
 
     steps:
-      - name: Checkout Repo Ini (untuk akses script)
+      - name: 🔄 Checkout repo utama (isi script)
         uses: actions/checkout@v4
 
-      - name: Setup Python
+      - name: 🐍 Setup Python 3.10
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
-      - name: Install Dependencies
+      - name: 📦 Install dependencies
+        shell: bash
         run: |
           pip install playwright beautifulsoup4
           playwright install --with-deps
 
-      - name: Ambil config dari repo privat
+      - name: 📁 Ambil file konfigurasi dari repo privat
+        shell: bash
         run: |
           git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} configrepo
           cp configrepo/mediasdata_file.txt $HOME/mediasdata_file.txt
 
-      - name: Jalankan script Python
+      - name: ▶️ Jalankan script Python
+        shell: bash
         run: |
           python mediasinna.py > mediasinna.m3u
 
-      - name: Push output ke repo privat
+      - name: 📤 Push output ke repo privat
+        shell: bash
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
