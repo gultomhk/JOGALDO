@@ -6,7 +6,7 @@ on:
     - cron: '0 * * * *'  # Setiap 1 jam
 
 permissions:
-  contents: write  # ⬅️ WAJIB agar bisa push ke repo
+  contents: write  # ⬅️ Wajib agar bisa push ke repo
 
 jobs:
   fetch_bodattv:
@@ -15,6 +15,8 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Wajib untuk pull --rebase
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -40,6 +42,16 @@ jobs:
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git add BODATTV_PAGE_SOURCE.html
-          git commit -m "🔄 Update BODATTV_PAGE_SOURCE.html [bot]" || echo "No changes to commit"
-          git push
+
+          if ! git diff --quiet BODATTV_PAGE_SOURCE.html; then
+            git add BODATTV_PAGE_SOURCE.html
+            git commit -m "🔄 Update BODATTV_PAGE_SOURCE.html [bot]"
+
+            echo "📥 Pull rebase dulu sebelum push"
+            git pull --rebase origin master
+
+            echo "🚀 Push ke origin..."
+            git push origin master
+          else
+            echo "✅ Tidak ada perubahan, skip push."
+          fi
