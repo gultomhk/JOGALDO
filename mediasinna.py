@@ -1,10 +1,10 @@
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 from bs4 import BeautifulSoup
 from pathlib import Path
 import datetime
 from zoneinfo import ZoneInfo
 
-# Path to config
+# Path ke file config
 MEDIASDATA_FILE = Path.home() / "mediasdata_file.txt"
 
 def load_config(filepath):
@@ -23,7 +23,10 @@ WORKER_URL_TEMPLATE = config["WORKER_URL"]
 LOGO = config["LOGO"]
 BASE_REFERER = config["BASE_REFERER"]
 
-USER_AGENT = "Mozilla/5.0 AppleWebKit/537.36 Chrome/81.0.4044.138 Safari/537.36"
+USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+)
 
 def translate_vi_to_id(text):
     translations = {
@@ -50,16 +53,38 @@ def translate_vi_to_id(text):
     return text.strip()
 
 def fetch_m3u_with_playwright():
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
-        page.goto(DEFAULT_URL, timeout=60000)
-        page.wait_for_selector(".box_02.click")
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True, args=["--no-sandbox"])
+            context = browser.new_context(user_agent=USER_AGENT)
+            page = context.new_page()
 
-        html = page.content()
-        browser.close()
+            for i in range(3):
+                try:
+                    print(f"🔁 Attempt {i+1}: Navigating to {DEFAULT_URL}")
+                    page.goto(DEFAULT_URL, timeout=60000, wait_until="domcontentloaded")
+                    break
+                except PlaywrightTimeoutError:
+                    print(f"⚠️ Timeout on attempt {i+1}")
+                    if i == 2:
+                        browser.close()
+                        raise Exception("❌ Gagal memuat halaman setelah 3 kali percobaan")
 
-    # Simpan ke file debug
+            try:
+                page.wait_for_selector(".box_02.click", timeout=10000)
+            except PlaywrightTimeoutError:
+                print("❌ Elemen '.box_02.click' tidak ditemukan.")
+                browser.close()
+                return ""
+
+            html = page.content()
+            browser.close()
+
+    except Exception as e:
+        print(f"🔥 Gagal mengambil data Playwright: {e}")
+        return ""
+
+    # Simpan HTML untuk debug
     with open("page.html", "w", encoding="utf-8") as f:
         f.write(html)
 
@@ -68,17 +93,17 @@ def fetch_m3u_with_playwright():
     seen = set()
 
     match_boxes = soup.select(".box_02.click")
-    print(f"Found {len(match_boxes)} match boxes")
+    print(f"📦 Found {len(match_boxes)} match boxes")
 
     for box in match_boxes:
         match_id = box.get("link", "").split("-")[-1].replace(".html", "")
         if not match_id:
-            print("Missing match_id, skipped")
+            print("❌ Missing match_id, skipped")
             continue
 
         clubs = box.select(".club .name")
         if len(clubs) != 2:
-            print("Incomplete club info, skipped")
+            print("❌ Incomplete club info, skipped")
             continue
 
         team_a = translate_vi_to_id(clubs[0].text.strip())
@@ -87,7 +112,7 @@ def fetch_m3u_with_playwright():
         parent_li = box.find_parent("li")
         time_raw = parent_li.select_one(".box_01 .date")
         if not time_raw:
-            print("Missing date info, skipped")
+            print("❌ Missing date info, skipped")
             continue
 
         date_time_str = time_raw.text.strip().replace(" ", "")
