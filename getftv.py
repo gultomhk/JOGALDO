@@ -116,9 +116,19 @@ def extract_matches_from_html(html):
             # Ambil semua span dari list-club-wrapper
             span_tags = row.select(".list-club-wrapper span")
             if len(span_tags) >= 2:
-                title = f"{span_tags[0].text.strip()} vs {span_tags[1].text.strip()}"
+                team1 = span_tags[0].text.strip()
+                team2 = span_tags[1].text.strip()
+                if team1 and team2:
+                    title = f"{team1} vs {team2}"
+                elif team1:
+                    title = team1
+                elif team2:
+                    title = team2
+                else:
+                    title = clean_title(slug.replace("-", " "))
             elif len(span_tags) == 1:
-                title = span_tags[0].text.strip()
+                text = span_tags[0].text.strip()
+                title = text if text else clean_title(slug.replace("-", " "))
             else:
                 title = clean_title(slug.replace("-", " "))
 
