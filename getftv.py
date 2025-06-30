@@ -59,7 +59,6 @@ def extract_matches_from_html(html):
             continue
         seen.add(slug)
 
-        # Waktu
         ts_tag = match.select_one('.timestamp')
         ts_value = ts_tag.get('data-timestamp') if ts_tag else None
         if ts_value:
@@ -71,7 +70,6 @@ def extract_matches_from_html(html):
         else:
             waktu = "00/00-00.00"
 
-        # Judul
         teams = match.select('.club-name')
         if len(teams) >= 2:
             title = f"{teams[0].text.strip()} vs {teams[1].text.strip()}"
@@ -90,7 +88,7 @@ def extract_matches_from_html(html):
             f'{WORKER_URL}{slug}'
         ]
 
-    # === 2. common-table-row (F1, MotoGP, PPV, dll) ===
+    # === 2. common-table-row (F1, MotoGP, Snooker, Tenis, dll) ===
     matches_table = soup.select("div.common-table-row.table-row")
     print(f"⛵️ Found {len(matches_table)} table-row matches")
 
@@ -115,14 +113,14 @@ def extract_matches_from_html(html):
             else:
                 waktu = "00/00-00.00"
 
-            team_tags = row.select(".list-club-wrapper .club-name.text-overflow")
-            if len(team_tags) >= 2:
-                team1 = team_tags[0].text.strip()
-                team2 = team_tags[1].text.strip()
-                title = f"{team1} vs {team2}"
+            # Ambil semua span dari list-club-wrapper
+            span_tags = row.select(".list-club-wrapper span")
+            if len(span_tags) >= 2:
+                title = f"{span_tags[0].text.strip()} vs {span_tags[1].text.strip()}"
+            elif len(span_tags) == 1:
+                title = span_tags[0].text.strip()
             else:
-                title_tag = row.select_one(".list-club-wrapper span")
-                title = title_tag.text.strip() if title_tag else clean_title(slug.replace("-", " "))
+                title = clean_title(slug.replace("-", " "))
 
             title = clean_title(title)
             print(f"📃 Parsed: {waktu} | {title}")
