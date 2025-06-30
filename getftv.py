@@ -88,7 +88,7 @@ def extract_matches_from_html(html):
             f'{WORKER_URL}{slug}'
         ]
 
-    # === 2. common-table-row (F1, MotoGP, Snooker, Tenis, dll) ===
+    # === 2. common-table-row (F1, MotoGP, PPV, Snooker, Tenis, dll) ===
     matches_table = soup.select("div.common-table-row.table-row")
     print(f"⛵️ Found {len(matches_table)} table-row matches")
 
@@ -113,24 +113,24 @@ def extract_matches_from_html(html):
             else:
                 waktu = "00/00-00.00"
 
-            # Ambil semua span dari list-club-wrapper
+            # ⬇️ Cek span dalam list-club-wrapper dengan validasi isi
             span_tags = row.select(".list-club-wrapper span")
-            if len(span_tags) >= 2:
-                team1 = span_tags[0].text.strip()
-                team2 = span_tags[1].text.strip()
-                if team1 and team2:
-                    title = f"{team1} vs {team2}"
-                elif team1:
-                    title = team1
-                elif team2:
-                    title = team2
+            team1 = span_tags[0].text.strip() if len(span_tags) >= 1 else ""
+            team2 = span_tags[1].text.strip() if len(span_tags) >= 2 else ""
+
+            if team1 and team2:
+                title = f"{team1} vs {team2}"
+            elif team1:
+                title = team1
+            elif team2:
+                title = team2
+            else:
+                # fallback dari isi wrapper atau slug
+                wrapper_text = row.select_one(".list-club-wrapper")
+                if wrapper_text:
+                    title = wrapper_text.get_text(strip=True)
                 else:
                     title = clean_title(slug.replace("-", " "))
-            elif len(span_tags) == 1:
-                text = span_tags[0].text.strip()
-                title = text if text else clean_title(slug.replace("-", " "))
-            else:
-                title = clean_title(slug.replace("-", " "))
 
             title = clean_title(title)
             print(f"📃 Parsed: {waktu} | {title}")
