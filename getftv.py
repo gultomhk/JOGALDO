@@ -88,7 +88,7 @@ def extract_matches_from_html(html):
             f'{WORKER_URL}{slug}'
         ]
 
-    # === 2. common-table-row (F1, MotoGP, PPV, Snooker, Tenis, dll) ===
+    # === 2. common-table-row (Tennis, Billiards, dll) ===
     matches_table = soup.select("div.common-table-row.table-row")
     print(f"⛵️ Found {len(matches_table)} table-row matches")
 
@@ -107,13 +107,19 @@ def extract_matches_from_html(html):
                 timestamp = int(waktu_tag["data-timestamp"])
                 event_time_utc = datetime.fromtimestamp(timestamp, tz=timezone.utc)
                 event_time_local = event_time_utc.astimezone(tz.gettz("Asia/Jakarta"))
-                if event_time_local < (now - timedelta(hours=2)):
-                    continue
                 waktu = event_time_local.strftime("%d/%m-%H.%M")
             else:
                 waktu = "00/00-00.00"
+                event_time_local = now  # default agar tidak error
 
-            # ⬇️ Cek span dalam list-club-wrapper dengan validasi isi
+            # pengecualian filter waktu
+            slug_lower = slug.lower()
+            is_exception = any(keyword in slug_lower for keyword in ["tennis", "billiards", "snooker"])
+
+            if not is_exception and event_time_local < (now - timedelta(hours=2)):
+                continue
+
+            # ambil title
             span_tags = row.select(".list-club-wrapper span")
             team1 = span_tags[0].text.strip() if len(span_tags) > 0 else ""
             team2 = span_tags[1].text.strip() if len(span_tags) > 1 else ""
@@ -125,7 +131,6 @@ def extract_matches_from_html(html):
             elif team2 and team2.lower() != "vs":
                 title = team2
             else:
-                # fallback terakhir: slug URL
                 title = clean_title(slug.replace("-", " "))
 
             title = clean_title(title)
