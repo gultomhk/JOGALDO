@@ -92,56 +92,56 @@ def extract_matches_from_html(html):
     matches_table = soup.select("div.common-table-row.table-row")
     print(f"⛵️ Found {len(matches_table)} table-row matches")
 
-for row in matches_table:
-    try:
-        link = row.select_one("a[href^='/match/']")
-        if not link:
-            continue
-        slug = link['href'].replace('/match/', '').strip()
-        if slug in seen:
-            continue
-        seen.add(slug)
-
-        waktu_tag = row.select_one(".match-time")
-        if waktu_tag and waktu_tag.get("data-timestamp"):
-            timestamp = int(waktu_tag["data-timestamp"])
-            event_time_utc = datetime.fromtimestamp(timestamp, tz=timezone.utc)
-            event_time_local = event_time_utc.astimezone(tz.gettz("Asia/Jakarta"))
-            if event_time_local < (now - timedelta(hours=2)):
+    for row in matches_table:
+        try:
+            link = row.select_one("a[href^='/match/']")
+            if not link:
                 continue
-            waktu = event_time_local.strftime("%d/%m-%H.%M")
-        else:
-            waktu = "00/00-00.00"
+            slug = link['href'].replace('/match/', '').strip()
+            if slug in seen:
+                continue
+            seen.add(slug)
 
-        # ⬇️ Cek span dalam list-club-wrapper dengan validasi isi
-        span_tags = row.select(".list-club-wrapper span")
-        team1 = span_tags[0].text.strip() if len(span_tags) > 0 else ""
-        team2 = span_tags[1].text.strip() if len(span_tags) > 1 else ""
+            waktu_tag = row.select_one(".match-time")
+            if waktu_tag and waktu_tag.get("data-timestamp"):
+                timestamp = int(waktu_tag["data-timestamp"])
+                event_time_utc = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+                event_time_local = event_time_utc.astimezone(tz.gettz("Asia/Jakarta"))
+                if event_time_local < (now - timedelta(hours=2)):
+                    continue
+                waktu = event_time_local.strftime("%d/%m-%H.%M")
+            else:
+                waktu = "00/00-00.00"
 
-        if team1 and team2 and team1.lower() != "vs" and team2.lower() != "vs":
-            title = f"{team1} vs {team2}"
-        elif team1 and team1.lower() != "vs":
-            title = team1
-        elif team2 and team2.lower() != "vs":
-            title = team2
-        else:
-            # fallback terakhir: slug URL
-            title = clean_title(slug.replace("-", " "))
-        
-        title = clean_title(title)
-        print(f"📃 Parsed: {waktu} | {title}")
+            # ⬇️ Cek span dalam list-club-wrapper dengan validasi isi
+            span_tags = row.select(".list-club-wrapper span")
+            team1 = span_tags[0].text.strip() if len(span_tags) > 0 else ""
+            team2 = span_tags[1].text.strip() if len(span_tags) > 1 else ""
 
-        output += [
-            f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{LOGO}",{waktu} {title}',
-            f'#EXTVLCOPT:http-user-agent={USER_AGENT}',
-            f'#EXTVLCOPT:http-referrer={BASE_URL}/',
-            f'{WORKER_URL}{slug}'
-        ]
-    except Exception as e:
-        print(f"❌ Error parsing table row: {e}")
-        continue
+            if team1 and team2 and team1.lower() != "vs" and team2.lower() != "vs":
+                title = f"{team1} vs {team2}"
+            elif team1 and team1.lower() != "vs":
+                title = team1
+            elif team2 and team2.lower() != "vs":
+                title = team2
+            else:
+                # fallback terakhir: slug URL
+                title = clean_title(slug.replace("-", " "))
 
-return "\n".join(output)
+            title = clean_title(title)
+            print(f"📃 Parsed: {waktu} | {title}")
+
+            output += [
+                f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{LOGO}",{waktu} {title}',
+                f'#EXTVLCOPT:http-user-agent={USER_AGENT}',
+                f'#EXTVLCOPT:http-referrer={BASE_URL}/',
+                f'{WORKER_URL}{slug}'
+            ]
+        except Exception as e:
+            print(f"❌ Error parsing table row: {e}")
+            continue
+
+    return "\n".join(output)
 
 # ====== Jalankan Script Utama ======
 if __name__ == "__main__":
