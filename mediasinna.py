@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 from pathlib import Path
 import datetime
 from zoneinfo import ZoneInfo
+import sys
 
 # Path ke file config
 MEDIASDATA_FILE = Path.home() / "mediasdata_file.txt"
@@ -61,11 +62,11 @@ def fetch_m3u_with_playwright():
 
             for i in range(3):
                 try:
-                    print(f"🔁 Attempt {i+1}: Navigating to {DEFAULT_URL}")
+                    print(f"🔁 Attempt {i+1}: Navigating to {DEFAULT_URL}", file=sys.stderr)
                     page.goto(DEFAULT_URL, timeout=60000, wait_until="domcontentloaded")
                     break
                 except PlaywrightTimeoutError:
-                    print(f"⚠️ Timeout on attempt {i+1}")
+                    print(f"⚠️ Timeout on attempt {i+1}", file=sys.stderr)
                     if i == 2:
                         browser.close()
                         raise Exception("❌ Gagal memuat halaman setelah 3 kali percobaan")
@@ -73,7 +74,7 @@ def fetch_m3u_with_playwright():
             try:
                 page.wait_for_selector(".box_02.click", timeout=10000)
             except PlaywrightTimeoutError:
-                print("❌ Elemen '.box_02.click' tidak ditemukan.")
+                print("❌ Elemen '.box_02.click' tidak ditemukan.", file=sys.stderr)
                 browser.close()
                 return ""
 
@@ -81,10 +82,10 @@ def fetch_m3u_with_playwright():
             browser.close()
 
     except Exception as e:
-        print(f"🔥 Gagal mengambil data Playwright: {e}")
+        print(f"🔥 Gagal mengambil data Playwright: {e}", file=sys.stderr)
         return ""
 
-    # Simpan HTML untuk debug
+    # Optional debug simpan HTML
     with open("page.html", "w", encoding="utf-8") as f:
         f.write(html)
 
@@ -93,17 +94,17 @@ def fetch_m3u_with_playwright():
     seen = set()
 
     match_boxes = soup.select(".box_02.click")
-    print(f"📦 Found {len(match_boxes)} match boxes")
+    print(f"📦 Found {len(match_boxes)} match boxes", file=sys.stderr)
 
     for box in match_boxes:
         match_id = box.get("link", "").split("-")[-1].replace(".html", "")
         if not match_id:
-            print("❌ Missing match_id, skipped")
+            print("❌ Missing match_id, skipped", file=sys.stderr)
             continue
 
         clubs = box.select(".club .name")
         if len(clubs) != 2:
-            print("❌ Incomplete club info, skipped")
+            print("❌ Incomplete club info, skipped", file=sys.stderr)
             continue
 
         team_a = translate_vi_to_id(clubs[0].text.strip())
@@ -112,7 +113,7 @@ def fetch_m3u_with_playwright():
         parent_li = box.find_parent("li")
         time_raw = parent_li.select_one(".box_01 .date")
         if not time_raw:
-            print("❌ Missing date info, skipped")
+            print("❌ Missing date info, skipped", file=sys.stderr)
             continue
 
         date_time_str = time_raw.text.strip().replace(" ", "")
@@ -124,7 +125,7 @@ def fetch_m3u_with_playwright():
             wib_time = event_time.astimezone(ZoneInfo("Asia/Jakarta"))
             formatted_time = wib_time.strftime("%d/%m-%H.%M")
         except Exception as time_err:
-            print(f"⏰ Error parsing time '{date_time_str}': {time_err}")
+            print(f"⏰ Error parsing time '{date_time_str}': {time_err}", file=sys.stderr)
             continue
 
         title = f"{formatted_time} {team_a} vs {team_b}"
