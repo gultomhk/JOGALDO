@@ -43,9 +43,9 @@ def translate_vi_to_id(text):
         "VĐQG Brazil": "Serie A Brasil", "VĐQG Argentina": "Liga Argentina", "Triều Tiên": "Terpilih",
         "VĐQG Bulgaria": "Liga Bulgaria", "Hạng hai": "Liga 2", "VĐQG": "Liga", "Đài Loan": "Taiwan",
         "Hạng nhất": "Devisi 1", "Ả Rập": "Arab", "Thụy Điển": "Swedia", "Ấn Độ": "India",
-        "Hàn Quốc": "Korea", "nữ": "Putri", "Trung Quốc": "Cina", "Mở Rộng": "terbuka",
-        "Bóng chuyền nam": "Bola voli putra", "Bóng chuyền nữ": "Bola voli putri",
-        "Bóng rổ": "Bola basket", "Nhật Bản": "Jepang", "Hạng Nhì": "Liga 2",
+        "Hàn Quốc": "Korea", "nữ": "Putri", "Trung Quốc": "Cina", "Mở Rộng": "terbuka", "Huyền thoại": "Legendaris",
+        "Bóng chuyền nam": "Bola voli putra", "Bóng chuyền nữ": "Bola voli putri", "Giải Vô địch": "Kejuaraan",
+        "Bóng rổ": "Bola basket", "Nhật Bản": "Jepang", "Hạng Nhì": "Liga 2", "Trực tiếp": "Live", "Đơn Nữ": "Tunggal Putri", "Đơn Nam": "Tunggal Putra",
         "Ba Lan": "Polandia", "Hy Lạp": "Yunani", "Ai Cập": "Mesir", "Pháp": "Perancis", "Giải Tennis": "Turnamen Tenis",
         "Tây Ban Nha": "Spanyol", "Bỉ": "Belgia", "Thổ Nhĩ Kỳ": "Turki", "Đài Bắc Trung Hoa": "Cina Taipei", "Đài Bắc Trung hoa": "Taipei",
     }
