@@ -10,7 +10,6 @@ MAPPING_FILE = Path.home() / "cool_mapping.txt"
 CACHE_FILE = Path("proxy_cache.txt")
 FAILED_FILE = Path("proxy_failed.txt")
 
-
 def parse_mapping_file(path):
     headers, mapping, default, constants = {}, {}, {}, {}
     with open(path) as f:
@@ -28,12 +27,11 @@ def parse_mapping_file(path):
             elif "=" in line and not any(x in line for x in [".type", ".url", ".license"]):
                 k, v = line.split("=", 1)
                 constants[k.strip()] = v.strip()
-            elif any(k in line for k in [".type", ".url"]):
+            elif any(k in line for k in [".type", ".url", ".license", ".user-agent", ".referer", ".license_type"]):
                 k, v = line.split("=", 1)
                 id_part, prop = k.split(".")
-                mapping.setdefault(id_part, {})[prop] = v
+                mapping.setdefault(id_part.strip(), {})[prop.strip()] = v.strip()
     return headers, constants, mapping, default
-
 
 def get_proxy_list(url):
     try:
@@ -43,7 +41,6 @@ def get_proxy_list(url):
     except Exception as e:
         print(f"[!] Gagal ambil proxy list: {e}", file=sys.stderr)
         return []
-
 
 def try_proxy(api_url, proxy, headers):
     proxies = {"http": proxy, "https": proxy}
@@ -56,16 +53,13 @@ def try_proxy(api_url, proxy, headers):
         print(f"[×] Proxy gagal: {proxy} → {e}", file=sys.stderr)
         return None
 
-
 def simpan_cache_berhasil(proxy):
     CACHE_FILE.write_text(proxy)
     print(f"[✓] Proxy disimpan ke cache: {proxy}", file=sys.stderr)
 
-
 def simpan_cache_gagal(proxy):
     with FAILED_FILE.open("a") as f:
         f.write(proxy + "\n")
-
 
 def tampilkan_playlist(data, constants, mapping, default):
     print("#EXTM3U")
@@ -80,7 +74,6 @@ def tampilkan_playlist(data, constants, mapping, default):
         logo = attr.get("cover_url", "").strip()
         start_time = attr.get("start_time")
 
-        # Urutan prioritas ID: meta → content_id → id
         livestreaming_id = str(
             meta.get("livestreaming_id") or attr.get("content_id") or item.get("id") or ""
         ).strip()
@@ -97,10 +90,28 @@ def tampilkan_playlist(data, constants, mapping, default):
         print(f'#EXTINF:-1 tvg-logo="{logo}" group-title="⚽️| LIVE EVENT", {waktu} {title}')
         print('#EXTVLCOPT:http-user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/534.24 (KHTML, like Gecko) Chrome/11.0.696.34 Safari/534.24')
 
-        if livestreaming_id in constants:
+        if livestreaming_id in mapping:
+            stream = mapping[livestreaming_id]
+            ua = stream.get("user-agent")
+            ref = stream.get("referer")
+            license_type = stream.get("license_type", "com.widevine.alpha")
+            license_key = stream.get("license", "").replace("{id}", livestreaming_id)
+            stream_url = stream.get("url", "").replace("{id}", livestreaming_id)
+            manifest_type = "dash" if stream.get("type") == "dash" else "hls"
+
+            if ua:
+                print(f'#EXTVLCOPT:http-user-agent={ua}')
+            if ref:
+                print(f'#EXTVLCOPT:http-referrer={ref}')
+            
+            print(f'#KODIPROP:inputstream.adaptive.manifest_type={manifest_type}')
+            print(f'#KODIPROP:inputstream.adaptive.license_type={license_type}')
+            print(f'#KODIPROP:inputstream.adaptive.license_key={license_key}')
+            print(stream_url)
+
+        elif livestreaming_id in constants:
             print(constants[livestreaming_id])
-        elif livestreaming_id in mapping and mapping[livestreaming_id].get("type") == "hls":
-            print(mapping[livestreaming_id]["url"])
+
         else:
             license_key = default.get("license", "").replace("{id}", livestreaming_id)
             dash_url = default.get("url", "").replace("{id}", livestreaming_id)
@@ -110,8 +121,7 @@ def tampilkan_playlist(data, constants, mapping, default):
             print(f'#KODIPROP:inputstream.adaptive.license_key={license_key}')
             print(dash_url)
 
-        print()
-
+        print()  # baris kosong antar channel
 
 def main():
     headers, constants, mapping, default = parse_mapping_file(MAPPING_FILE)
@@ -151,7 +161,6 @@ def main():
 
     print("❌ Semua proxy gagal.", file=sys.stderr)
     return 1
-
 
 if __name__ == "__main__":
     sys.exit(main())
