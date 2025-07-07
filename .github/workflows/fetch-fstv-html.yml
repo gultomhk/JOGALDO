@@ -3,7 +3,7 @@ name: Fetch BODATTV HTML
 on:
   workflow_dispatch:  # Bisa dijalankan manual dari GitHub UI
   schedule:
-    - cron: '0 * * * *'  # Setiap 1 jam
+    - cron: '0 */2 * * *'  # Setiap 2 jam
 
 permissions:
   contents: write  # ⬅️ Wajib agar bisa push ke repo
