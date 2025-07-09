@@ -2,6 +2,7 @@ import os
 import json
 import requests
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from urllib.parse import unquote, urlparse, parse_qs
 from pathlib import Path
 from playwright.sync_api import sync_playwright
