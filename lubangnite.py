@@ -91,29 +91,31 @@ def extract_tokenized_m3u8(match_id):
 
         def handle_response(response):
             nonlocal found_url
-            try:
-                url = response.url
-                if "wowhaha.php" in url and "m3u8=" in url:
-                    print(f"✅ Ditemukan iframe:\n{url}")
-                    parsed = urlparse(url)
-                    qs = parse_qs(parsed.query)
+            url = response.url
+            if "wowhaha.php" in url and "m3u8=" in url:
+                print(f"✅ Ditemukan iframe:\n{url}")
+                parsed = urlparse(url)
+                qs = parse_qs(parsed.query)
 
-                    m3u8_raw = unquote(qs.get("m3u8", [""])[0])
-                    token_full = qs.get("token", [""])[0]
+                m3u8_raw = unquote(qs.get("m3u8", [""])[0])
+                token_full = qs.get("token", [""])[0]
 
-                    parts = token_full.split(".false.")
-                    if len(parts) == 2:
-                        token, verify = parts
-                        # Pastikan `m3u8_raw` bukan dari cdn-rum.n2olabs (jangan double proxy)
-                        if "cdn-rum.n2olabs.pro" not in m3u8_raw:
-                            encoded_url = quote(m3u8_raw, safe="")
-                            found_url = (
-                                f"{PROXY_BASE_URL}?url={encoded_url}"
-                                f"&token={token}&is_vip=false&verify={verify}"
-                            )
-                            print(f"🌟 URL final m3u8:\n{found_url}")
-            except Exception as e:
-                print(f"⚠️ Gagal handle response: {e}")
+                # ❗️ Abaikan jika m3u8 sudah mengandung cdn-rum.n2olabs.pro
+                if "cdn-rum.n2olabs.pro" in m3u8_raw:
+                    print("⚠️ Abaikan URL self-proxy, m3u8 sudah melalui proxy")
+                    return
+
+                parts = token_full.split(".false.")
+                if len(parts) == 2:
+                    token = parts[0]
+                    verify = parts[1]
+
+                    encoded_url = quote(m3u8_raw, safe="")
+                    found_url = (
+                        f"{PROXY_BASE_URL}?url={encoded_url}"
+                        f"&token={token}&is_vip=false&verify={verify}"
+                    )
+                    print(f"🌟 URL final m3u8:\n{found_url}")
 
         page.on("response", handle_response)
         page.wait_for_timeout(30000)
