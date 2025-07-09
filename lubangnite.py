@@ -21,9 +21,9 @@ AXLIVE_MATCH_BASE_URL = os.getenv("AXLIVE_MATCH_BASE_URL")
 
 def get_live_match_ids():
     urls = {
-        "main": (AXLIVE_LIVESTREAM_URL, True),
-        "featured": (AXLIVE_FEATURED_URL, False),
-        "sport3": (AXLIVE_LIVESTREAM_SPORT3_URL, True),
+        "main": (AXLIVE_LIVESTREAM_URL, True),       # Apply time filter
+        "featured": (AXLIVE_FEATURED_URL, False),     # No time filter
+        "sport3": (AXLIVE_LIVESTREAM_SPORT3_URL, True),  # Apply time filter
     }
 
     headers = {
@@ -40,9 +40,10 @@ def get_live_match_ids():
             res = requests.get(url, headers=headers, timeout=15)
             res.raise_for_status()
             json_data = res.json()
-
-            match_dict = {}
             matches = json_data.get("data", [])
+
+            live_matches = {}
+            upcoming_matches = {}
 
             for match in matches:
                 try:
@@ -63,25 +64,34 @@ def get_live_match_ids():
                     if apply_time_filter and event_time_local < (now - timedelta(hours=2)):
                         continue
 
-                    match_dict[match_id] = start_at
+                    status = match.get("status", "").upper()
+
+                    if status == "LIVE":
+                        live_matches[match_id] = start_at
+                    else:
+                        upcoming_matches[match_id] = start_at
+
                     seen_ids.add(match_id)
 
                 except Exception as e:
                     print(f"❌ Error parsing match: {e}")
 
-            # Ambil 5 event terbaru (start_at terbesar)
-            sorted_latest = dict(sorted(match_dict.items(), key=lambda x: x[1], reverse=True)[:5])
-            print(f"✅ {label}: {list(sorted_latest.keys())}")
-            combined_dict.update(sorted_latest)
+            # Ambil max 5 LIVE + 5 Upcoming dari masing-masing kategori
+            combined = dict(
+                list(sorted(live_matches.items(), key=lambda x: x[1]))[:5] +
+                list(sorted(upcoming_matches.items(), key=lambda x: x[1]))[:5]
+            )
+
+            print(f"✅ {label}: {list(combined.keys())}")
+            combined_dict.update(combined)
 
         except Exception as e:
-            print(f"⚠️ Gagal fetch dari {url}: {e}")
+            print(f"⚠️ Gagal fetch dari {label}: {e}")
 
-    # Gabungkan semua dan urutkan berdasarkan start_at naik (kronologis)
+    # Gabungkan semua hasil dan urutkan berdasarkan waktu mulai
     final_sorted = dict(sorted(combined_dict.items(), key=lambda x: x[1]))
     print(f"🎯 Total ID gabungan: {list(final_sorted.keys())}")
     return final_sorted
-
 
 def extract_tokenized_m3u8(match_id):
     page_url = f"{AXLIVE_MATCH_BASE_URL}/{match_id}?t=suggest"
