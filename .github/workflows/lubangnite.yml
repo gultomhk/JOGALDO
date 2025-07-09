@@ -1,0 +1,41 @@
+name: Scrape M3U8 from AxLive
+
+on:
+  workflow_dispatch:  # Bisa dijalankan manual
+  schedule:
+    - cron: '0 * * * *'  # Setiap jam
+
+jobs:
+  scrape_axlive:
+    runs-on: ubuntu-latest
+
+    env:
+      AXLIVE_LIVESTREAM_URL: ${{ secrets.AXLIVE_LIVESTREAM_URL }}
+      AXLIVE_FEATURED_URL: ${{ secrets.AXLIVE_FEATURED_URL }}
+      AXLIVE_MATCH_BASE_URL: ${{ secrets.AXLIVE_MATCH_BASE_URL }}
+
+    steps:
+      - name: 📦 Checkout repo
+        uses: actions/checkout@v3
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 🔧 Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests python-dotenv playwright
+          playwright install chromium
+
+      - name: ▶ Jalankan skrip
+        run: python lubangnite.py
+
+      - name: 💾 Commit & Push map.json
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email github-actions[bot]@users.noreply.github.com
+          git add map.json
+          git commit -m "Update map.json - $(date +'%Y-%m-%d %H:%M:%S')" || echo "Tidak ada perubahan"
+          git push
