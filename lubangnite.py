@@ -171,7 +171,19 @@ def save_to_map(match_dict):
 if __name__ == "__main__":
     try:
         match_dict = get_live_match_ids()
-        limited = dict(list(match_dict.items())[:10])
+
+        # Ambil ID yang sudah diproses
+        done_ids = []
+        if MAP_FILE.exists():
+            with open(MAP_FILE) as f:
+                done_ids = list(json.load(f).keys())
+
+        # Ambil hanya ID baru yang belum ada
+        pending = {k: v for k, v in match_dict.items() if k not in done_ids}
+
+        # Ambil maksimal 10 ID berikutnya untuk diproses
+        limited = dict(list(pending.items())[:10])
+
         save_to_map(limited)
     except Exception as e:
         print(f"❌ Fatal Error: {e}")
