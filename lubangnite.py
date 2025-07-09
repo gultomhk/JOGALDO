@@ -1,6 +1,7 @@
 import os
 import json
 import requests
+from urllib.parse import quot
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from urllib.parse import unquote, urlparse, parse_qs, quote
@@ -81,31 +82,41 @@ def extract_tokenized_m3u8(match_id):
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        context = browser.new_context(user_agent="Mozilla/5.0")
+        context = browser.new_context(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
         page = context.new_page()
 
         print(f"🔍 Membuka {page_url}")
         page.goto(page_url, timeout=60000)
 
         def handle_response(response):
-            nonlocal final_url
             url = response.url
             if "wowhaha.php" in url and "m3u8=" in url:
+                print(f"✅ Ditemukan iframe:\n{url}")
                 parsed = urlparse(url)
                 qs = parse_qs(parsed.query)
+
                 m3u8_raw = unquote(qs.get("m3u8", [""])[0])
                 token_full = qs.get("token", [""])[0]
 
                 parts = token_full.split(".false.")
                 if len(parts) == 2:
-                    token, verify = parts
-                    final_url = f"{m3u8_raw}?token={token}&is_vip=false&verify={verify}"
-                    print(f"🌟 URL m3u8 ditemukan:\n{final_url}")
+                    token = parts[0]
+                    verify = parts[1]
+
+                    # Encode hanya parameter `url=` satu kali, aman untuk proxy
+                    encoded_url = quote(m3u8_raw, safe="")  # encode semua karakter termasuk "/"
+                    global final_url
+                    final_url = (
+                        f"{PROXY_BASE_URL}?url={encoded_url}"
+                        f"&token={token}&is_vip=false&verify={verify}"
+                    )
+                    print(f"🌟 URL final m3u8:\n{final_url}")
 
         page.on("response", handle_response)
         page.wait_for_timeout(30000)
         browser.close()
-        return final_url
+
+    return final_url
 
 def to_proxy_url(raw_url):
     parsed = urlparse(raw_url)
