@@ -18,37 +18,67 @@ AXLIVE_MATCH_BASE_URL = os.getenv("AXLIVE_MATCH_BASE_URL")
 
 
 def get_live_match_ids():
-    urls = [AXLIVE_LIVESTREAM_URL, AXLIVE_FEATURED_URL]
+    urls = {
+        "main": (AXLIVE_LIVESTREAM_URL, True),
+        "featured": (AXLIVE_FEATURED_URL, False),
+        "sport3": (AXLIVE_LIVESTREAM_SPORT3_URL, True),
+    }
+
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
     }
 
     print("🔎 Mengambil ID dari API jadwal...")
-    match_dict = {}
+    combined_dict = {}
+    seen_ids = set()
+    now = datetime.now(ZoneInfo("Asia/Jakarta"))
 
-    for url in urls:
+    for label, (url, apply_time_filter) in urls.items():
         try:
             res = requests.get(url, headers=headers, timeout=15)
             res.raise_for_status()
             json_data = res.json()
 
-            for match in json_data.get("data", []):
-                match_id = str(match.get("id"))
-                start_at = match.get("start_at", 0)
-                status = match.get("status", "")
-                has_live = match.get("has_live", False)
+            match_dict = {}
+            matches = json_data.get("data", [])
 
-                if match_id.isdigit() and has_live and status not in ["FT", "Can", "Cancelled"]:
+            for match in matches:
+                try:
+                    if not match.get("has_live"):
+                        continue
+
+                    match_id = str(match.get("id"))
+                    if not match_id or match_id in seen_ids:
+                        continue
+
+                    start_at = match.get("start_at")
+                    if not start_at:
+                        continue
+
+                    event_time_utc = datetime.fromtimestamp(start_at, ZoneInfo("UTC"))
+                    event_time_local = event_time_utc.astimezone(ZoneInfo("Asia/Jakarta"))
+
+                    if apply_time_filter and event_time_local < (now - timedelta(hours=2)):
+                        continue
+
                     match_dict[match_id] = start_at
+                    seen_ids.add(match_id)
+
+                except Exception as e:
+                    print(f"❌ Error parsing match: {e}")
+
+            # Ambil 5 event terbaru (start_at terbesar)
+            sorted_latest = dict(sorted(match_dict.items(), key=lambda x: x[1], reverse=True)[:5])
+            print(f"✅ {label}: {list(sorted_latest.keys())}")
+            combined_dict.update(sorted_latest)
 
         except Exception as e:
             print(f"⚠️ Gagal fetch dari {url}: {e}")
 
-    sorted_ids = sorted(match_dict.items(), key=lambda x: x[1])
-    sorted_id_list = [match_id for match_id, _ in sorted_ids]
-
-    print(f"✅ Ditemukan {len(sorted_id_list)} ID aktif: {sorted_id_list}")
-    return match_dict
+    # Gabungkan semua dan urutkan berdasarkan start_at naik (kronologis)
+    final_sorted = dict(sorted(combined_dict.items(), key=lambda x: x[1]))
+    print(f"🎯 Total ID gabungan: {list(final_sorted.keys())}")
+    return final_sorted
 
 
 def extract_tokenized_m3u8(match_id):
