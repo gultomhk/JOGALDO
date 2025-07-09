@@ -165,5 +165,5 @@ def save_to_map(match_dict):
 
 if __name__ == "__main__":
     match_dict = get_live_match_ids()
-    limited_matches = dict(list(match_dict.items())[:5])
+    limited_matches = dict(list(match_dict.items())[:20])
     save_to_map(limited_matches)
