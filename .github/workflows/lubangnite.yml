@@ -17,6 +17,7 @@ jobs:
       AXLIVE_FEATURED_URL: ${{ secrets.AXLIVE_FEATURED_URL }}
       AXLIVE_LIVESTREAM_SPORT3_URL: ${{ secrets.AXLIVE_LIVESTREAM_SPORT3_URL }}
       AXLIVE_MATCH_BASE_URL: ${{ secrets.AXLIVE_MATCH_BASE_URL }}
+      PROXY_BASE_URL: ${{ secrets.PROXY_BASE_URL }}
 
     steps:
       - name: 📦 Checkout repo
