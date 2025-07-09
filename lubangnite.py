@@ -77,7 +77,7 @@ def get_live_match_ids():
 
 def extract_tokenized_m3u8(match_id):
     page_url = f"{AXLIVE_MATCH_BASE_URL}/{match_id}?t=suggest"
-    final_url = None
+    found_url = None  # gunakan ini
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
@@ -88,6 +88,7 @@ def extract_tokenized_m3u8(match_id):
         page.goto(page_url, timeout=60000)
 
         def handle_response(response):
+            nonlocal found_url  # gunakan nonlocal agar bisa diubah
             url = response.url
             if "wowhaha.php" in url and "m3u8=" in url:
                 print(f"✅ Ditemukan iframe:\n{url}")
@@ -102,20 +103,18 @@ def extract_tokenized_m3u8(match_id):
                     token = parts[0]
                     verify = parts[1]
 
-                    # Encode hanya parameter `url=` satu kali, aman untuk proxy
-                    encoded_url = quote(m3u8_raw, safe="")  # encode semua karakter termasuk "/"
-                    global final_url
-                    final_url = (
+                    encoded_url = quote(m3u8_raw, safe="")
+                    found_url = (
                         f"{PROXY_BASE_URL}?url={encoded_url}"
                         f"&token={token}&is_vip=false&verify={verify}"
                     )
-                    print(f"🌟 URL final m3u8:\n{final_url}")
+                    print(f"🌟 URL final m3u8:\n{found_url}")
 
         page.on("response", handle_response)
         page.wait_for_timeout(30000)
         browser.close()
 
-    return final_url
+    return found_url
 
 def to_proxy_url(raw_url):
     parsed = urlparse(raw_url)
