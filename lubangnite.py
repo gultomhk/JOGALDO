@@ -79,7 +79,7 @@ from urllib.parse import urlparse, parse_qs, unquote, quote
 
 def extract_tokenized_m3u8(match_id):
     page_url = f"{AXLIVE_MATCH_BASE_URL}/{match_id}?t=suggest"
-    found_url = None
+    final_url = None
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
@@ -90,52 +90,45 @@ def extract_tokenized_m3u8(match_id):
         page.goto(page_url, timeout=60000)
 
         def handle_response(response):
-            nonlocal found_url
+            nonlocal final_url
             url = response.url
+
             if "wowhaha.php" in url and "m3u8=" in url:
                 print(f"✅ Ditemukan iframe:\n{url}")
                 parsed = urlparse(url)
                 qs = parse_qs(parsed.query)
 
+                # Extract parameter
                 m3u8_raw = unquote(qs.get("m3u8", [""])[0])
                 token_full = qs.get("token", [""])[0]
 
                 if "cdn-rum.n2olabs.pro" in m3u8_raw:
-                    print("⚠️ Abaikan URL self-proxy")
+                    print("⚠️ Abaikan karena m3u8 sudah self-proxy")
                     return
 
                 parts = token_full.split(".false.")
                 if len(parts) == 2:
                     token = parts[0]
-                    verify = quote(parts[1], safe="")  # encode `verify` untuk hindari spasi/karakter aneh
-                    encoded_url = quote(m3u8_raw, safe="")
+                    verify = parts[1]
 
-                    found_url = (
-                        f"{PROXY_BASE_URL}?url={encoded_url}"
-                        f"&token={token}&is_vip=false&verify={verify}"
+                    encoded_url = quote(m3u8_raw, safe="")
+                    encoded_verify = quote(verify, safe="")
+
+                    # Format akhir langsung ke cdn-rum
+                    final_url = (
+                        f"https://cdn-rum.n2olabs.pro/stream.m3u8"
+                        f"?url={encoded_url}"
+                        f"&token={token}"
+                        f"&is_vip=false"
+                        f"&verify={encoded_verify}"
                     )
-                    print(f"🌟 URL final m3u8:\n{found_url}")
+                    print(f"🌟 URL final m3u8:\n{final_url}")
 
         page.on("response", handle_response)
         page.wait_for_timeout(30000)
         browser.close()
 
-    return found_url
-
-def to_proxy_url(raw_url):
-    parsed = urlparse(raw_url)
-    base_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
-    qs = parse_qs(parsed.query)
-
-    token = qs.get("token", [""])[0]
-    verify = quote(qs.get("verify", [""])[0], safe="")  # encode ulang
-    is_vip = qs.get("is_vip", ["false"])[0]
-    encoded_base = quote(base_url, safe="")
-
-    return (
-        f"{PROXY_BASE_URL}?url={encoded_base}"
-        f"&token={token}&is_vip={is_vip}&verify={verify}"
-    )
+    return final_url
 
 def save_to_map(match_dict):
     old_data = {}
@@ -149,11 +142,10 @@ def save_to_map(match_dict):
     for idx, (match_id, start_at) in enumerate(sorted(match_dict.items(), key=lambda x: x[1]), 1):
         print(f"[{idx}/{total}] ▶ Scraping ID: {match_id}")
         try:
-            m3u8 = extract_tokenized_m3u8(match_id)
-            if m3u8:
-                proxy_url = to_proxy_url(m3u8)
-                new_data[match_id] = proxy_url
-                print(f"✅ {match_id} berhasil: {proxy_url}")
+            m3u8_url = extract_tokenized_m3u8(match_id)
+            if m3u8_url:
+                new_data[match_id] = m3u8_url
+                print(f"✅ {match_id} berhasil: {m3u8_url}")
             else:
                 print(f"❌ {match_id} gagal ambil m3u8")
         except Exception as e:
