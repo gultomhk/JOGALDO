@@ -6,7 +6,7 @@ on:
     - cron: '*/30 * * * *'  # Setiap 30 menit
 
 permissions:
-  contents: write  # Wajib agar bisa push
+  contents: write  # Diperlukan agar bisa push
 
 jobs:
   scrape_axlive:
@@ -20,8 +20,10 @@ jobs:
       PROXY_BASE_URL: ${{ secrets.PROXY_BASE_URL }}
 
     steps:
-      - name: 📦 Checkout repo
+      - name: 📦 Checkout repository
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # penting untuk bisa git pull / rebase
 
       - name: 🐍 Setup Python
         uses: actions/setup-python@v5
@@ -34,20 +36,24 @@ jobs:
           pip install requests python-dotenv playwright
           playwright install chromium
 
-      - name: ▶ Jalankan skrip scraping
+      - name: ▶️ Jalankan skrip scraping
         run: python lubangnite.py
 
-      - name: 📦 Commit & Push jika ada perubahan
+      - name: 📤 Commit & Push jika ada perubahan
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Tambahkan file map.json jika ada perubahan
           git add map.json
 
-          # Cek apakah ada perubahan file
+          # Cek apakah ada perubahan staged
           if git diff --cached --quiet; then
             echo "ℹ️ Tidak ada perubahan pada map.json. Skip commit dan push."
           else
+            echo "✅ Perubahan terdeteksi. Commit dan push..."
             git commit -m "Update map.json - $(date +'%Y-%m-%d %H:%M:%S')"
-            git push
-            echo "🚀 Perubahan berhasil di-push ke repository."
+            git pull --rebase origin master
+            git push origin master
+            echo "🚀 Berhasil push ke repository."
           fi
