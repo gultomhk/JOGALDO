@@ -140,14 +140,20 @@ def to_proxy_url(raw_url):
     )
 
 def save_to_map(match_dict):
+    old_data = {}
+    if MAP_FILE.exists():
+        with open(MAP_FILE) as f:
+            old_data = json.load(f)
+
     new_data = {}
     total = len(match_dict)
 
     for idx, (match_id, start_at) in enumerate(sorted(match_dict.items(), key=lambda x: x[1]), 1):
         print(f"[{idx}/{total}] ▶ Scraping ID: {match_id}")
         try:
-            proxy_url = extract_tokenized_m3u8(match_id)
-            if proxy_url:
+            m3u8 = extract_tokenized_m3u8(match_id)
+            if m3u8:
+                proxy_url = to_proxy_url(m3u8)
                 new_data[match_id] = proxy_url
                 print(f"✅ {match_id} berhasil: {proxy_url}")
             else:
@@ -155,12 +161,15 @@ def save_to_map(match_dict):
         except Exception as e:
             print(f"❌ Error ID {match_id}: {e}")
 
-    ordered_data = dict(sorted(new_data.items(), key=lambda x: match_dict.get(x[0], 0)))
+    combined_data = {**old_data, **new_data}
+    ordered_data = dict(sorted(combined_data.items(), key=lambda x: match_dict.get(x[0], 0)))
 
-    with open(MAP_FILE, "w") as f:
-        json.dump(ordered_data, f, indent=2)
-
-    print(f"✅ Semua selesai. Total tersimpan: {len(ordered_data)} ke {MAP_FILE}")
+    if combined_data != old_data:
+        with open(MAP_FILE, "w") as f:
+            json.dump(ordered_data, f, indent=2)
+        print(f"✅ Semua selesai. Total tersimpan: {len(ordered_data)} ke {MAP_FILE}")
+    else:
+        print("ℹ️ Tidak ada perubahan pada map.json. Skip commit dan push.")
     
 if __name__ == "__main__":
     try:
