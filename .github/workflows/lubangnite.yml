@@ -3,7 +3,7 @@ name: Scrape M3U8 from AxLive
 on:
   workflow_dispatch:  # Bisa dijalankan manual
   schedule:
-    - cron: '0 * * * *'  # Setiap jam
+    - cron: '*/30 * * * *'  # Setiap 30 menit
 
 permissions:
   contents: write  # 🔑 INI WAJIB supaya bisa push
