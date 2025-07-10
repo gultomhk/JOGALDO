@@ -100,7 +100,6 @@ def extract_tokenized_m3u8(match_id):
                 m3u8_raw = unquote(qs.get("m3u8", [""])[0])
                 token_full = qs.get("token", [""])[0]
 
-                # ❗️ Abaikan jika m3u8 sudah mengandung cdn-rum.n2olabs.pro
                 if "cdn-rum.n2olabs.pro" in m3u8_raw:
                     print("⚠️ Abaikan URL self-proxy, m3u8 sudah melalui proxy")
                     return
@@ -108,7 +107,7 @@ def extract_tokenized_m3u8(match_id):
                 parts = token_full.split(".false.")
                 if len(parts) == 2:
                     token = parts[0]
-                    verify = parts[1]
+                    verify = quote(parts[1], safe="")  # Encode agar + tetap + (%2B)
 
                     encoded_url = quote(m3u8_raw, safe="")
                     found_url = (
@@ -127,10 +126,11 @@ def to_proxy_url(raw_url):
     parsed = urlparse(raw_url)
     base_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
     qs = parse_qs(parsed.query)
+
     token = qs.get("token", [""])[0]
-    verify = qs.get("verify", [""])[0]
+    verify = quote(qs.get("verify", [""])[0], safe="")  # Encode ulang verify
     is_vip = qs.get("is_vip", ["false"])[0]
-    encoded_base = quote(base_url)
+    encoded_base = quote(base_url, safe="")
 
     return (
         f"{PROXY_BASE_URL}?url={encoded_base}"
@@ -164,7 +164,7 @@ def save_to_map(match_dict):
     combined_data = {**old_data, **new_data}
     ordered_data = dict(sorted(combined_data.items(), key=lambda x: match_dict.get(x[0], 0)))
 
-    if combined_data != old_data:
+    if ordered_data != old_data:
         with open(MAP_FILE, "w") as f:
             json.dump(ordered_data, f, indent=2)
         print(f"✅ Semua selesai. Total tersimpan: {len(ordered_data)} ke {MAP_FILE}")
