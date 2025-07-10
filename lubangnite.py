@@ -101,15 +101,15 @@ def extract_tokenized_m3u8(match_id):
                 token_full = qs.get("token", [""])[0]
 
                 if "cdn-rum.n2olabs.pro" in m3u8_raw:
-                    print("⚠️ Abaikan URL self-proxy, m3u8 sudah melalui proxy")
+                    print("⚠️ Abaikan URL self-proxy")
                     return
 
                 parts = token_full.split(".false.")
                 if len(parts) == 2:
                     token = parts[0]
-                    verify = quote(parts[1], safe="")  # Encode agar + tetap + (%2B)
-
+                    verify = quote(parts[1], safe="")  # encode `verify` untuk hindari spasi/karakter aneh
                     encoded_url = quote(m3u8_raw, safe="")
+
                     found_url = (
                         f"{PROXY_BASE_URL}?url={encoded_url}"
                         f"&token={token}&is_vip=false&verify={verify}"
@@ -128,15 +128,13 @@ def to_proxy_url(raw_url):
     qs = parse_qs(parsed.query)
 
     token = qs.get("token", [""])[0]
-    verify = quote(qs.get("verify", [""])[0], safe="")  # Encode ulang verify
+    verify = quote(qs.get("verify", [""])[0], safe="")  # encode ulang
     is_vip = qs.get("is_vip", ["false"])[0]
     encoded_base = quote(base_url, safe="")
 
     return (
         f"{PROXY_BASE_URL}?url={encoded_base}"
-        f"&token={token}"
-        f"&is_vip={is_vip}"
-        f"&verify={verify}"
+        f"&token={token}&is_vip={is_vip}&verify={verify}"
     )
 
 def save_to_map(match_dict):
