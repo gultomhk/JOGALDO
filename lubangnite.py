@@ -156,9 +156,8 @@ def save_to_map(match_dict):
 
         print(f"[{idx}/{total}] ▶ Scraping ID: {match_id}")
         try:
-            m3u8 = extract_tokenized_m3u8(match_id)
-            if m3u8:
-                proxy_url = to_proxy_url(m3u8)
+            proxy_url = extract_tokenized_m3u8(match_id)
+            if proxy_url:
                 new_data[match_id] = proxy_url
                 print(f"✅ {match_id} berhasil: {proxy_url}")
             else:
@@ -173,7 +172,7 @@ def save_to_map(match_dict):
         json.dump(ordered_data, f, indent=2)
 
     print(f"✅ Semua selesai. Total tersimpan: {len(ordered_data)} ke {MAP_FILE}")
-
+    
 if __name__ == "__main__":
     try:
         match_dict = get_live_match_ids()
