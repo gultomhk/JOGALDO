@@ -1,12 +1,12 @@
 name: Scrape M3U8 from AxLive
 
 on:
-  workflow_dispatch:  # Bisa dijalankan manual
+  workflow_dispatch:
   schedule:
     - cron: '*/30 * * * *'  # Setiap 30 menit
 
 permissions:
-  contents: write  # 🔑 INI WAJIB supaya bisa push
+  contents: write  # Wajib agar bisa push
 
 jobs:
   scrape_axlive:
@@ -34,13 +34,20 @@ jobs:
           pip install requests python-dotenv playwright
           playwright install chromium
 
-      - name: ▶ Jalankan skrip
+      - name: ▶ Jalankan skrip scraping
         run: python lubangnite.py
 
-      - name: 💾 Commit & Push map.json
+      - name: 📦 Commit & Push jika ada perubahan
         run: |
-          git config user.name github-actions[bot]
-          git config user.email github-actions[bot]@users.noreply.github.com
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           git add map.json
-          git commit -m "Update map.json - $(date +'%Y-%m-%d %H:%M:%S')" || echo "Tidak ada perubahan"
-          git push origin HEAD
+
+          # Cek apakah ada perubahan file
+          if git diff --cached --quiet; then
+            echo "ℹ️ Tidak ada perubahan pada map.json. Skip commit dan push."
+          else
+            git commit -m "Update map.json - $(date +'%Y-%m-%d %H:%M:%S')"
+            git push
+            echo "🚀 Perubahan berhasil di-push ke repository."
+          fi
