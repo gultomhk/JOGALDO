@@ -175,7 +175,7 @@ if __name__ == "__main__":
         pending = {k: v for k, v in match_dict.items() if k not in done_ids}
 
         # Ambil maksimal 10 ID berikutnya untuk diproses
-        limited = dict(list(pending.items())[:10])
+        limited = dict(list(pending.items())[:15])
 
         save_to_map(limited)
     except Exception as e:
