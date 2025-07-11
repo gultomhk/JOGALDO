@@ -119,17 +119,17 @@ def extract_matches_from_html(html):
             if not is_exception and event_time_local < (now - timedelta(hours=2)):
                 continue
 
-            # ambil title
-            span_tags = row.select(".list-club-wrapper span")
-            team1 = span_tags[0].text.strip() if len(span_tags) > 0 else ""
-            team2 = span_tags[1].text.strip() if len(span_tags) > 1 else ""
-
-            if team1 and team2 and team1.lower() != "vs" and team2.lower() != "vs":
-                title = f"{team1} vs {team2}"
-            elif team1 and team1.lower() != "vs":
-                title = team1
-            elif team2 and team2.lower() != "vs":
-                title = team2
+            # ambil title fleksibel
+            wrapper = row.select_one(".list-club-wrapper")
+            if wrapper:
+                spans = wrapper.find_all("span")
+                texts = [s.text.strip() for s in spans if s.text.strip()]
+                if len(texts) >= 2:
+                    title = f"{texts[0]} vs {texts[1]}"
+                elif len(texts) == 1:
+                    title = texts[0]
+                else:
+                    title = wrapper.get_text(strip=True)
             else:
                 title = clean_title(slug.replace("-", " "))
 
@@ -145,7 +145,7 @@ def extract_matches_from_html(html):
         except Exception as e:
             print(f"❌ Error parsing table row: {e}")
             continue
-
+            
     return "\n".join(output)
 
 # ====== Jalankan Script Utama ======
