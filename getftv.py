@@ -79,8 +79,11 @@ def extract_matches_from_html(html):
             title = clean_title(slug.replace("-", " "))
 
         title = clean_title(title)
-        print(f"📃 Parsed: {waktu} | {title}")
+        if title.lower() == "vs" or len(title.strip()) < 3:
+            print(f"⚠️  Skip bad title (slide): {title}")
+            continue
 
+        print(f"📃 Parsed: {waktu} | {title}")
         output += [
             f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{LOGO}",{waktu} {title}',
             f'#EXTVLCOPT:http-user-agent={USER_AGENT}',
@@ -88,7 +91,7 @@ def extract_matches_from_html(html):
             f'{WORKER_URL}{slug}'
         ]
 
-    # === 2. common-table-row (Tennis, Billiards, dll) ===
+    # === 2. common-table-row (Tennis, Billiards, Motorsport, dll) ===
     matches_table = soup.select("div.common-table-row.table-row")
     print(f"⛵️ Found {len(matches_table)} table-row matches")
 
@@ -114,7 +117,7 @@ def extract_matches_from_html(html):
 
             # pengecualian filter waktu
             slug_lower = slug.lower()
-            is_exception = any(keyword in slug_lower for keyword in ["tennis", "billiards", "snooker"])
+            is_exception = any(keyword in slug_lower for keyword in ["tennis", "billiards", "snooker", "worldssp", "superbike"])
 
             if not is_exception and event_time_local < (now - timedelta(hours=2)):
                 continue
@@ -123,7 +126,8 @@ def extract_matches_from_html(html):
             wrapper = row.select_one(".list-club-wrapper")
             if wrapper:
                 spans = wrapper.find_all("span")
-                texts = [s.text.strip() for s in spans if s.text.strip()]
+                texts = [s.text.strip() for s in spans if s.text.strip().lower() != "vs"]
+
                 if len(texts) >= 2:
                     title = f"{texts[0]} vs {texts[1]}"
                 elif len(texts) == 1:
@@ -134,6 +138,10 @@ def extract_matches_from_html(html):
                 title = clean_title(slug.replace("-", " "))
 
             title = clean_title(title)
+            if title.lower() == "vs" or len(title.strip()) < 3:
+                print(f"⚠️  Skip bad title (table): {title}")
+                continue
+
             print(f"📃 Parsed: {waktu} | {title}")
 
             output += [
@@ -145,7 +153,7 @@ def extract_matches_from_html(html):
         except Exception as e:
             print(f"❌ Error parsing table row: {e}")
             continue
-            
+
     return "\n".join(output)
 
 # ====== Jalankan Script Utama ======
