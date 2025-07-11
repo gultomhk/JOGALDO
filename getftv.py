@@ -125,13 +125,13 @@ def extract_matches_from_html(html):
             # ambil title fleksibel
             wrapper = row.select_one(".list-club-wrapper")
             if wrapper:
-                spans = wrapper.find_all("span")
-                texts = [s.text.strip() for s in spans if s.text.strip().lower() != "vs"]
+                name_tags = wrapper.select(".club-name")
+                texts = [t.text.strip() for t in name_tags if t.text.strip().lower() != "vs"]
 
                 if len(texts) >= 2:
-                    title = f"{texts[0]} vs {texts[1]}"
+                    title = f"{texts[0].strip()} vs {texts[1].strip()}"
                 elif len(texts) == 1:
-                    title = texts[0]
+                    title = texts[0].strip()
                 else:
                     title = wrapper.get_text(strip=True)
             else:
