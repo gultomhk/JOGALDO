@@ -67,8 +67,6 @@ def process_playlist(source_url):
     i = 0
     buffer = []
 
-    found = 0  # counter debug
-
     while i < len(lines):
         line = lines[i].strip()
 
@@ -82,8 +80,7 @@ def process_playlist(source_url):
             continue
 
         if 'group-title="Sports | AstroGO"' in line:
-            found += 1
-            print(f"[MATCH] ▶ {line}")
+            print(f"[MATCH] ▶ {line}", file=sys.stderr)  # 👈 pindahkan ke stderr
 
             for meta in buffer:
                 output_lines.append(meta)
@@ -94,7 +91,7 @@ def process_playlist(source_url):
             buffer = []
 
             i += 1
-            while i < len(lines) and not lines[i].strip().startswith("#EXTINF"):
+            while i < len(lines) and not lines[i].startswith("#EXTINF"):
                 current_line = lines[i].strip()
                 if is_redirect_url(current_line):
                     resolved_url = resolve_redirect(current_line)
@@ -106,9 +103,6 @@ def process_playlist(source_url):
 
         buffer = []
         i += 1
-
-    if found == 0:
-        print("⚠️ Tidak ditemukan satupun EXTINF dengan group-title=Sports | AstroGO")
 
     return "\n".join(output_lines)
 
