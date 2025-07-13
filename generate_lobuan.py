@@ -48,46 +48,66 @@ def is_redirect_url(line):
 def resolve_redirect(url):
     try:
         r = requests.get(url, headers=headers, allow_redirects=False, timeout=10)
-        if r.status_code == 302:
-            return r.headers.get("Location")
+        if r.status_code in (301, 302):
+            return r.headers.get("Location", url)
     except:
         pass
     return url
 
+# Hapus atribut group-logo dari #EXTINF
 def remove_group_logo_attribute(extinf_line):
     return re.sub(r'\s*group-logo="[^"]+"', '', extinf_line)
 
-# Proses playlist
-proxies = get_proxy_list()
-res = request_with_proxies(source_url, proxies)
-res.raise_for_status()
-lines = res.text.splitlines()
+# Mulai proses
+def process_playlist(source_url):
+    proxies = get_proxy_list()
+    res = request_with_proxies(source_url, proxies)
+    res.raise_for_status()
+    lines = res.text.splitlines()
 
-output_lines = ["#EXTM3U"]
-i = 0
+    output_lines = ["#EXTM3U"]
+    i = 0
+    buffer = []
 
-while i < len(lines):
-    line = lines[i].strip()
+    while i < len(lines):
+        line = lines[i].strip()
 
-    if line.startswith("#EXTINF") and 'group-title="Sports | AstroGO"' in line:
-        cleaned_line = remove_group_logo_attribute(line)
-        modified_line = cleaned_line.replace('group-title="Sports | AstroGO"', 'group-title="🏎|TV SPORT"')
-        output_lines.append(modified_line)
-
-        i += 1
-        while i < len(lines) and not lines[i].startswith("#EXTINF"):
-            current_line = lines[i].strip()
-
-            if is_redirect_url(current_line):
-                resolved_url = resolve_redirect(current_line)
-                output_lines.append(resolved_url)
-            else:
-                output_lines.append(current_line)
-
+        if not line:
             i += 1
-        continue
+            continue
 
-    i += 1
+        # Simpan metadata sebelum #EXTINF
+        if not line.startswith("#EXTINF"):
+            buffer.append(line)
+            i += 1
+            continue
 
-# Output bersih ke stdout
-print("\n".join(output_lines))
+        # Proses hanya jika EXTINF berisi group-title target
+        if 'group-title="Sports | AstroGO"' in line:
+            # Tambahkan metadata dari buffer
+            for meta in buffer:
+                output_lines.append(meta)
+
+            # Proses EXTINF
+            cleaned_line = remove_group_logo_attribute(line)
+            modified_line = cleaned_line.replace('group-title="Sports | AstroGO"', 'group-title="🏎|TV SPORT"')
+            output_lines.append(modified_line)
+            buffer = []  # Reset buffer
+
+            # Tambahkan URL dan baris setelah EXTINF
+            i += 1
+            while i < len(lines) and not lines[i].startswith("#EXTINF"):
+                current_line = lines[i].strip()
+                if is_redirect_url(current_line):
+                    resolved_url = resolve_redirect(current_line)
+                    output_lines.append(resolved_url)
+                else:
+                    output_lines.append(current_line)
+                i += 1
+            continue
+
+        # Jika EXTINF tapi bukan AstroGO, skip
+        buffer = []
+        i += 1
+
+    return "\n".join(output_lines)
