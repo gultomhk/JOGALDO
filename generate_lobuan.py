@@ -28,21 +28,18 @@ def get_proxy_list():
         res = requests.get(proxy_list_url, timeout=10)
         res.raise_for_status()
         return [line.strip() for line in res.text.splitlines() if line.strip()]
-    except Exception as e:
-        print(f"[!] Gagal ambil proxy list: {e}")
+    except:
         return []
 
 def request_with_proxies(url, proxies, **kwargs):
     for proxy in proxies:
         try:
-            print(f"[*] Coba proxy: {proxy}")
             proxy_dict = {"http": proxy, "https": proxy}
             res = requests.get(url, headers=headers, proxies=proxy_dict, timeout=10, **kwargs)
             if res.status_code == 200:
                 return res
-        except Exception as e:
-            print(f"[!] Proxy gagal: {proxy} → {e}")
-    print("[!] Semua proxy gagal, fallback ke direct")
+        except:
+            continue
     return requests.get(url, headers=headers, timeout=10, **kwargs)
 
 def is_redirect_url(line):
@@ -53,11 +50,9 @@ def resolve_redirect(url):
         r = requests.get(url, headers=headers, allow_redirects=False, timeout=10)
         if r.status_code == 302:
             return r.headers.get("Location")
-        else:
-            print(f"[!] Bukan redirect (status {r.status_code}): {url}")
-    except Exception as e:
-        print(f"[!] Error: {e} → {url}")
-    return url  # fallback
+    except:
+        pass
+    return url
 
 def remove_group_logo_attribute(extinf_line):
     return re.sub(r'\s*group-logo="[^"]+"', '', extinf_line)
@@ -73,7 +68,7 @@ i = 0
 
 while i < len(lines):
     line = lines[i].strip()
-    
+
     if line.startswith("#EXTINF") and 'group-title="Sports | AstroGO"' in line:
         cleaned_line = remove_group_logo_attribute(line)
         modified_line = cleaned_line.replace('group-title="Sports | AstroGO"', 'group-title="🏎|TV SPORT"')
@@ -86,7 +81,6 @@ while i < len(lines):
             if is_redirect_url(current_line):
                 resolved_url = resolve_redirect(current_line)
                 output_lines.append(resolved_url)
-                print(f"[+] Redirect diganti: {current_line} → {resolved_url}")
             else:
                 output_lines.append(current_line)
 
@@ -95,5 +89,5 @@ while i < len(lines):
 
     i += 1
 
-# Output ke stdout (biar ditangani YAML dengan `> rockdata.m3u`)
+# Output bersih ke stdout
 print("\n".join(output_lines))
