@@ -1,0 +1,43 @@
+name: Generate Lobuan M3U
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # Setiap 1 jam (UTC)
+  workflow_dispatch:  # Bisa juga dijalankan manual
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo publik (script)
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Clone konfigurasi dari repo privat
+        run: |
+          git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} private
+          cp private/datarock_file.txt $HOME/datarock_file.txt
+
+      - name: Install dependencies (jika perlu)
+        run: |
+          pip install requests
+
+      - name: Jalankan script dan simpan ke file
+        run: |
+          python generate_lobuan.py > rockdata.m3u
+
+      - name: Commit hasil ke repo privat
+        run: |
+          git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} repo-output
+          cp rockdata.m3u repo-output/
+          cd repo-output
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add rockdata.m3u
+          git commit -m "update rockdata.m3u $(date +'%Y-%m-%d %H:%M:%S')" || echo "Nothing to commit"
+          git push origin master
