@@ -54,11 +54,9 @@ def resolve_redirect(url):
         pass
     return url
 
-# Hapus atribut group-logo dari #EXTINF
 def remove_group_logo_attribute(extinf_line):
     return re.sub(r'\s*group-logo="[^"]+"', '', extinf_line)
 
-# Mulai proses
 def process_playlist(source_url):
     proxies = get_proxy_list()
     res = request_with_proxies(source_url, proxies)
@@ -69,6 +67,8 @@ def process_playlist(source_url):
     i = 0
     buffer = []
 
+    found = 0  # counter debug
+
     while i < len(lines):
         line = lines[i].strip()
 
@@ -76,27 +76,25 @@ def process_playlist(source_url):
             i += 1
             continue
 
-        # Simpan metadata sebelum #EXTINF
         if not line.startswith("#EXTINF"):
             buffer.append(line)
             i += 1
             continue
 
-        # Proses hanya jika EXTINF berisi group-title target
         if 'group-title="Sports | AstroGO"' in line:
-            # Tambahkan metadata dari buffer
+            found += 1
+            print(f"[MATCH] ▶ {line}")
+
             for meta in buffer:
                 output_lines.append(meta)
 
-            # Proses EXTINF
             cleaned_line = remove_group_logo_attribute(line)
             modified_line = cleaned_line.replace('group-title="Sports | AstroGO"', 'group-title="🏎|TV SPORT"')
             output_lines.append(modified_line)
-            buffer = []  # Reset buffer
+            buffer = []
 
-            # Tambahkan URL dan baris setelah EXTINF
             i += 1
-            while i < len(lines) and not lines[i].startswith("#EXTINF"):
+            while i < len(lines) and not lines[i].strip().startswith("#EXTINF"):
                 current_line = lines[i].strip()
                 if is_redirect_url(current_line):
                     resolved_url = resolve_redirect(current_line)
@@ -106,8 +104,14 @@ def process_playlist(source_url):
                 i += 1
             continue
 
-        # Jika EXTINF tapi bukan AstroGO, skip
         buffer = []
         i += 1
 
+    if found == 0:
+        print("⚠️ Tidak ditemukan satupun EXTINF dengan group-title=Sports | AstroGO")
+
     return "\n".join(output_lines)
+
+if __name__ == "__main__":
+    result = process_playlist(source_url)
+    print(result)
