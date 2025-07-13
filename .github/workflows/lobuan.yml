@@ -30,6 +30,9 @@ jobs:
       - name: Jalankan script dan simpan ke file
         run: |
           python generate_lobuan.py > rockdata.m3u
+          
+      - name: Debug isi file
+        run: cat rockdata.m3u
 
       - name: Commit hasil ke repo privat
         run: |
