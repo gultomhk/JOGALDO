@@ -72,9 +72,9 @@ def extract_slugs_from_html(html):
 def fetch_map(slugs):
     map_data = {}
 
-    for slug in slugs:
+    for idx, slug in enumerate(slugs, 1):
         try:
-            print(f"🌐 Proses slug: {slug}")
+            print(f"[{idx}/{len(slugs)}] 🌐 Proses slug: {slug}", flush=True)
             url = f"{BASE_URL}/match/{slug}"
             r = requests.get(url, headers=HEADERS, timeout=15)
             r.raise_for_status()
@@ -83,7 +83,7 @@ def fetch_map(slugs):
             iframe = soup.select_one("iframe[src*='link=']")
 
             if not iframe:
-                print(f"❌ iframe tidak ditemukan untuk: {slug}")
+                print(f"   ❌ iframe tidak ditemukan untuk: {slug}", flush=True)
                 continue
 
             full_url = urljoin(BASE_URL, iframe["src"])
@@ -91,18 +91,18 @@ def fetch_map(slugs):
             m3u8_encoded = query.get("link", [""])[0]
 
             if not m3u8_encoded:
-                print(f"⚠️ Tidak ada parameter link= di iframe untuk: {slug}")
+                print(f"   ⚠️ Tidak ada parameter link= di iframe: {slug}", flush=True)
                 continue
 
             m3u8_url = unquote(m3u8_encoded)
             if ".m3u8" in m3u8_url:
                 map_data[slug] = m3u8_url
-                print(f"✅ M3U8 valid: {slug} -> {m3u8_url}")
+                print(f"   ✅ M3U8 valid: {m3u8_url}", flush=True)
             else:
-                print(f"⚠️ Link tidak valid (bukan .m3u8): {m3u8_url}")
+                print(f"   ⚠️ Link bukan .m3u8: {m3u8_url}", flush=True)
 
         except Exception as e:
-            print(f"❌ Error saat memproses {slug}: {e}")
+            print(f"   ❌ Error saat memproses {slug}: {e}", flush=True)
 
     return map_data
 
@@ -122,17 +122,22 @@ if __name__ == "__main__":
     else:
         old_map = {}
 
-    # Filter slug yang belum ada di map lama
-    new_slugs = [slug for slug in slug_list if slug not in old_map]
+    # --only-new filter
+    if args.only_new:
+        slug_list = [slug for slug in slug_list if slug not in old_map]
+        print(f"🔍 Filter --only-new aktif: {len(slug_list)} slug tersisa")
 
-    if not new_slugs:
-        print("🟡 Tidak ada slug baru untuk diproses.")
+    # --limit filter
+    if args.limit > 0:
+        slug_list = slug_list[:args.limit]
+        print(f"🔧 Limit slug: hanya {len(slug_list)} pertama yang diproses")
+
+    if not slug_list:
+        print("🟡 Tidak ada slug untuk diproses.")
         exit()
 
-    # Ambil m3u8 hanya untuk slug baru
-    new_map = fetch_map(new_slugs)
+    map_result = fetch_map(slug_list)
 
-    # Gabung data lama dan baru
-    old_map.update(new_map)
+    old_map.update(map_result)
     out_path.write_text(json.dumps(old_map, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"✅ map2.json berhasil diupdate! Total entri: {len(old_map)}")
