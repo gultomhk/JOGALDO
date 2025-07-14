@@ -39,15 +39,20 @@ jobs:
       - name: ▶️ Jalankan skrip scraping
         run: python lubangnite.py
 
+      - name: 🛠 Pastikan map.json selalu ada
+        run: |
+          if [ ! -f map.json ]; then
+            echo "{}" > map.json
+            echo "📄 map.json kosong dibuat sebagai fallback."
+          fi
+
       - name: 📤 Commit & Push jika ada perubahan
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Tambahkan file map.json jika ada perubahan
           git add map.json
 
-          # Cek apakah ada perubahan staged
           if git diff --cached --quiet; then
             echo "ℹ️ Tidak ada perubahan pada map.json. Skip commit dan push."
           else
