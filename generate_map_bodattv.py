@@ -79,27 +79,34 @@ def fetch_map(slugs):
     for slug in slugs:
         try:
             url = f"{BASE_URL}/match/{slug}"
-            r = requests.get(url, headers={
-                "User-Agent": USER_AGENT,
-                "Referer": BASE_URL
-            }, timeout=10)
+            print(f"🌐 Proses slug: {slug}")
+            r = requests.get(url, headers={"User-Agent": USER_AGENT, "Referer": BASE_URL}, timeout=15)
+            soup = BeautifulSoup(r.text, "html.parser")
 
-            tree = BeautifulSoup(r.text, "html.parser")
-            iframe = tree.select_one("iframe[src*='link=']")
+            iframe = soup.select_one("iframe[src*='link=']")
             if not iframe:
+                print(f"❌ iframe tidak ditemukan untuk: {slug}")
                 continue
 
-            src = iframe["src"]
-            full_url = urljoin(BASE_URL, src)
-            link_encoded = parse_qs(urlparse(full_url).query).get("link", [""])[0]
-            final_url = unquote(link_encoded)
+            iframe_src = iframe["src"]
+            full_url = urljoin(BASE_URL, iframe_src)
 
-            if final_url.endswith(".m3u8"):
-                map_data[slug] = final_url
-                print(f"✅ {slug} → {final_url}")
+            parsed = urlparse(full_url)
+            query = parse_qs(parsed.query)
+            m3u8_encoded = query.get("link", [""])[0]
+            if not m3u8_encoded:
+                print(f"⚠️ Tidak ada link= di iframe src: {slug}")
+                continue
+
+            m3u8_url = unquote(m3u8_encoded)
+            if m3u8_url.endswith(".m3u8"):
+                map_data[slug] = m3u8_url
+                print(f"✅ M3U8 valid: {slug} -> {m3u8_url}")
+            else:
+                print(f"⚠️ Link bukan .m3u8: {m3u8_url}")
 
         except Exception as e:
-            print(f"❌ Error slug {slug}: {e}")
+            print(f"❌ Error pada slug {slug}: {e}")
             continue
 
     return map_data
