@@ -1,0 +1,49 @@
+name: Update map.json BODATTV
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 * * * *"  # Tiap jam
+
+permissions:
+  contents: write  # dibutuhkan untuk push pakai GITHUB_TOKEN
+
+jobs:
+  update-map:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install beautifulsoup4 python-dateutil requests
+
+      - name: Ambil Konfigurasi dari Repo Privat
+        run: |
+          git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} configrepo
+          cp configrepo/bodattvdata_file.txt $HOME/bodattvdata_file.txt
+
+      - name: Jalankan Script Generate map.json
+        run: |
+          cp $HOME/bodattvdata_file.txt .
+          python generate_map_bodattv.py
+
+      - name: Push map2.json ke Repo
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add map2.json
+          if git diff --cached --quiet; then
+            echo "✅ Tidak ada perubahan"
+          else
+            git commit -m "auto: update map2.json"
+            git push
+          fi
