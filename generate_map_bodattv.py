@@ -25,6 +25,10 @@ if not CONFIG_FILE.exists():
 config = load_config(CONFIG_FILE)
 BASE_URL = config["BASE_URL"]
 USER_AGENT = config["USER_AGENT"]
+HEADERS = {
+    "User-Agent": USER_AGENT,
+    "Referer": BASE_URL
+}
 
 now = datetime.now(tz.gettz("Asia/Jakarta"))
 
@@ -110,8 +114,25 @@ if __name__ == "__main__":
 
     html = html_path.read_text(encoding="utf-8")
     slug_list = extract_slugs_from_html(html)
-    map_result = fetch_map(slug_list)
 
+    # Load map lama jika ada
     out_path = Path("map2.json")
-    out_path.write_text(json.dumps(map_result, indent=2, ensure_ascii=False), encoding="utf-8")
-    print("✅ map2.json berhasil dibuat!")
+    if out_path.exists():
+        old_map = json.loads(out_path.read_text(encoding="utf-8"))
+    else:
+        old_map = {}
+
+    # Filter slug yang belum ada di map lama
+    new_slugs = [slug for slug in slug_list if slug not in old_map]
+
+    if not new_slugs:
+        print("🟡 Tidak ada slug baru untuk diproses.")
+        exit()
+
+    # Ambil m3u8 hanya untuk slug baru
+    new_map = fetch_map(new_slugs)
+
+    # Gabung data lama dan baru
+    old_map.update(new_map)
+    out_path.write_text(json.dumps(old_map, indent=2, ensure_ascii=False), encoding="utf-8")
+    print(f"✅ map2.json berhasil diupdate! Total entri: {len(old_map)}")
