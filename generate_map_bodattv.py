@@ -122,22 +122,17 @@ if __name__ == "__main__":
     else:
         old_map = {}
 
-    # --only-new filter
-    if args.only_new:
-        slug_list = [slug for slug in slug_list if slug not in old_map]
-        print(f"🔍 Filter --only-new aktif: {len(slug_list)} slug tersisa")
+    # Filter slug yang belum ada di map lama
+    new_slugs = [slug for slug in slug_list if slug not in old_map]
 
-    # --limit filter
-    if args.limit > 0:
-        slug_list = slug_list[:args.limit]
-        print(f"🔧 Limit slug: hanya {len(slug_list)} pertama yang diproses")
-
-    if not slug_list:
-        print("🟡 Tidak ada slug untuk diproses.")
+    if not new_slugs:
+        print("🟡 Tidak ada slug baru untuk diproses.")
         exit()
 
-    map_result = fetch_map(slug_list)
+    # Ambil m3u8 hanya untuk slug baru
+    new_map = fetch_map(new_slugs)
 
-    old_map.update(map_result)
+    # Gabung data lama dan baru
+    old_map.update(new_map)
     out_path.write_text(json.dumps(old_map, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"✅ map2.json berhasil diupdate! Total entri: {len(old_map)}")
