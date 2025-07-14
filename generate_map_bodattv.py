@@ -70,24 +70,24 @@ def fetch_map(slugs):
 
     for slug in slugs:
         try:
-            url = f"{BASE_URL}/match/{slug}"
             print(f"🌐 Proses slug: {slug}")
-            r = requests.get(url, headers={"User-Agent": USER_AGENT, "Referer": BASE_URL}, timeout=15)
-            soup = BeautifulSoup(r.text, "html.parser")
+            url = f"{BASE_URL}/match/{slug}"
+            r = requests.get(url, headers=HEADERS, timeout=15)
+            r.raise_for_status()
 
+            soup = BeautifulSoup(r.text, "html.parser")
             iframe = soup.select_one("iframe[src*='link=']")
+
             if not iframe:
                 print(f"❌ iframe tidak ditemukan untuk: {slug}")
                 continue
 
-            iframe_src = iframe["src"]
-            full_url = urljoin(BASE_URL, iframe_src)
-
-            parsed = urlparse(full_url)
-            query = parse_qs(parsed.query)
+            full_url = urljoin(BASE_URL, iframe["src"])
+            query = parse_qs(urlparse(full_url).query)
             m3u8_encoded = query.get("link", [""])[0]
+
             if not m3u8_encoded:
-                print(f"⚠️ Tidak ada link= di iframe src: {slug}")
+                print(f"⚠️ Tidak ada parameter link= di iframe untuk: {slug}")
                 continue
 
             m3u8_url = unquote(m3u8_encoded)
@@ -95,15 +95,14 @@ def fetch_map(slugs):
                 map_data[slug] = m3u8_url
                 print(f"✅ M3U8 valid: {slug} -> {m3u8_url}")
             else:
-                print(f"⚠️ Link bukan .m3u8: {m3u8_url}")
+                print(f"⚠️ Link tidak valid (bukan .m3u8): {m3u8_url}")
 
         except Exception as e:
-            print(f"❌ Error pada slug {slug}: {e}")
-            continue
+            print(f"❌ Error saat memproses {slug}: {e}")
 
     return map_data
 
-# ========= MAIN =========
+# ===== MAIN =====
 if __name__ == "__main__":
     html_path = Path("BODATTV_PAGE_SOURCE.html")
     if not html_path.exists():
@@ -113,5 +112,6 @@ if __name__ == "__main__":
     slug_list = extract_slugs_from_html(html)
     map_result = fetch_map(slug_list)
 
-    Path("map2.json").write_text(json.dumps(map_result, indent=2, ensure_ascii=False), encoding="utf-8")
+    out_path = Path("map2.json")
+    out_path.write_text(json.dumps(map_result, indent=2, ensure_ascii=False), encoding="utf-8")
     print("✅ map2.json berhasil dibuat!")
