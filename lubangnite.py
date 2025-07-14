@@ -18,6 +18,7 @@ AXLIVE_LIVESTREAM_SPORT3_URL = os.getenv("AXLIVE_LIVESTREAM_SPORT3_URL")
 AXLIVE_MATCH_BASE_URL = os.getenv("AXLIVE_MATCH_BASE_URL")
 PROXY_BASE_URL = os.getenv("PROXY_BASE_URL")
 
+
 def get_live_match_ids():
     urls = {
         "main": (AXLIVE_LIVESTREAM_URL, True),
@@ -75,7 +76,6 @@ def get_live_match_ids():
     print(f"🎯 Total ID gabungan: {list(final_sorted.keys())}")
     return final_sorted
 
-from urllib.parse import urlparse, parse_qs, unquote, quote
 
 def extract_tokenized_m3u8(match_id):
     page_url = f"{AXLIVE_MATCH_BASE_URL}/{match_id}?t=suggest"
@@ -98,7 +98,6 @@ def extract_tokenized_m3u8(match_id):
                 parsed = urlparse(url)
                 qs = parse_qs(parsed.query)
 
-                # Extract parameter
                 m3u8_raw = unquote(qs.get("m3u8", [""])[0])
                 token_full = qs.get("token", [""])[0]
 
@@ -114,7 +113,6 @@ def extract_tokenized_m3u8(match_id):
                     encoded_url = quote(m3u8_raw, safe="")
                     encoded_verify = quote(verify, safe="")
 
-                    # Format akhir langsung ke cdn-rum
                     final_url = (
                         f"https://cdn-rum.n2olabs.pro/stream.m3u8"
                         f"?url={encoded_url}"
@@ -129,6 +127,7 @@ def extract_tokenized_m3u8(match_id):
         browser.close()
 
     return final_url
+
 
 def save_to_map(match_dict):
     old_data = {}
@@ -154,29 +153,34 @@ def save_to_map(match_dict):
     combined_data = {**old_data, **new_data}
     ordered_data = dict(sorted(combined_data.items(), key=lambda x: match_dict.get(x[0], 0)))
 
-    if ordered_data != old_data:
+    # Jamin file selalu ditulis jika belum ada, atau ada perubahan
+    if not MAP_FILE.exists() or ordered_data != old_data:
         with open(MAP_FILE, "w") as f:
             json.dump(ordered_data, f, indent=2)
         print(f"✅ Semua selesai. Total tersimpan: {len(ordered_data)} ke {MAP_FILE}")
     else:
         print("ℹ️ Tidak ada perubahan pada map.json. Skip commit dan push.")
-    
+
+
 if __name__ == "__main__":
     try:
         match_dict = get_live_match_ids()
 
-        # Ambil ID yang sudah diproses
         done_ids = []
         if MAP_FILE.exists():
             with open(MAP_FILE) as f:
                 done_ids = list(json.load(f).keys())
 
-        # Ambil hanya ID baru yang belum ada
         pending = {k: v for k, v in match_dict.items() if k not in done_ids}
-
-        # Ambil maksimal 10 ID berikutnya untuk diproses
         limited = dict(list(pending.items())[:15])
 
         save_to_map(limited)
+
+        # Fallback terakhir: jika map.json belum ada, tetap buat file kosong
+        if not MAP_FILE.exists():
+            with open(MAP_FILE, "w") as f:
+                json.dump({}, f)
+            print("📄 map.json kosong dibuat sebagai fallback.")
+
     except Exception as e:
         print(f"❌ Fatal Error: {e}")
