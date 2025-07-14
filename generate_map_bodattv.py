@@ -114,5 +114,5 @@ slug_list = extract_slug_list(html)
 print(f"📦 Total slug valid: {len(slug_list)}")
 
 map_result = fetch_map(slug_list)
-Path("map.json").write_text(json.dumps(map_result, indent=2, ensure_ascii=False), encoding="utf-8")
-print("✅ map.json berhasil dibuat!")
+Path("map2.json").write_text(json.dumps(map_result, indent=2, ensure_ascii=False), encoding="utf-8")
+print("✅ map2.json berhasil dibuat!")
