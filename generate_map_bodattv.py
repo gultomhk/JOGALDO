@@ -9,6 +9,7 @@ from urllib.parse import urlparse, parse_qs, unquote, urljoin
 
 # ========= Konfigurasi =========
 CONFIG_FILE = Path.home() / "bodattvdata_file.txt"
+MAP_FILE = Path("map2.json")
 
 def load_config(filepath):
     config = {}
@@ -38,20 +39,19 @@ def extract_slugs_from_html(html):
     matches = soup.select("div.common-table-row.table-row")
     print(f"📦 Total match ditemukan: {len(matches)}")
 
-    slugs = set()
+    slugs = []
+    seen = set()
     for row in matches:
         slug = None
-
         link = row.select_one("a[href^='/match/']")
         if link:
             slug = link['href'].replace('/match/', '').strip()
-
-        if not slug and row.has_attr("onclick"):
+        elif row.has_attr("onclick"):
             match = re.search(r"/match/([^']+)", row["onclick"])
             if match:
                 slug = match.group(1).strip()
 
-        if not slug or slug in slugs:
+        if not slug or slug in seen:
             continue
 
         waktu_tag = row.select_one(".match-time")
@@ -59,52 +59,60 @@ def extract_slugs_from_html(html):
             timestamp = int(waktu_tag["data-timestamp"])
             event_time_utc = datetime.fromtimestamp(timestamp, tz=timezone.utc)
             event_time_local = event_time_utc.astimezone(tz.gettz("Asia/Jakarta"))
-
             if event_time_local < (now - timedelta(hours=2)):
                 continue
 
-        slugs.add(slug)
+        seen.add(slug)
+        slugs.append(slug)
 
     print(f"📦 Total slug valid: {len(slugs)}")
-    return list(slugs)
+    return slugs
 
-# ========= Ambil link m3u8 dari slug =========
-def fetch_map(slugs):
-    map_data = {}
+# ========= Simpan ke MAP (gaya save_to_map) =========
+def save_to_map(slugs):
+    old_data = {}
+    if MAP_FILE.exists():
+        with MAP_FILE.open(encoding="utf-8") as f:
+            old_data = json.load(f)
+
+    new_data = {}
+    total = len(slugs)
 
     for idx, slug in enumerate(slugs, 1):
+        print(f"[{idx}/{total}] ▶ Scraping slug: {slug}", flush=True)
         try:
-            print(f"[{idx}/{len(slugs)}] 🌐 Proses slug: {slug}", flush=True)
             url = f"{BASE_URL}/match/{slug}"
             r = requests.get(url, headers=HEADERS, timeout=15)
             r.raise_for_status()
-
             soup = BeautifulSoup(r.text, "html.parser")
-            iframe = soup.select_one("iframe[src*='link=']")
 
+            iframe = soup.select_one("iframe[src*='link=']")
             if not iframe:
                 print(f"   ❌ iframe tidak ditemukan untuk: {slug}", flush=True)
                 continue
 
             full_url = urljoin(BASE_URL, iframe["src"])
-            query = parse_qs(urlparse(full_url).query)
-            m3u8_encoded = query.get("link", [""])[0]
-
-            if not m3u8_encoded:
-                print(f"   ⚠️ Tidak ada parameter link= di iframe: {slug}", flush=True)
-                continue
-
+            m3u8_encoded = parse_qs(urlparse(full_url).query).get("link", [""])[0]
             m3u8_url = unquote(m3u8_encoded)
+
             if ".m3u8" in m3u8_url:
-                map_data[slug] = m3u8_url
+                new_data[slug] = m3u8_url
                 print(f"   ✅ M3U8 valid: {m3u8_url}", flush=True)
             else:
                 print(f"   ⚠️ Link bukan .m3u8: {m3u8_url}", flush=True)
 
         except Exception as e:
-            print(f"   ❌ Error saat memproses {slug}: {e}", flush=True)
+            print(f"   ❌ Error slug {slug}: {e}", flush=True)
 
-    return map_data
+    combined = {**old_data, **new_data}
+    ordered = dict(sorted(combined.items(), key=lambda x: slugs.index(x[0]) if x[0] in slugs else 9999))
+
+    if not MAP_FILE.exists() or ordered != old_data:
+        with MAP_FILE.open("w", encoding="utf-8") as f:
+            json.dump(ordered, f, indent=2, ensure_ascii=False)
+        print(f"✅ map2.json berhasil diupdate! Total entri: {len(ordered)}")
+    else:
+        print("ℹ️ Tidak ada perubahan. map2.json tidak ditulis ulang.")
 
 # ===== MAIN =====
 if __name__ == "__main__":
@@ -114,25 +122,4 @@ if __name__ == "__main__":
 
     html = html_path.read_text(encoding="utf-8")
     slug_list = extract_slugs_from_html(html)
-
-    # Load map lama jika ada
-    out_path = Path("map2.json")
-    if out_path.exists():
-        old_map = json.loads(out_path.read_text(encoding="utf-8"))
-    else:
-        old_map = {}
-
-    # Filter slug yang belum ada di map lama
-    new_slugs = [slug for slug in slug_list if slug not in old_map]
-
-    if not new_slugs:
-        print("🟡 Tidak ada slug baru untuk diproses.")
-        exit()
-
-    # Ambil m3u8 hanya untuk slug baru
-    new_map = fetch_map(new_slugs)
-
-    # Gabung data lama dan baru
-    old_map.update(new_map)
-    out_path.write_text(json.dumps(old_map, indent=2, ensure_ascii=False), encoding="utf-8")
-    print(f"✅ map2.json berhasil diupdate! Total entri: {len(old_map)}")
+    save_to_map(slug_list)
