@@ -1,12 +1,15 @@
-from bs4 import BeautifulSoup 
+from bs4 import BeautifulSoup
 from datetime import datetime, timedelta, timezone
 from dateutil import tz
 from pathlib import Path
+from urllib.parse import urljoin, urlparse, parse_qs, unquote
+import requests
 import re
 
 # ====== Konfigurasi ======
 BODATTVDATA_FILE = Path.home() / "bodattvdata_file.txt"
 
+# Load konfigurasi dari file
 def load_config(filepath):
     config = {}
     with open(filepath, "r", encoding="utf-8") as f:
@@ -16,41 +19,59 @@ def load_config(filepath):
                 config[key.strip()] = val.strip().strip('"')
     return config
 
-if not BODATTVDATA_FILE.exists():
-    raise FileNotFoundError(f"❌ File config tidak ditemukan: {BODATTVDATA_FILE}")
+# Ambil URL .m3u8 dari halaman slug
+def get_m3u8_from_slug(slug, user_agent):
+    try:
+        target_url = f"https://fstv.online/match/{slug}"
+        headers = {
+            "User-Agent": user_agent,
+            "Accept-Language": "en-US,en;q=0.9",
+        }
+        resp = requests.get(target_url, headers=headers, timeout=10)
 
-config = load_config(BODATTVDATA_FILE)
-required_keys = ["DEFAULT_URL", "BASE_URL", "WORKER_URL", "LOGO", "USER_AGENT"]
-missing = [key for key in required_keys if key not in config]
-if missing:
-    raise ValueError(f"❌ Missing config keys: {', '.join(missing)}")
+        tree = BeautifulSoup(resp.text, "lxml")
+        iframe = tree.select_one("iframe[src]")
+        if not iframe:
+            return None
 
-BASE_URL = config["BASE_URL"]
-WORKER_URL = config["WORKER_URL"]
-LOGO = config["LOGO"]
-USER_AGENT = config["USER_AGENT"]
+        iframe_url = urljoin("https://fstv.online", iframe["src"])
+        parsed = urlparse(iframe_url)
+        link_encoded = parse_qs(parsed.query).get("link", [None])[0]
+        return unquote(link_encoded) if link_encoded else None
 
-now = datetime.now(tz.gettz("Asia/Jakarta"))
+    except Exception as e:
+        print(f"❌ Error fetch {slug}: {e}")
+        return None
 
-# ====== Fungsi Pembersih Judul ======
+# Pembersih judul
 def clean_title(title):
     title = title.replace("football", "")
-    title = re.sub(r"\s*[:|•]\s*", " ", title)  # hapus simbol umum
-    title = re.sub(r",\s*", " ", title)         # hilangkan koma di tengah
-    title = re.sub(r"\s{2,}", " ", title)       # hilangkan spasi ganda
+    title = re.sub(r"\s*[:|\u2022]\s*", " ", title)
+    title = re.sub(r",\s*", " ", title)
+    title = re.sub(r"\s{2,}", " ", title)
     return title.strip(" -")
 
-# ====== Ekstraksi dari HTML ======
-def extract_matches_from_html(html):
+# Ekstrak pertandingan dari HTML
+def extract_matches_from_html(html, config):
     soup = BeautifulSoup(html, "html.parser")
     output = ["#EXTM3U"]
     seen = set()
+    now = datetime.now(tz.gettz("Asia/Jakarta"))
 
-    # === 1. slide-item (Sepakbola utama) ===
-    matches_slide = soup.select("div.slide-item")
-    print(f"⛓️ Found {len(matches_slide)} slide-item matches")
+    def format_entry(slug, waktu, title):
+        m3u8 = get_m3u8_from_slug(slug, config["USER_AGENT"])
+        if not m3u8:
+            print(f"⚠️  Gagal ambil M3U8: {slug}")
+            return []
+        return [
+            f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{config["LOGO"]}",{waktu} {title}',
+            f'#EXTVLCOPT:http-user-agent={config["USER_AGENT"]}',
+            f'#EXTVLCOPT:http-referrer={config["BASE_URL"]}/',
+            m3u8
+        ]
 
-    for match in matches_slide:
+    # === Slide item (utama) ===
+    for match in soup.select("div.slide-item"):
         a_tag = match.select_one('a.btn-club[href]')
         if not a_tag:
             continue
@@ -61,109 +82,62 @@ def extract_matches_from_html(html):
 
         ts_tag = match.select_one('.timestamp')
         ts_value = ts_tag.get('data-timestamp') if ts_tag else None
-        if ts_value:
-            event_time_utc = datetime.fromtimestamp(int(ts_value), tz=timezone.utc)
-            event_time_local = event_time_utc.astimezone(tz.gettz("Asia/Jakarta"))
-            if event_time_local < (now - timedelta(hours=2)):
-                continue
-            waktu = event_time_local.strftime("%d/%m-%H.%M")
-        else:
-            waktu = "00/00-00.00"
+        event_time = datetime.fromtimestamp(int(ts_value), tz=timezone.utc).astimezone(tz.gettz("Asia/Jakarta")) if ts_value else now
+        if event_time < (now - timedelta(hours=2)):
+            continue
 
+        waktu = event_time.strftime("%d/%m-%H.%M")
         teams = match.select('.club-name')
-        if len(teams) >= 2:
-            title = f"{teams[0].text.strip()} vs {teams[1].text.strip()}"
-        elif len(teams) == 1:
-            title = teams[0].text.strip()
-        else:
-            title = clean_title(slug.replace("-", " "))
-
-        title = clean_title(title)
-        if title.lower() == "vs" or len(title.strip()) < 3:
-            print(f"⚠️  Skip bad title (slide): {title}")
+        title = clean_title(f"{teams[0].text.strip()} vs {teams[1].text.strip()}" if len(teams) >= 2 else slug.replace("-", " "))
+        if len(title) < 3:
             continue
 
-        print(f"📃 Parsed: {waktu} | {title}")
-        output += [
-            f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{LOGO}",{waktu} {title}',
-            f'#EXTVLCOPT:http-user-agent={USER_AGENT}',
-            f'#EXTVLCOPT:http-referrer={BASE_URL}/',
-            f'{WORKER_URL}{slug}'
-        ]
+        print(f"📃 {waktu} | {title}")
+        output += format_entry(slug, waktu, title)
 
-    # === 2. common-table-row (Tennis, Billiards, Motorsport, dll) ===
-    matches_table = soup.select("div.common-table-row.table-row")
-    print(f"⛵️ Found {len(matches_table)} table-row matches")
-
-    for row in matches_table:
-        try:
-            link = row.select_one("a[href^='/match/']")
-            if not link:
-                continue
-            slug = link['href'].replace('/match/', '').strip()
-            if slug in seen:
-                continue
-            seen.add(slug)
-
-            waktu_tag = row.select_one(".match-time")
-            if waktu_tag and waktu_tag.get("data-timestamp"):
-                timestamp = int(waktu_tag["data-timestamp"])
-                event_time_utc = datetime.fromtimestamp(timestamp, tz=timezone.utc)
-                event_time_local = event_time_utc.astimezone(tz.gettz("Asia/Jakarta"))
-                waktu = event_time_local.strftime("%d/%m-%H.%M")
-            else:
-                waktu = "00/00-00.00"
-                event_time_local = now  # default agar tidak error
-
-            # pengecualian filter waktu
-            slug_lower = slug.lower()
-            is_exception = any(keyword in slug_lower for keyword in ["tennis", "billiards", "snooker", "worldssp", "superbike"])
-
-            if not is_exception and event_time_local < (now - timedelta(hours=2)):
-                continue
-
-            # ambil title fleksibel
-            wrapper = row.select_one(".list-club-wrapper")
-            if wrapper:
-                name_tags = wrapper.select(".club-name")
-                texts = [t.text.strip() for t in name_tags if t.text.strip().lower() != "vs"]
-
-                if len(texts) >= 2:
-                    title = f"{texts[0].strip()} vs {texts[1].strip()}"
-                elif len(texts) == 1:
-                    title = texts[0].strip()
-                else:
-                    title = wrapper.get_text(strip=True)
-            else:
-                title = clean_title(slug.replace("-", " "))
-
-            title = clean_title(title)
-            if title.lower() == "vs" or len(title.strip()) < 3:
-                print(f"⚠️  Skip bad title (table): {title}")
-                continue
-
-            print(f"📃 Parsed: {waktu} | {title}")
-
-            output += [
-                f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{LOGO}",{waktu} {title}',
-                f'#EXTVLCOPT:http-user-agent={USER_AGENT}',
-                f'#EXTVLCOPT:http-referrer={BASE_URL}/',
-                f'{WORKER_URL}{slug}'
-            ]
-        except Exception as e:
-            print(f"❌ Error parsing table row: {e}")
+    # === Table row (lain-lain) ===
+    for row in soup.select("div.common-table-row.table-row"):
+        link = row.select_one("a[href^='/match/']")
+        if not link:
             continue
+        slug = link['href'].replace('/match/', '').strip()
+        if slug in seen:
+            continue
+        seen.add(slug)
+
+        waktu_tag = row.select_one(".match-time")
+        ts_value = int(waktu_tag['data-timestamp']) if waktu_tag and waktu_tag.has_attr('data-timestamp') else None
+        event_time = datetime.fromtimestamp(ts_value, tz=timezone.utc).astimezone(tz.gettz("Asia/Jakarta")) if ts_value else now
+        waktu = event_time.strftime("%d/%m-%H.%M")
+
+        if event_time < (now - timedelta(hours=2)):
+            continue
+
+        wrapper = row.select_one(".list-club-wrapper")
+        title_tags = wrapper.select(".club-name") if wrapper else []
+        title = clean_title(f"{title_tags[0].text.strip()} vs {title_tags[1].text.strip()}" if len(title_tags) >= 2 else slug.replace("-", " "))
+        if len(title) < 3:
+            continue
+
+        print(f"📃 {waktu} | {title}")
+        output += format_entry(slug, waktu, title)
 
     return "\n".join(output)
 
-# ====== Jalankan Script Utama ======
+# ===== Eksekusi utama =====
 if __name__ == "__main__":
-    with open("BODATTV_PAGE_SOURCE.html", "r", encoding="utf-8") as f:
-        html = f.read()
+    if not BODATTVDATA_FILE.exists():
+        raise FileNotFoundError(f"❌ File config tidak ditemukan: {BODATTVDATA_FILE}")
 
-    result = extract_matches_from_html(html)
+    config = load_config(BODATTVDATA_FILE)
+    required_keys = ["DEFAULT_URL", "BASE_URL", "WORKER_URL", "LOGO", "USER_AGENT"]
+    if missing := [k for k in required_keys if k not in config]:
+        raise ValueError(f"❌ Missing config keys: {', '.join(missing)}")
+
+    resp = requests.get(config["DEFAULT_URL"], headers={"User-Agent": config["USER_AGENT"]})
+    m3u_output = extract_matches_from_html(resp.text, config)
 
     with open("bodattv_live.m3u", "w", encoding="utf-8") as f:
-        f.write(result)
+        f.write(m3u_output)
 
-    print("\n✅ File bodattv_live.m3u berhasil dibuat dengan filter waktu (2 jam ke depan atau lebih)")
+    print("\n✅ File bodattv_live.m3u berhasil dibuat.")
