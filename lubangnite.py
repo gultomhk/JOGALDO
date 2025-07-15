@@ -15,6 +15,7 @@ MAP_FILE = Path("map.json")
 AXLIVE_LIVESTREAM_URL = os.getenv("AXLIVE_LIVESTREAM_URL")
 AXLIVE_FEATURED_URL = os.getenv("AXLIVE_FEATURED_URL")
 AXLIVE_LIVESTREAM_SPORT3_URL = os.getenv("AXLIVE_LIVESTREAM_SPORT3_URL")
+AXLIVE_LIVESTREAM_SPORT4_URL = os.getenv("AXLIVE_LIVESTREAM_SPORT4_URL")
 AXLIVE_MATCH_BASE_URL = os.getenv("AXLIVE_MATCH_BASE_URL")
 PROXY_BASE_URL = os.getenv("PROXY_BASE_URL")
 
@@ -24,6 +25,7 @@ def get_live_match_ids():
         "main": (AXLIVE_LIVESTREAM_URL, True),
         "featured": (AXLIVE_FEATURED_URL, False),
         "sport3": (AXLIVE_LIVESTREAM_SPORT3_URL, True),
+        "sport4": (AXLIVE_LIVESTREAM_SPORT4_URL, True),
     }
 
     headers = {"User-Agent": "Mozilla/5.0"}
