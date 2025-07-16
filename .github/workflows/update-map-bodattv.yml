@@ -1,4 +1,4 @@
-name: Update map.json BODATTV
+name: Update map2.json BODATTV
 
 on:
   workflow_dispatch:
