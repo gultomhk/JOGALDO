@@ -46,3 +46,4 @@ jobs:
             git commit -m "📺 Update map3.json (proxy fallback)"
             git pull --rebase origin master
             git push origin master
+          fi
