@@ -36,7 +36,7 @@ for cid in channel_ids:
         print(f"⚠️  {cid}: MPD not found")
 
 # Simpan hasil ke map3.json
-with open("map3.json", "w", encoding="utf-8") as f:
-    json.dump(result_map, f, indent=2, ensure_ascii=False)
+with open(f"debug_{channel_id}.html", "w", encoding="utf-8") as f:
+    f.write(html)
 
 print("\n📁 map3.json berhasil dibuat.")
