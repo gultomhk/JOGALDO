@@ -20,6 +20,14 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: 3.11
+          
+      - name: Clone config from private repo
+        shell: bash
+        run: |
+          git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} configrepo
+          ls -la configrepo
+          cat configrepo/indidata_file.txt
+          cp configrepo/indidata_file.txt /home/runner/indidata_file.txt
 
       - name: Install dependencies
         run: |
