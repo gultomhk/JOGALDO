@@ -1,0 +1,39 @@
+name: Grab MPD dari IndiTV (Playwright)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 12 * * *'  # 19:00 WIB
+
+jobs:
+  grab-inditv:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.11
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install playwright
+          playwright install chromium
+
+      - name: Run grabinditv Playwright script
+        run: python grabinditv.py
+
+      - name: Commit & Push changes
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add map3.json
+          git commit -m "📺 Update map3.json (Playwright)" || echo "No changes"
+          git push
