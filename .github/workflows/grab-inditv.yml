@@ -1,42 +1,44 @@
-name: Grab Inditv MPD URLs
+name: Scrape Inditv MPD with Playwright
 
 on:
-  workflow_dispatch:
   schedule:
     - cron: '0 */6 * * *'  # Tiap 6 jam
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  grab-indihome:
+  scrape-indihome:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Checkout repo publik
+      - name: Checkout Repo (Publik)
         uses: actions/checkout@v4
 
-      - name: ⚙️ Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: 3.x
-
-      - name: 🧾 Ambil konfigurasi dari repo privat
+      - name: Clone Konfigurasi dari Repo Privat
         shell: bash
         run: |
           git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} configrepo
           cp configrepo/indidata_file.txt $HOME/indidata_file.txt
 
-      - name: 📦 Install dependencies
-        run: pip install requests
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
 
-      - name: 🛰️ Jalankan grabinditv.py
+      - name: Install Playwright
+        run: |
+          pip install playwright
+          playwright install --with-deps chromium
+
+      - name: Jalankan Scraper
         run: python grabinditv.py
 
-      - name: 💾 Commit hasil map3.json
+      - name: Commit & Push Hasil map3.json
         run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@users.noreply.github.com"
+          git config user.name github-actions
+          git config user.email github-actions@github.com
           git add map3.json
-          git commit -m "update: map3.json [${{ github.run_id }}]" || echo "No changes to commit"
+          git commit -m "Update map3.json [$(date +'%Y-%m-%d %H:%M:%S')]" || echo "No changes to commit"
           git push
