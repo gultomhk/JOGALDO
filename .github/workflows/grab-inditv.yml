@@ -30,8 +30,8 @@ jobs:
       - name: 📦 Install dependencies
         run: pip install requests
 
-      - name: 🛰️ Jalankan grab_inditv.py
-        run: python grab_inditv.py
+      - name: 🛰️ Jalankan grabinditv.py
+        run: python grabinditv.py
 
       - name: 💾 Commit hasil map3.json
         run: |
