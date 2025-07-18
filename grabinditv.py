@@ -26,17 +26,8 @@ def get_proxy_list(url):
         print(f"[!] Gagal ambil proxy list: {e}", file=sys.stderr)
         return []
 
-# === Fetch HTML (tanpa atau dengan proxy) ===
+# === Fetch HTML selalu pakai proxy ===
 def fetch_html(url):
-    # Coba langsung dulu
-    try:
-        res = requests.get(url, headers=headers, timeout=10)
-        res.raise_for_status()
-        return res.text
-    except:
-        pass
-
-    # Coba lewat proxy satu per satu
     for proxy in proxy_list:
         print(f"🔁 Mencoba proxy: {proxy}")
         proxies = {"http": f"http://{proxy}", "https": f"http://{proxy}"}
@@ -47,7 +38,6 @@ def fetch_html(url):
         except Exception:
             print(f"[×] Proxy gagal: {proxy}")
             continue
-
     return None
 
 # === Cari MPD URL dari satu channel ===
