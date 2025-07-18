@@ -40,10 +40,14 @@ jobs:
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
+
+          # Tarik commit terbaru dari remote untuk mencegah non-fast-forward error
+          git pull --rebase origin master
+
           git add map2.json
           if git diff --cached --quiet; then
             echo "✅ Tidak ada perubahan"
           else
             git commit -m "auto: update map2.json"
-            git push
+            git push origin master
           fi
