@@ -20,6 +20,10 @@ def get_mpd_url(channel_id):
         res = requests.get(url, headers=headers, timeout=10)
         html = res.text
         mpd = re.search(r"var\s+v\d+\s*=\s*'(https://[^']+\.mpd[^']*)'", html)
+        if not mpd:
+            # Simpan HTML ke file debug jika MPD tidak ditemukan
+            with open(f"debug_{channel_id}.html", "w", encoding="utf-8") as f:
+                f.write(html)
         return mpd.group(1) if mpd else None
     except Exception as e:
         print(f"❌ Error: {channel_id} -> {e}")
@@ -36,7 +40,7 @@ for cid in channel_ids:
         print(f"⚠️  {cid}: MPD not found")
 
 # Simpan hasil ke map3.json
-with open(f"debug_{channel_id}.html", "w", encoding="utf-8") as f:
-    f.write(html)
+with open("map3.json", "w", encoding="utf-8") as f:
+    json.dump(result_map, f, indent=2, ensure_ascii=False)
 
 print("\n📁 map3.json berhasil dibuat.")
