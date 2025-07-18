@@ -14,9 +14,9 @@ exec(INDIDATA_FILE.read_text(encoding="utf-8"), config)
 headers = config["headers"]
 channel_ids = config["channel_ids"]
 url_template = config["url_template"]
-proxy_list_url = config.get("proxy_list_url")  # opsional
+proxy_list_url = config.get("proxy_list_url")
 
-# === Fungsi ambil list proxy ===
+# === Ambil list proxy dari URL ===
 def get_proxy_list(url):
     try:
         res = requests.get(url, timeout=10)
@@ -26,54 +26,42 @@ def get_proxy_list(url):
         print(f"[!] Gagal ambil proxy list: {e}", file=sys.stderr)
         return []
 
-# === Fungsi coba request dengan 1 proxy ===
-def try_proxy(api_url, proxy, headers):
-    proxies = {"http": proxy, "https": proxy}
-    try:
-        print(f"[•] Mencoba proxy: {proxy}", file=sys.stderr)
-        res = requests.get(api_url, headers=headers, proxies=proxies, timeout=10)
-        res.raise_for_status()
-        return res.text
-    except Exception as e:
-        print(f"[×] Proxy gagal: {proxy} → {e}", file=sys.stderr)
-        return None
+# === Fetch dengan proxy (tanpa percobaan langsung) ===
+def fetch_with_proxy(url):
+    for proxy in proxy_list:
+        try:
+            print(f"[•] {proxy}", file=sys.stderr)
+            res = requests.get(url, headers=headers, proxies={"http": proxy, "https": proxy}, timeout=10)
+            res.raise_for_status()
+            return res.text
+        except:
+            continue
+    return None
 
-# === Ambil URL MPD ===
+# === Cari MPD URL dari satu channel ===
 def get_mpd_url(channel_id):
     url = url_template.format(channel_id=channel_id)
-    try:
-        res = requests.get(url, headers=headers, timeout=10)
-        res.raise_for_status()
-        html = res.text
-    except Exception as e:
-        print(f"⚠️ Gagal langsung: {channel_id} → {e}", file=sys.stderr)
-        if proxy_list_url:
-            proxy_list = get_proxy_list(proxy_list_url)
-            for proxy in proxy_list:
-                html = try_proxy(url, proxy, headers)
-                if html:
-                    break
-            else:
-                print(f"❌ Semua proxy gagal untuk {channel_id}", file=sys.stderr)
-                return None
-        else:
-            return None
+    html = fetch_with_proxy(url)
+    if not html:
+        return None
+    match = re.search(r"var\s+v\d+\s*=\s*'(https://[^']+\.mpd[^']*)'", html)
+    return match.group(1) if match else None
 
-    mpd = re.search(r"var\s+v\d+\s*=\s*'(https://[^']+\.mpd[^']*)'", html)
-    return mpd.group(1) if mpd else None
+# === Ambil proxy dulu ===
+proxy_list = get_proxy_list(proxy_list_url)
 
 # === Proses semua channel ===
-result_map = {}
+result = {}
 for cid in channel_ids:
-    mpd_url = get_mpd_url(cid)
-    if mpd_url:
-        result_map[cid] = mpd_url
-        print(f"✅ {cid}: {mpd_url}")
+    mpd = get_mpd_url(cid)
+    if mpd:
+        result[cid] = mpd
+        print(f"✅ {cid}: {mpd}")
     else:
         print(f"⚠️  {cid}: MPD not found")
 
-# === Simpan hasil ke file ===
+# === Simpan ke map3.json ===
 with open("map3.json", "w", encoding="utf-8") as f:
-    json.dump(result_map, f, indent=2, ensure_ascii=False)
+    json.dump(result, f, indent=2, ensure_ascii=False)
 
 print("\n📁 map3.json berhasil dibuat.")
