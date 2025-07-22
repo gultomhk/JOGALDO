@@ -104,13 +104,17 @@ def save_to_map(slugs):
         except Exception as e:
             print(f"   ❌ Error slug {slug}: {e}", flush=True)
 
+    # Gabungkan, urutkan berdasarkan slugs (yang diprioritaskan), dan simpan hanya 100 entri terakhir
     combined = {**old_data, **new_data}
     ordered = dict(sorted(combined.items(), key=lambda x: slugs.index(x[0]) if x[0] in slugs else 9999))
 
-    if not MAP_FILE.exists() or ordered != old_data:
+    # Potong ke 100 entri terakhir
+    limited = dict(list(ordered.items())[-100:])
+
+    if not MAP_FILE.exists() or limited != old_data:
         with MAP_FILE.open("w", encoding="utf-8") as f:
-            json.dump(ordered, f, indent=2, ensure_ascii=False)
-        print(f"✅ map2.json berhasil diupdate! Total entri: {len(ordered)}")
+            json.dump(limited, f, indent=2, ensure_ascii=False)
+        print(f"✅ map2.json berhasil diupdate! Total entri: {len(limited)}")
     else:
         print("ℹ️ Tidak ada perubahan. map2.json tidak ditulis ulang.")
 
