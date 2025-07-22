@@ -173,17 +173,12 @@ if __name__ == "__main__":
     try:
         match_dict = get_live_match_ids()
 
-        done_ids = []
-        if MAP_FILE.exists():
-            with open(MAP_FILE) as f:
-                done_ids = list(json.load(f).keys())
-
-        pending = {k: v for k, v in match_dict.items() if k not in done_ids}
-        limited = dict(list(pending.items())[:15])
+        # Selalu proses semua ID tanpa filter
+        limited = dict(list(match_dict.items())[:15])
 
         save_to_map(limited)
 
-        # Fallback terakhir: jika map.json belum ada, tetap buat file kosong
+        # Fallback terakhir
         if not MAP_FILE.exists():
             with open(MAP_FILE, "w") as f:
                 json.dump({}, f)
