@@ -154,17 +154,20 @@ def save_to_map(match_dict):
         except Exception as e:
             print(f"❌ Error ID {match_id}: {e}")
 
+    # Gabungkan dan urutkan berdasarkan waktu dari match_dict
     combined_data = {**old_data, **new_data}
-    ordered_data = dict(sorted(combined_data.items(), key=lambda x: match_dict.get(x[0], 0)))
+    ordered_data = dict(sorted(combined_data.items(), key=lambda x: match_dict.get(x[0], 0) or 0))
 
-    # Jamin file selalu ditulis jika belum ada, atau ada perubahan
-    if not MAP_FILE.exists() or ordered_data != old_data:
+    # Potong jadi 100 item terakhir
+    limited_data = dict(list(ordered_data.items())[-100:])
+
+    # Simpan jika berbeda dari yang lama
+    if not MAP_FILE.exists() or limited_data != old_data:
         with open(MAP_FILE, "w") as f:
-            json.dump(ordered_data, f, indent=2)
-        print(f"✅ Semua selesai. Total tersimpan: {len(ordered_data)} ke {MAP_FILE}")
+            json.dump(limited_data, f, indent=2)
+        print(f"✅ Semua selesai. Total tersimpan: {len(limited_data)} ke {MAP_FILE}")
     else:
         print("ℹ️ Tidak ada perubahan pada map.json. Skip commit dan push.")
-
 
 if __name__ == "__main__":
     try:
