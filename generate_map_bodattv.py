@@ -111,7 +111,11 @@ def save_to_map(slugs):
     # Potong ke 100 entri terakhir
     limited = dict(list(ordered.items())[-100:])
 
-    if not MAP_FILE.exists() or json.dumps(limited, sort_keys=True) != json.dumps(old_data, sort_keys=True):
+    old_limited = dict(list(
+        sorted(old_data.items(), key=lambda x: slugs.index(x[0]) if x[0] in slugs else 9999)
+    )[-100:])
+
+    if not MAP_FILE.exists() or json.dumps(limited, sort_keys=True) != json.dumps(old_limited, sort_keys=True):
         with MAP_FILE.open("w", encoding="utf-8") as f:
             json.dump(limited, f, indent=2, ensure_ascii=False)
         print(f"✅ map2.json berhasil diupdate! Total entri: {len(limited)}")
