@@ -85,7 +85,6 @@ def save_to_map(slugs):
             r = requests.get(url, headers=HEADERS, timeout=15)
             r.raise_for_status()
             soup = BeautifulSoup(r.text, "html.parser")
-
             iframe = soup.select_one("iframe[src*='link=']")
             if not iframe:
                 print(f"   ❌ iframe tidak ditemukan untuk: {slug}", flush=True)
@@ -104,20 +103,32 @@ def save_to_map(slugs):
         except Exception as e:
             print(f"   ❌ Error slug {slug}: {e}", flush=True)
 
-    # Gabungkan, urutkan berdasarkan slugs (yang diprioritaskan), dan simpan hanya 100 entri terakhir
+    # Gabungkan, dan urutkan agar entri baru masuk di depan
     combined = {**old_data, **new_data}
-    ordered = dict(sorted(combined.items(), key=lambda x: slugs.index(x[0]) if x[0] in slugs else 9999))
+    ordered_items = sorted(
+        combined.items(),
+        key=lambda x: (0 if x[0] in new_data else 1, slugs.index(x[0]) if x[0] in slugs else 9999)
+    )
+    # Balik urutan agar yang baru-nya di akhir ([-100:] jadi == tersimpan)
+    ordered_items = list(reversed(ordered_items))
 
-    # Potong ke 100 entri terakhir
-    limited = dict(list(ordered.items())[-100:])
+    # Potong ke 100 entri terakhir (yang paling baru)
+    limited = dict(ordered_items[:100])
 
-    old_limited = dict(list(
-        sorted(old_data.items(), key=lambda x: slugs.index(x[0]) if x[0] in slugs else 9999)
-    )[-100:])
+    # Debug info: lihat slug yang masuk
+    print("📦 Sembilan slug terbaru di file:", list(limited.keys())[-9:])
 
-    if not MAP_FILE.exists() or json.dumps(limited, sort_keys=True) != json.dumps(old_limited, sort_keys=True):
+    # Bandingkan limited dengan old_data (potong juga old_data agar sama)
+    old_limited = dict(list(reversed(
+        sorted(
+            old_data.items(),
+            key=lambda x: (0, slugs.index(x[0]) if x[0] in slugs else 9999)
+        )
+    ))[:100])
+
+    if not MAP_FILE.exists() or limited != old_limited:
         with MAP_FILE.open("w", encoding="utf-8") as f:
-            json.dump(limited, f, indent=2, ensure_ascii=False)
+            json.dump(limited, f, ensure_ascii=False, indent=2)
         print(f"✅ map2.json berhasil diupdate! Total entri: {len(limited)}")
     else:
         print("ℹ️ Tidak ada perubahan. map2.json tidak ditulis ulang.")
