@@ -1,5 +1,4 @@
 {
-  "1629451489": "https://cdn-rum.n2olabs.pro/stream.m3u8?url=https%3A%2F%2Flivecdn.rumsport.com%2Fstream%2F34%2Findex.m3u8&token=900e9fdc7cacd102e5b6df6fdf3a625faea1e312&is_vip=false&verify=1752969600-RVkOr063eTMxp%2BvLWHqDhGI8Q0fd%2FPJIBZ%2FoNGmu3io%3D",
   "1327162": "https://cdn-rum.n2olabs.pro/stream.m3u8?url=https%3A%2F%2Flivecdn.rumsport.com%2Fstream%2F3%2Findex.m3u8&token=900e9fdc7cacd102e5b6df6fdf3a625faea1e312&is_vip=false&verify=1752969600-RVkOr063eTMxp%2BvLWHqDhGI8Q0fd%2FPJIBZ%2FoNGmu3io%3D",
   "1629451493": "https://cdn-rum.n2olabs.pro/stream.m3u8?url=https%3A%2F%2Flivecdn.rumsport.com%2Fstream%2F31%2Findex.m3u8&token=900e9fdc7cacd102e5b6df6fdf3a625faea1e312&is_vip=false&verify=1752969600-RVkOr063eTMxp%2BvLWHqDhGI8Q0fd%2FPJIBZ%2FoNGmu3io%3D",
   "1326562": "https://cdn-rum.n2olabs.pro/stream.m3u8?url=https%3A%2F%2Flivecdn.rumsport.com%2Fstream%2F23%2Findex.m3u8&token=5e1712eb1d42bcc7b63edc0663fb0eb64dbb91e9&is_vip=false&verify=1752980400-T48rOZ83XR8nC%2FlhyxxWT33dPRN7LOS%2Fma0KBDJVBVI%3D",
@@ -96,7 +95,8 @@
   "1629451716": "https://cdn-rum.n2olabs.pro/stream.m3u8?url=https%3A%2F%2Flivecdn.rumsport.com%2Fstream%2F43%2Findex.m3u8&token=45103c75ed44175bc253b645167ee4f633595597&is_vip=false&verify=1753401600-2SWZLmkHmAmPV9Gb%2BcrJLXmzzp8jUJY4aRbR5h8dZFc%3D",
   "1629451725": "https://cdn-rum.n2olabs.pro/stream.m3u8?url=https%3A%2F%2Flivecdn.rumsport.com%2Fstream%2F8%2Findex.m3u8&token=f99350c67a28806b4893ce9b14da48ff9580705a&is_vip=false&verify=1753423200-TCvdmiAxX9veBZwTDC0IZszR%2BGVcbqh0nLJ8fV5GIAA%3D",
   "1629451729": "https://cdn-rum.n2olabs.pro/stream.m3u8?url=https%3A%2F%2Flivecdn.rumsport.com%2Fstream%2F8%2Findex.m3u8&token=07e367bce8bbe91d2ee1ce0b4efd88912e63b753&is_vip=false&verify=1753423200-EOQ5lBI6jJX3dfqBOIyU2K7bMBkoaidULcbaixed2ns%3D",
-  "1629451720": "https://cdn-rum.n2olabs.pro/stream.m3u8?url=https%3A%2F%2Flivecdn.rumsport.com%2Fstream%2F31%2Findex.m3u8&token=07e367bce8bbe91d2ee1ce0b4efd88912e63b753&is_vip=false&verify=1753423200-EOQ5lBI6jJX3dfqBOIyU2K7bMBkoaidULcbaixed2ns%3D",
-  "1629451722": "https://cdn-rum.n2olabs.pro/stream.m3u8?url=https%3A%2F%2Flivecdn.rumsport.com%2Fstream%2F33%2Findex.m3u8&token=07e367bce8bbe91d2ee1ce0b4efd88912e63b753&is_vip=false&verify=1753423200-EOQ5lBI6jJX3dfqBOIyU2K7bMBkoaidULcbaixed2ns%3D",
-  "1629451721": "https://cdn-rum.n2olabs.pro/stream.m3u8?url=https%3A%2F%2Flivecdn.rumsport.com%2Fstream%2F32%2Findex.m3u8&token=7020e05c6c5a60bb04662f7584c1acdc3548f1af&is_vip=false&verify=1753412400-Bm8twDTpZe7yRL9tDIavljQejmAJqHrJ8r3HjLXO6fU%3D"
+  "1629451720": "https://cdn-rum.n2olabs.pro/stream.m3u8?url=https%3A%2F%2Flivecdn.rumsport.com%2Fstream%2F31%2Findex.m3u8&token=04baad2cd22df684ee1212520a5dfac722d74e34&is_vip=false&verify=1753434000-1Tfu%2BhDiA%2FRVW0zf%2FuJXqv9znahxq2JiKZc4YQ97zJ8%3D",
+  "1629451722": "https://cdn-rum.n2olabs.pro/stream.m3u8?url=https%3A%2F%2Flivecdn.rumsport.com%2Fstream%2F33%2Findex.m3u8&token=04baad2cd22df684ee1212520a5dfac722d74e34&is_vip=false&verify=1753434000-1Tfu%2BhDiA%2FRVW0zf%2FuJXqv9znahxq2JiKZc4YQ97zJ8%3D",
+  "1629451721": "https://cdn-rum.n2olabs.pro/stream.m3u8?url=https%3A%2F%2Flivecdn.rumsport.com%2Fstream%2F32%2Findex.m3u8&token=04baad2cd22df684ee1212520a5dfac722d74e34&is_vip=false&verify=1753434000-1Tfu%2BhDiA%2FRVW0zf%2FuJXqv9znahxq2JiKZc4YQ97zJ8%3D",
+  "1629453237": "https://cdn-rum.n2olabs.pro/stream.m3u8?url=https%3A%2F%2Flivecdn.rumsport.com%2Fstream%2F25%2Findex.m3u8&token=04baad2cd22df684ee1212520a5dfac722d74e34&is_vip=false&verify=1753434000-1Tfu%2BhDiA%2FRVW0zf%2FuJXqv9znahxq2JiKZc4YQ97zJ8%3D"
 }
