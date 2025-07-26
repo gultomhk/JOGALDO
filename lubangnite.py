@@ -179,14 +179,12 @@ if __name__ == "__main__":
     try:
         match_dict = get_live_match_ids()
 
-        # Selalu proses semua ID tanpa filter
-        limited = dict(list(match_dict.items())[:15])
+        # Tidak perlu membatasi ke 15, karena save_to_map sekarang urus semua
+        save_to_map(match_dict)
 
-        save_to_map(limited)
-
-        # Fallback terakhir
+        # Fallback jika map file belum pernah dibuat
         if not MAP_FILE.exists():
-            with open(MAP_FILE, "w") as f:
+            with open(MAP_FILE, "w", encoding="utf-8") as f:
                 json.dump({}, f)
             print("📄 map.json kosong dibuat sebagai fallback.")
 
