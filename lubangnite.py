@@ -132,18 +132,19 @@ def extract_tokenized_m3u8(match_id):
 
     return final_url
 
-
 def save_to_map(match_dict):
+    if not match_dict:
+        print("⚠️ Tidak ada match yang diberikan.")
+        return
+
     old_data = {}
     if MAP_FILE.exists():
-        with open(MAP_FILE) as f:
+        with open(MAP_FILE, encoding="utf-8") as f:
             old_data = json.load(f)
 
     new_data = {}
-    total = len(match_dict)
-
     for idx, (match_id, start_at) in enumerate(sorted(match_dict.items(), key=lambda x: x[1]), 1):
-        print(f"[{idx}/{total}] ▶ Scraping ID: {match_id}")
+        print(f"[{idx}/{len(match_dict)}] ▶ Scraping ID: {match_id}")
         try:
             m3u8_url = extract_tokenized_m3u8(match_id)
             if m3u8_url:
@@ -154,20 +155,22 @@ def save_to_map(match_dict):
         except Exception as e:
             print(f"❌ Error ID {match_id}: {e}")
 
-    # Gabungkan dan urutkan berdasarkan waktu dari match_dict
+    # Gabungkan data lama dan baru
     combined_data = {**old_data, **new_data}
-    ordered_data = dict(sorted(combined_data.items(), key=lambda x: match_dict.get(x[0], 0) or 0))
 
-    # Potong jadi 100 item terakhir
-    limited_data = dict(list(ordered_data.items())[-100:])
+    # Urutkan berdasarkan waktu dari match_dict (jika tidak ada waktu, pakai 0)
+    combined_sorted = dict(sorted(combined_data.items(), key=lambda x: match_dict.get(x[0], 0)))
 
-    # Simpan jika berbeda dari yang lama
-    if not MAP_FILE.exists() or limited_data != old_data:
-        with open(MAP_FILE, "w") as f:
-            json.dump(limited_data, f, indent=2)
-        print(f"✅ Semua selesai. Total tersimpan: {len(limited_data)} ke {MAP_FILE}")
+    # ⚠️ Jika ingin batasi 100 entri terakhir, aktifkan baris ini:
+    # combined_sorted = dict(list(combined_sorted.items())[-100:])
+
+    # Simpan hanya jika berbeda
+    if not MAP_FILE.exists() or combined_sorted != old_data:
+        with open(MAP_FILE, "w", encoding="utf-8") as f:
+            json.dump(combined_sorted, f, indent=2)
+        print(f"✅ Tersimpan {len(combined_sorted)} entri ke {MAP_FILE}")
     else:
-        print("ℹ️ Tidak ada perubahan pada map.json. Skip commit dan push.")
+        print("ℹ️ Tidak ada perubahan pada map.json.")
 
 if __name__ == "__main__":
     try:
