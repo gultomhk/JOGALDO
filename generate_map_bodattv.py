@@ -34,36 +34,52 @@ HEADERS = {
 now = datetime.now(tz.gettz("Asia/Jakarta"))
 
 # ========= Ambil daftar slug =========
-def extract_slugs_from_html(html):
+def extract_slug(row):
+    """Ekstrak slug dari elemen baris HTML."""
+    # Coba dari atribut onclick dulu
+    if row.has_attr("onclick"):
+        match = re.search(r"/match/([^\"']+)", row["onclick"])
+        if match:
+            return match.group(1).strip()
+    
+    # Fallback ke <a href="/match/...">
+    link = row.select_one("a[href^='/match/']")
+    if link:
+        return link['href'].replace('/match/', '').strip()
+    
+    return None
+
+def extract_slugs_from_html(html, hours_threshold=2):
     soup = BeautifulSoup(html, "html.parser")
     matches = soup.select("div.common-table-row.table-row")
     print(f"📦 Total match ditemukan: {len(matches)}")
 
     slugs = []
     seen = set()
+    now = datetime.now(tz=tz.gettz("Asia/Jakarta"))
+
     for row in matches:
-        slug = None
-        link = row.select_one("a[href^='/match/']")
-        if link:
-            slug = link['href'].replace('/match/', '').strip()
-        elif row.has_attr("onclick"):
-            match = re.search(r"/match/([^']+)", row["onclick"])
-            if match:
-                slug = match.group(1).strip()
-
-        if not slug or slug in seen:
-            continue
-
-        waktu_tag = row.select_one(".match-time")
-        if waktu_tag and waktu_tag.get("data-timestamp"):
-            timestamp = int(waktu_tag["data-timestamp"])
-            event_time_utc = datetime.fromtimestamp(timestamp, tz=timezone.utc)
-            event_time_local = event_time_utc.astimezone(tz.gettz("Asia/Jakarta"))
-            if event_time_local < (now - timedelta(hours=2)):
+        try:
+            slug = extract_slug(row)
+            if not slug or slug in seen:
                 continue
 
-        seen.add(slug)
-        slugs.append(slug)
+            # Ambil timestamp dan filter jika lebih dari threshold jam yang lalu
+            waktu_tag = row.select_one(".match-time")
+            if waktu_tag and waktu_tag.get("data-timestamp"):
+                timestamp = int(waktu_tag["data-timestamp"])
+                event_time_utc = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+                event_time_local = event_time_utc.astimezone(tz.gettz("Asia/Jakarta"))
+
+                if event_time_local < (now - timedelta(hours=hours_threshold)):
+                    continue
+
+            seen.add(slug)
+            slugs.append(slug)
+
+        except Exception as e:
+            print(f"❌ Gagal parsing row: {e}")
+            continue
 
     print(f"📦 Total slug valid: {len(slugs)}")
     return slugs
