@@ -138,17 +138,19 @@ def extract_tokenized_m3u8(match_id):
 
 def save_to_map(match_dict):
     if not match_dict:
-        print("⚠️ Tidak ada match yang diberikan.")
+        print("⚠️ Tidak ada data pertandingan.")
         return
 
     old_data = {}
     if MAP_FILE.exists():
-        with open(MAP_FILE, encoding="utf-8") as f:
+        with open(MAP_FILE, "r", encoding="utf-8") as f:
             old_data = json.load(f)
 
     new_data = {}
+    total = len(match_dict)
+
     for idx, (match_id, start_at) in enumerate(sorted(match_dict.items(), key=lambda x: x[1]), 1):
-        print(f"[{idx}/{len(match_dict)}] ▶ Scraping ID: {match_id}")
+        print(f"[{idx}/{total}] ▶ Scraping ID: {match_id}")
         try:
             m3u8_url = extract_tokenized_m3u8(match_id)
             if m3u8_url:
@@ -159,20 +161,17 @@ def save_to_map(match_dict):
         except Exception as e:
             print(f"❌ Error ID {match_id}: {e}")
 
-    # Gabungkan data lama dan baru
-    combined_data = {**old_data, **new_data}
+    # Gabungkan hasil baru dan lama, hanya update jika baru ada
+    combined = {**old_data, **new_data}
 
-    # Urutkan berdasarkan waktu dari match_dict (jika tidak ada waktu, pakai 0)
-    combined_sorted = dict(sorted(combined_data.items(), key=lambda x: match_dict.get(x[0], 0)))
+    # Ambil urutan sesuai urutan input (match_dict)
+    ordered = {k: combined[k] for k, _ in sorted(match_dict.items(), key=lambda x: x[1]) if k in combined}
 
-    # ⚠️ Jika ingin batasi 100 entri terakhir, aktifkan baris ini:
-    # combined_sorted = dict(list(combined_sorted.items())[-100:])
-
-    # Simpan hanya jika berbeda
-    if not MAP_FILE.exists() or combined_sorted != old_data:
+    # Perbandingan isi menggunakan json.dumps agar akurat
+    if not MAP_FILE.exists() or json.dumps(ordered, sort_keys=True) != json.dumps(old_data, sort_keys=True):
         with open(MAP_FILE, "w", encoding="utf-8") as f:
-            json.dump(combined_sorted, f, indent=2)
-        print(f"✅ Tersimpan {len(combined_sorted)} entri ke {MAP_FILE}")
+            json.dump(ordered, f, indent=2)
+        print(f"✅ Disimpan ulang. Total: {len(ordered)} ke {MAP_FILE}")
     else:
         print("ℹ️ Tidak ada perubahan pada map.json.")
 
