@@ -32,6 +32,10 @@ def get_live_match_ids():
         "sport3": (AXLIVE_LIVESTREAM_SPORT3_URL, True),
         "sport4": (AXLIVE_LIVESTREAM_SPORT4_URL, True),
         "sport5": (AXLIVE_LIVESTREAM_SPORT5_URL, False),
+        "sport6": (AXLIVE_LIVESTREAM_SPORT6_URL, False),
+        "sport7": (AXLIVE_LIVESTREAM_SPORT7_URL, False),
+        "sport8": (AXLIVE_LIVESTREAM_SPORT8_URL, False),
+        "sport9": (AXLIVE_LIVESTREAM_SPORT9_URL, False),
     }
 
     headers = {"User-Agent": "Mozilla/5.0"}
@@ -179,12 +183,14 @@ if __name__ == "__main__":
     try:
         match_dict = get_live_match_ids()
 
-        # Tidak perlu membatasi ke 15, karena save_to_map sekarang urus semua
-        save_to_map(match_dict)
+        # Selalu proses semua ID tanpa filter
+        limited = dict(list(match_dict.items())[:15])
 
-        # Fallback jika map file belum pernah dibuat
+        save_to_map(limited)
+
+        # Fallback terakhir
         if not MAP_FILE.exists():
-            with open(MAP_FILE, "w", encoding="utf-8") as f:
+            with open(MAP_FILE, "w") as f:
                 json.dump({}, f)
             print("📄 map.json kosong dibuat sebagai fallback.")
 
