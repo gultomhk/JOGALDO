@@ -84,9 +84,22 @@ def extract_slugs_from_html(html, hours_threshold=2):
     print(f"📦 Total slug valid: {len(slugs)}")
     return slugs
 
+def extract_m3u8_links_from_iframe(url):
+    try:
+        headers = {
+            "User-Agent": USER_AGENT,
+        }
+        resp = requests.get(url, headers=headers, timeout=10)
+        if resp.status_code != 200:
+            return []
+
+        return re.findall(r"https?://[^\s\"']+\.m3u8", resp.text)
+    except Exception as e:
+        print(f"   ⚠️ Gagal ambil iframe {url}: {e}")
+        return []
+
 # ========= Simpan ke MAP (gaya save_to_map) =========
 def save_to_map(slugs):
-    # Load data lama jika ada
     old_data = {}
     if MAP_FILE.exists():
         with MAP_FILE.open(encoding="utf-8") as f:
@@ -99,31 +112,39 @@ def save_to_map(slugs):
             r = requests.get(f"{BASE_URL}/match/{slug}", headers=HEADERS, timeout=15)
             r.raise_for_status()
             soup = BeautifulSoup(r.text, "html.parser")
-            iframe = soup.select_one("iframe[src*='link=']")
 
-            if not iframe:
-                print(f"   ❌ iframe tidak ditemukan untuk: {slug}", flush=True)
+            # Temukan tombol server
+            server_buttons = soup.select("button[data-link], a[data-link]")
+            if not server_buttons:
+                print(f"   ❌ Tidak ada tombol server ditemukan untuk: {slug}", flush=True)
                 continue
 
-            m3u8_encoded = parse_qs(urlparse(urljoin(BASE_URL, iframe["src"])).query).get("link", [""])[0]
-            m3u8_url = unquote(m3u8_encoded)
+            all_m3u8 = []
+            for btn in server_buttons:
+                iframe_rel_url = btn.get("data-link")
+                if not iframe_rel_url:
+                    continue
 
-            if ".m3u8" in m3u8_url:
-                new_data[slug] = m3u8_url
-                print(f"   ✅ M3U8 valid: {m3u8_url}", flush=True)
+                iframe_url = urljoin(BASE_URL, iframe_rel_url)
+                print(f"   🔗 Cek iframe: {iframe_url}", flush=True)
+                m3u8_list = extract_m3u8_links_from_iframe(iframe_url)
+                all_m3u8.extend(m3u8_list)
+
+            m3u8_clean = list(set(all_m3u8))  # hapus duplikat
+            if m3u8_clean:
+                new_data[slug] = m3u8_clean
+                print(f"   ✅ {len(m3u8_clean)} M3U8 ditemukan.", flush=True)
             else:
-                print(f"   ⚠️ Link bukan .m3u8: {m3u8_url}", flush=True)
+                print(f"   ⚠️ Tidak ada .m3u8 di semua iframe.", flush=True)
+
         except Exception as e:
             print(f"   ❌ Error slug {slug}: {e}", flush=True)
 
-    # Gabungkan data lama dan baru
+    # Gabungkan dan simpan
     combined = {**old_data, **new_data}
-
-    # Filter hanya slug yang diminta
     ordered = {k: combined[k] for k in slugs if k in combined}
-    limited = dict(list(ordered.items())[-100:])  # Batas maksimal 100 entri
+    limited = dict(list(ordered.items())[-100:])
 
-    # Hanya simpan jika ada perubahan data atau file belum ada
     if not MAP_FILE.exists() or json.dumps(limited, sort_keys=True) != json.dumps(old_data, sort_keys=True):
         with MAP_FILE.open("w", encoding="utf-8") as f:
             json.dump(limited, f, indent=2, ensure_ascii=False)
