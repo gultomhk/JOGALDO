@@ -1,13 +1,13 @@
 import json
+import re
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta, timezone
 from dateutil import tz
 from pathlib import Path
-import re
 
 # ========== CONFIG ==========
 CONFIG_FILE = Path.home() / "bodattvdata_file.txt"
-MAP_FILE = Path("map2.json")  # tempat penyimpanan slug -> m3u8
+MAP_FILE = Path("map2.json")  # berisi slug -> [url1, url2, ...]
 
 def load_config(filepath):
     config = {}
@@ -43,24 +43,23 @@ def load_map():
             return json.load(f)
     return {}
 
-# ========== PARSING ==========
+# ========== PARSER ==========
 def extract_matches_from_html(html, slug_to_url_map):
     soup = BeautifulSoup(html, "html.parser")
     output = ["#EXTM3U"]
     seen = set()
 
     matches = soup.select("div.common-table-row.table-row")
-    print(f"⛵️ Found {len(matches)} match rows")
+    print(f"⛵️ Ditemukan {len(matches)} baris pertandingan")
 
     for row in matches:
         try:
+            # ========== Ekstraksi slug ==========
             slug = None
-
             link = row.select_one("a[href^='/match/']")
             if link:
                 slug = link['href'].replace('/match/', '').strip()
-
-            if not slug and row.has_attr("onclick"):
+            elif row.has_attr("onclick"):
                 match = re.search(r"/match/([^']+)", row["onclick"])
                 if match:
                     slug = match.group(1).strip()
@@ -69,6 +68,7 @@ def extract_matches_from_html(html, slug_to_url_map):
                 continue
             seen.add(slug)
 
+            # ========== Waktu lokal ==========
             waktu_tag = row.select_one(".match-time")
             if waktu_tag and waktu_tag.get("data-timestamp"):
                 timestamp = int(waktu_tag["data-timestamp"])
@@ -79,12 +79,13 @@ def extract_matches_from_html(html, slug_to_url_map):
                 waktu = "00/00-00.00"
                 local_time = now
 
-            # pengecualian
+            # ========== Filter pengecualian ==========
             slug_lower = slug.lower()
             is_exception = any(word in slug_lower for word in ["tennis", "snooker", "superbike", "billiards", "worldssp"])
             if not is_exception and local_time < (now - timedelta(hours=2)):
                 continue
 
+            # ========== Judul pertandingan ==========
             wrapper = row.select_one(".list-club-wrapper")
             if wrapper:
                 names = wrapper.select(".club-name")
@@ -102,24 +103,24 @@ def extract_matches_from_html(html, slug_to_url_map):
             if title.lower() == "vs" or len(title) < 3:
                 continue
 
+            # ========== URL stream ==========
             urls = slug_to_url_map.get(slug)
             if not urls:
-                # fallback slug langsung tanpa server
                 urls = [f"{WORKER_URL}{slug}"]
             elif isinstance(urls, str):
                 urls = [urls]
 
             for i, url in enumerate(urls):
-                server_label = f" server {i+1}" if len(urls) > 1 else ""
+                server_label = f" server{i+1}" if len(urls) > 1 else ""
                 output += [
                     f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{LOGO}",{waktu} {title}{server_label}',
                     f'#EXTVLCOPT:http-user-agent={USER_AGENT}',
                     f'#EXTVLCOPT:http-referrer={BASE_URL}/',
-                    url
+                    f'{url} {server_label}'.strip()
                 ]
 
         except Exception as e:
-            print(f"❌ Error row: {e}")
+            print(f"❌ Error parsing row: {e}")
             continue
 
     return "\n".join(output)
