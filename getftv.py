@@ -1,8 +1,9 @@
-from bs4 import BeautifulSoup 
+from bs4 import BeautifulSoup
 from datetime import datetime, timedelta, timezone
 from dateutil import tz
 from pathlib import Path
 import re
+import urllib.parse
 
 # ====== Konfigurasi ======
 BODATTVDATA_FILE = Path.home() / "bodattvdata_file.txt"
@@ -40,31 +41,52 @@ def clean_title(title):
     title = re.sub(r"\s{2,}", " ", title)       # hilangkan spasi ganda
     return title.strip(" -")
 
-# ====== Ekstraksi dari HTML ======
+# ====== Ekstraksi Slug ======
+def extract_slug(row):
+    if row.has_attr("onclick"):
+        match = re.search(r"/match/([^\"']+)", row["onclick"])
+        if match:
+            return match.group(1).strip()
+    link = row.select_one("a[href^='/match/']")
+    if link:
+        return link['href'].replace('/match/', '').strip()
+    return None
+
+# ====== Hitung m3u8 per slug ======
+def map_slug_to_m3u8_count(html):
+    soup = BeautifulSoup(html, "html.parser")
+    slug_to_count = {}
+    match_rows = soup.select("div.common-table-row.table-row")
+
+    for row in match_rows:
+        slug = extract_slug(row)
+        if not slug:
+            continue
+
+        data_links = row.select("[data-link]")
+        count = 0
+        for tag in data_links:
+            raw = tag.get("data-link", "")
+            decoded = urllib.parse.unquote(raw)
+            if ".m3u8" in decoded:
+                count += 1
+        slug_to_count[slug] = count
+
+    return slug_to_count
+
+# ====== Ekstraksi Match Utama ======
 def extract_matches_from_html(html):
     soup = BeautifulSoup(html, "html.parser")
     output = ["#EXTM3U"]
     seen = set()
+    slug_m3u8_count_map = map_slug_to_m3u8_count(html)
 
-    # === 1. slide-item (Sepakbola utama) ===
     matches_table = soup.select("div.common-table-row.table-row")
     print(f"⛵️ Found {len(matches_table)} table-row matches")
 
     for row in matches_table:
         try:
-            slug = None
-
-            # 1. Dari <a href>
-            link = row.select_one("a[href^='/match/']")
-            if link:
-                slug = link['href'].replace('/match/', '').strip()
-
-            # 2. Atau dari onclick
-            if not slug and row.has_attr("onclick"):
-                match = re.search(r"/match/([^']+)", row["onclick"])
-                if match:
-                    slug = match.group(1).strip()
-
+            slug = extract_slug(row)
             if not slug or slug in seen:
                 continue
             seen.add(slug)
@@ -79,10 +101,8 @@ def extract_matches_from_html(html):
                 waktu = "00/00-00.00"
                 event_time_local = now
 
-            # pengecualian filter waktu
             slug_lower = slug.lower()
             is_exception = any(keyword in slug_lower for keyword in ["tennis", "billiards", "snooker", "worldssp", "superbike"])
-
             if not is_exception and event_time_local < (now - timedelta(hours=2)):
                 continue
 
@@ -90,7 +110,6 @@ def extract_matches_from_html(html):
             if wrapper:
                 name_tags = wrapper.select(".club-name")
                 texts = [t.text.strip() for t in name_tags if t.text.strip().lower() != "vs"]
-
                 if len(texts) >= 2:
                     title = f"{texts[0]} vs {texts[1]}"
                 elif len(texts) == 1:
@@ -105,14 +124,24 @@ def extract_matches_from_html(html):
                 print(f"⚠️  Skip bad title (table): {title}")
                 continue
 
-            print(f"📃 Parsed: {waktu} | {title}")
+            m3u8_count = slug_m3u8_count_map.get(slug, 0)
+            print(f"📃 Parsed: {waktu} | {title} | {slug} | m3u8: {m3u8_count}")
 
-            output += [
-                f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{LOGO}",{waktu} {title}',
-                f'#EXTVLCOPT:http-user-agent={USER_AGENT}',
-                f'#EXTVLCOPT:http-referrer={BASE_URL}/',
-                f'{WORKER_URL}{slug}'
-            ]
+            if m3u8_count >= 2:
+                for server_num in (1, 2):
+                    output += [
+                        f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{LOGO}",{waktu} {title} server {server_num}',
+                        f'#EXTVLCOPT:http-user-agent={USER_AGENT}',
+                        f'#EXTVLCOPT:http-referrer={BASE_URL}/',
+                        f'{WORKER_URL}{slug} server{server_num}'
+                    ]
+            else:
+                output += [
+                    f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{LOGO}",{waktu} {title}',
+                    f'#EXTVLCOPT:http-user-agent={USER_AGENT}',
+                    f'#EXTVLCOPT:http-referrer={BASE_URL}/',
+                    f'{WORKER_URL}{slug}'
+                ]
 
         except Exception as e:
             print(f"❌ Error parsing table row: {e}")
@@ -120,7 +149,7 @@ def extract_matches_from_html(html):
 
     return "\n".join(output)
 
-# ====== Jalankan Script Utama ======
+# ====== Main ======
 if __name__ == "__main__":
     with open("BODATTV_PAGE_SOURCE.html", "r", encoding="utf-8") as f:
         html = f.read()
@@ -130,4 +159,4 @@ if __name__ == "__main__":
     with open("bodattv_live.m3u", "w", encoding="utf-8") as f:
         f.write(result)
 
-    print("\n✅ File bodattv_live.m3u berhasil dibuat dengan filter waktu (2 jam ke depan atau lebih)")
+    print("\n✅ File bodattv_live.m3u berhasil dibuat berdasarkan jumlah .m3u8 per pertandingan.")
