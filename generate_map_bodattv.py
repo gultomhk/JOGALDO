@@ -77,10 +77,17 @@ def extract_slugs_from_html(html, hours_threshold=2):
 # ========== Ambil M3U8 dari halaman ==========
 def extract_m3u8_links_from_url(url):
     try:
+        if "player?link=" in url:
+            print(f"   ⚠️ Lewatkan iframe player: {url}")
+            return []
+
         resp = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=10)
         if resp.status_code != 200:
             return []
-        return re.findall(r"https?://[^\s\"']+\.m3u8", resp.text)
+
+        links = re.findall(r"https?://[^\s\"']+\.m3u8", resp.text)
+        return [link for link in links if not "player?link=" in link]
+
     except Exception as e:
         print(f"   ⚠️ Gagal ambil iframe {url}: {e}")
         return []
@@ -88,30 +95,25 @@ def extract_m3u8_links_from_url(url):
 def get_all_m3u8_from_page(soup, slug):
     found_links = set()
 
-    # Dari tombol data-link
+    # Tombol data-link
     for btn in soup.select("button[data-link], a[data-link]"):
         iframe_rel = btn.get("data-link")
         if iframe_rel:
             iframe_url = urljoin(BASE_URL, iframe_rel)
             print(f"   🔗 Cek iframe dari data-link: {iframe_url}")
-            found_links.update(extract_m3u8_links_from_url(iframe_url))
+            links = extract_m3u8_links_from_url(iframe_url)
+            found_links.update(links)
 
-    # Dari iframe yang mengandung .m3u8
-    for iframe in soup.select("iframe[src*='.m3u8']"):
-        src = iframe.get("src")
-        if src:
+    # Iframe langsung dengan .m3u8
+    for iframe in soup.select("iframe"):
+        src = iframe.get("src", "")
+        if ".m3u8" in src and "player?link=" not in src:
             src = urljoin(BASE_URL, src)
             print(f"   🔗 Cek iframe langsung: {src}")
             found_links.add(src)
 
-    # Fallback: iframe dengan player?link=
-    if not found_links:
-        for iframe in soup.select("iframe[src*='player?link=']"):
-            iframe_url = urljoin(BASE_URL, iframe["src"])
-            print(f"   🔁 Fallback iframe player: {iframe_url}")
-            found_links.update(extract_m3u8_links_from_url(iframe_url))
-
-    return list(found_links)
+    # Validasi hanya link .m3u8 langsung
+    return [link for link in found_links if ".m3u8" in link and "player?link=" not in link]
 
 # ========== Simpan ke MAP ==========
 def save_to_map(slugs):
