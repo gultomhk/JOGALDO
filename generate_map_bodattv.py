@@ -96,11 +96,20 @@ def get_all_m3u8_from_page(soup, slug):
             print(f"   🔗 Cek iframe dari data-link: {iframe_url}")
             found_links.update(extract_m3u8_links_from_url(iframe_url))
 
-    # Dari iframe langsung
+    # Dari iframe yang mengandung .m3u8
     for iframe in soup.select("iframe[src*='.m3u8']"):
-        src = urljoin(BASE_URL, iframe.get("src"))
-        print(f"   🔗 Cek iframe langsung: {src}")
-        found_links.add(src)
+        src = iframe.get("src")
+        if src:
+            src = urljoin(BASE_URL, src)
+            print(f"   🔗 Cek iframe langsung: {src}")
+            found_links.add(src)
+
+    # Fallback: iframe dengan player?link=
+    if not found_links:
+        for iframe in soup.select("iframe[src*='player?link=']"):
+            iframe_url = urljoin(BASE_URL, iframe["src"])
+            print(f"   🔁 Fallback iframe player: {iframe_url}")
+            found_links.update(extract_m3u8_links_from_url(iframe_url))
 
     return list(found_links)
 
@@ -140,15 +149,14 @@ def save_to_map(slugs):
     # Gabungkan data lama dan baru
     combined = {**old_data, **new_data}
 
-    # Simpan hanya yang terkait slug terkini
-    keys = []
+    # Simpan hanya slug yang masih relevan
+    filtered_keys = []
     for slug in slugs:
-        keys += [k for k in combined if k == slug or k.startswith(f"{slug} server")]
+        filtered_keys += [k for k in combined if k == slug or k.startswith(f"{slug} server")]
 
-    ordered = {k: combined[k] for k in keys if k in combined}
-    limited = dict(list(ordered.items())[-100:])
+    ordered = {k: combined[k] for k in filtered_keys if k in combined}
+    limited = dict(list(ordered.items())[-100:])  # simpan 100 entri terakhir
 
-    # Tulis jika ada perubahan
     if not MAP_FILE.exists() or json.dumps(limited, sort_keys=True) != json.dumps(old_data, sort_keys=True):
         with MAP_FILE.open("w", encoding="utf-8") as f:
             json.dump(limited, f, indent=2, ensure_ascii=False)
