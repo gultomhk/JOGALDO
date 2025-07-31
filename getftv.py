@@ -1,13 +1,11 @@
-import json
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup  
 from datetime import datetime, timedelta, timezone
 from dateutil import tz
 from pathlib import Path
 import re
 
-# ========== CONFIG ==========
-CONFIG_FILE = Path.home() / "bodattvdata_file.txt"
-MAP_FILE = Path("map2.json")
+# ====== Konfigurasi ======
+BODATTVDATA_FILE = Path.home() / "bodattvdata_file.txt"
 
 def load_config(filepath):
     config = {}
@@ -18,17 +16,24 @@ def load_config(filepath):
                 config[key.strip()] = val.strip().strip('"')
     return config
 
-if not CONFIG_FILE.exists():
-    raise FileNotFoundError(f"❌ Config file tidak ditemukan: {CONFIG_FILE}")
-config = load_config(CONFIG_FILE)
+if not BODATTVDATA_FILE.exists():
+    raise FileNotFoundError(f"❌ File config tidak ditemukan: {BODATTVDATA_FILE}")
+
+config = load_config(BODATTVDATA_FILE)
+required_keys = ["DEFAULT_URL", "BASE_URL", "WORKER_URL", "LOGO", "USER_AGENT"]
+missing = [key for key in required_keys if key not in config]
+if missing:
+    raise ValueError(f"❌ Missing config keys: {', '.join(missing)}")
 
 BASE_URL = config["BASE_URL"]
 WORKER_URL = config["WORKER_URL"]
 LOGO = config["LOGO"]
 USER_AGENT = config["USER_AGENT"]
+USE_SERVERS = config.get("USE_SERVERS", "true").lower() == "true"  # Default true
+NUM_SERVERS = int(config.get("NUM_SERVERS", 3)) if USE_SERVERS else 0  # Jumlah server, 0 jika tidak pakai server
+
 now = datetime.now(tz.gettz("Asia/Jakarta"))
 
-# ========== HELPERS ==========
 def clean_title(title):
     title = title.replace("football", "")
     title = re.sub(r"\s*[:|•]\s*", " ", title)
@@ -36,28 +41,17 @@ def clean_title(title):
     title = re.sub(r"\s{2,}", " ", title)
     return title.strip(" -")
 
-def load_map():
-    if MAP_FILE.exists():
-        with open(MAP_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {}
-
-def is_valid_m3u8(url):
-    return url.startswith("http") and ".m3u8" in url
-
-# ========== PARSING ==========
-def extract_matches_from_html(html, slug_to_url_map):
+def extract_matches_from_html(html):
     soup = BeautifulSoup(html, "html.parser")
     output = ["#EXTM3U"]
     seen = set()
 
-    matches = soup.select("div.common-table-row.table-row")
-    print(f"⛵️ Found {len(matches)} match rows")
+    matches_table = soup.select("div.common-table-row.table-row")
+    print(f"⛵️ Found {len(matches_table)} table-row matches")
 
-    for row in matches:
+    for row in matches_table:
         try:
             slug = None
-
             link = row.select_one("a[href^='/match/']")
             if link:
                 slug = link['href'].replace('/match/', '').strip()
@@ -74,23 +68,24 @@ def extract_matches_from_html(html, slug_to_url_map):
             waktu_tag = row.select_one(".match-time")
             if waktu_tag and waktu_tag.get("data-timestamp"):
                 timestamp = int(waktu_tag["data-timestamp"])
-                utc_time = datetime.fromtimestamp(timestamp, tz=timezone.utc)
-                local_time = utc_time.astimezone(tz.gettz("Asia/Jakarta"))
-                waktu = local_time.strftime("%d/%m-%H.%M")
+                event_time_utc = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+                event_time_local = event_time_utc.astimezone(tz.gettz("Asia/Jakarta"))
+                waktu = event_time_local.strftime("%d/%m-%H.%M")
             else:
                 waktu = "00/00-00.00"
-                local_time = now
+                event_time_local = now
 
-            # pengecualian dan filter waktu
             slug_lower = slug.lower()
-            is_exception = any(word in slug_lower for word in ["tennis", "snooker", "superbike", "billiards", "worldssp"])
-            if not is_exception and local_time < (now - timedelta(hours=2)):
+            is_exception = any(keyword in slug_lower for keyword in ["tennis", "billiards", "snooker", "worldssp", "superbike"])
+
+            if not is_exception and event_time_local < (now - timedelta(hours=2)):
                 continue
 
             wrapper = row.select_one(".list-club-wrapper")
             if wrapper:
-                names = wrapper.select(".club-name")
-                texts = [t.text.strip() for t in names if t.text.strip().lower() != "vs"]
+                name_tags = wrapper.select(".club-name")
+                texts = [t.text.strip() for t in name_tags if t.text.strip().lower() != "vs"]
+
                 if len(texts) >= 2:
                     title = f"{texts[0]} vs {texts[1]}"
                 elif len(texts) == 1:
@@ -98,50 +93,50 @@ def extract_matches_from_html(html, slug_to_url_map):
                 else:
                     title = wrapper.get_text(separator=" ", strip=True)
             else:
-                title = slug.replace("-", " ")
+                title = clean_title(slug.replace("-", " "))
 
             title = clean_title(title)
-            if title.lower() == "vs" or len(title) < 3:
+            if title.lower() == "vs" or len(title.strip()) < 3:
+                print(f"⚠️  Skip bad title (table): {title}")
                 continue
 
-            urls = slug_to_url_map.get(slug)
-            valid_urls = []
+            print(f"📃 Parsed: {waktu} | {title}")
 
-            if isinstance(urls, str):
-                urls = [urls]
-
-            if isinstance(urls, list):
-                for u in urls:
-                    if is_valid_m3u8(u):
-                        valid_urls.append(u)
-
-            if not valid_urls:
-                valid_urls = [f"{WORKER_URL}{slug}"]
-
-            for i, url in enumerate(valid_urls):
-                server_label = f" server{i+1}" if len(valid_urls) > 1 else ""
+            if USE_SERVERS and NUM_SERVERS > 0:
+                # Generate entries with servers
+                for i in range(1, NUM_SERVERS + 1):
+                    server_name = f"server{i}"
+                    output += [
+                        f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{LOGO}",{waktu} {title} {server_name}',
+                        f'#EXTVLCOPT:http-user-agent={USER_AGENT}',
+                        f'#EXTVLCOPT:http-referrer={BASE_URL}/',
+                        f'{WORKER_URL}{slug} {server_name}'
+                    ]
+            else:
+                # Generate single entry without server suffix
                 output += [
-                    f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{LOGO}",{waktu} {title}{server_label}',
+                    f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{LOGO}",{waktu} {title}',
                     f'#EXTVLCOPT:http-user-agent={USER_AGENT}',
                     f'#EXTVLCOPT:http-referrer={BASE_URL}/',
-                    f'{url}'
+                    f'{WORKER_URL}{slug}'
                 ]
 
         except Exception as e:
-            print(f"❌ Error row: {e}")
+            print(f"❌ Error parsing table row: {e}")
             continue
 
     return "\n".join(output)
 
-# ========== MAIN ==========
 if __name__ == "__main__":
     with open("BODATTV_PAGE_SOURCE.html", "r", encoding="utf-8") as f:
         html = f.read()
 
-    slug_to_url_map = load_map()
-    result = extract_matches_from_html(html, slug_to_url_map)
+    result = extract_matches_from_html(html)
 
     with open("bodattv_live.m3u", "w", encoding="utf-8") as f:
         f.write(result)
 
-    print("\n✅ File bodattv_live.m3u berhasil dibuat.")
+    if USE_SERVERS and NUM_SERVERS > 0:
+        print(f"\n✅ File berhasil dibuat dengan {NUM_SERVERS} server per match")
+    else:
+        print("\n✅ File berhasil dibuat tanpa server suffix")
