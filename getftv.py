@@ -7,7 +7,7 @@ import re
 
 # ========== CONFIG ==========
 CONFIG_FILE = Path.home() / "bodattvdata_file.txt"
-MAP_FILE = Path("map2.json")  # tempat penyimpanan slug -> m3u8
+MAP_FILE = Path("map2.json")
 
 def load_config(filepath):
     config = {}
@@ -26,7 +26,6 @@ BASE_URL = config["BASE_URL"]
 WORKER_URL = config["WORKER_URL"]
 LOGO = config["LOGO"]
 USER_AGENT = config["USER_AGENT"]
-
 now = datetime.now(tz.gettz("Asia/Jakarta"))
 
 # ========== HELPERS ==========
@@ -42,6 +41,9 @@ def load_map():
         with open(MAP_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
     return {}
+
+def is_valid_m3u8(url):
+    return url.startswith("http") and ".m3u8" in url
 
 # ========== PARSING ==========
 def extract_matches_from_html(html, slug_to_url_map):
@@ -79,7 +81,7 @@ def extract_matches_from_html(html, slug_to_url_map):
                 waktu = "00/00-00.00"
                 local_time = now
 
-            # pengecualian
+            # pengecualian dan filter waktu
             slug_lower = slug.lower()
             is_exception = any(word in slug_lower for word in ["tennis", "snooker", "superbike", "billiards", "worldssp"])
             if not is_exception and local_time < (now - timedelta(hours=2)):
@@ -103,18 +105,26 @@ def extract_matches_from_html(html, slug_to_url_map):
                 continue
 
             urls = slug_to_url_map.get(slug)
-            if not urls:
-                urls = [f"{WORKER_URL}{slug}"]
-            elif isinstance(urls, str):
+            valid_urls = []
+
+            if isinstance(urls, str):
                 urls = [urls]
 
-            for i, url in enumerate(urls):
-                server_label = f" server{i+1}" if len(urls) > 1 else ""
+            if isinstance(urls, list):
+                for u in urls:
+                    if is_valid_m3u8(u):
+                        valid_urls.append(u)
+
+            if not valid_urls:
+                valid_urls = [f"{WORKER_URL}{slug}"]
+
+            for i, url in enumerate(valid_urls):
+                server_label = f" server{i+1}" if len(valid_urls) > 1 else ""
                 output += [
-                    f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{LOGO}",{waktu} {title} {server_label}',
+                    f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{LOGO}",{waktu} {title}{server_label}',
                     f'#EXTVLCOPT:http-user-agent={USER_AGENT}',
                     f'#EXTVLCOPT:http-referrer={BASE_URL}/',
-                    f'{url}{server_label}'
+                    f'{url}'
                 ]
 
         except Exception as e:
