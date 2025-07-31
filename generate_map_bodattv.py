@@ -149,17 +149,10 @@ def save_to_map(slugs):
     # Gabungkan data lama dan baru
     combined = {**old_data, **new_data}
 
-    # Filter hanya slug yang diminta
-    ordered = {k: combined[k] for k in slugs if k in combined}
-    limited = dict(list(ordered.items())[-100:])  # Batas maksimal 100 entri
-
-    # Hanya simpan jika ada perubahan data atau file belum ada
-    if not MAP_FILE.exists() or json.dumps(limited, sort_keys=True) != json.dumps(old_data, sort_keys=True):
-        with MAP_FILE.open("w", encoding="utf-8") as f:
-            json.dump(limited, f, indent=2, ensure_ascii=False)
-        print(f"✅ map2.json berhasil disimpan! Total entri: {len(limited)}")
-    else:
-        print("ℹ️ Tidak ada perubahan. map2.json tidak ditulis ulang.")
+    # Simpan semua data yang digabungkan (tanpa filter)
+    with MAP_FILE.open("w", encoding="utf-8") as f:
+        json.dump(combined, f, indent=2, ensure_ascii=False)
+    print(f"✅ map2.json berhasil disimpan! Total entri: {len(combined)}")
 
 # ===== MAIN =====
 if __name__ == "__main__":
