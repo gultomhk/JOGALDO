@@ -3,9 +3,11 @@ from datetime import datetime, timedelta, timezone
 from dateutil import tz
 from pathlib import Path
 import re
+import json
 
 # ====== Konfigurasi ======
 BODATTVDATA_FILE = Path.home() / "bodattvdata_file.txt"
+MAP_FILE = Path("map2.json")
 
 def load_config(filepath):
     config = {}
@@ -15,6 +17,17 @@ def load_config(filepath):
                 key, val = line.strip().split("=", 1)
                 config[key.strip()] = val.strip().strip('"')
     return config
+
+def load_map_file(filepath):
+    try:
+        with open(filepath, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print(f"⚠️ Map file not found: {filepath}")
+        return {}
+    except json.JSONDecodeError:
+        print(f"⚠️ Invalid JSON in map file: {filepath}")
+        return {}
 
 if not BODATTVDATA_FILE.exists():
     raise FileNotFoundError(f"❌ File config tidak ditemukan: {BODATTVDATA_FILE}")
@@ -29,8 +42,7 @@ BASE_URL = config["BASE_URL"]
 WORKER_URL = config["WORKER_URL"]
 LOGO = config["LOGO"]
 USER_AGENT = config["USER_AGENT"]
-USE_SERVERS = config.get("USE_SERVERS", "true").lower() == "true"  # Default true
-NUM_SERVERS = int(config.get("NUM_SERVERS", 3)) if USE_SERVERS else 0  # Jumlah server, 0 jika tidak pakai server
+server_map = load_map_file(MAP_FILE)
 
 now = datetime.now(tz.gettz("Asia/Jakarta"))
 
@@ -40,6 +52,27 @@ def clean_title(title):
     title = re.sub(r",\s*", " ", title)
     title = re.sub(r"\s{2,}", " ", title)
     return title.strip(" -")
+
+def get_server_count(slug):
+    """Count how many servers available for this slug"""
+    base_key = slug
+    count = 0
+    
+    # Check for numbered servers (server1, server2, etc.)
+    i = 1
+    while True:
+        server_key = f"{base_key} server{i}"
+        if server_key in server_map:
+            count += 1
+            i += 1
+        else:
+            break
+    
+    # If no specific servers, check for direct match
+    if count == 0 and base_key in server_map:
+        count = 1
+    
+    return count if count > 0 else 1  # Default to 1 if no mapping
 
 def extract_matches_from_html(html):
     soup = BeautifulSoup(html, "html.parser")
@@ -102,23 +135,16 @@ def extract_matches_from_html(html):
 
             print(f"📃 Parsed: {waktu} | {title}")
 
-            if USE_SERVERS and NUM_SERVERS > 0:
-                # Generate entries with servers
-                for i in range(1, NUM_SERVERS + 1):
-                    server_name = f"server{i}"
-                    output += [
-                        f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{LOGO}",{waktu} {title} {server_name}',
-                        f'#EXTVLCOPT:http-user-agent={USER_AGENT}',
-                        f'#EXTVLCOPT:http-referrer={BASE_URL}/',
-                        f'{WORKER_URL}{slug} {server_name}'
-                    ]
-            else:
-                # Generate single entry without server suffix
+            # Determine how many servers we should create
+            server_count = get_server_count(slug)
+            
+            for i in range(1, server_count + 1):
+                server_suffix = f" server{i}" if server_count > 1 else ""
                 output += [
-                    f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{LOGO}",{waktu} {title}',
+                    f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{LOGO}",{waktu} {title}{server_suffix}',
                     f'#EXTVLCOPT:http-user-agent={USER_AGENT}',
                     f'#EXTVLCOPT:http-referrer={BASE_URL}/',
-                    f'{WORKER_URL}{slug}'
+                    f'{WORKER_URL}{slug}{server_suffix}'
                 ]
 
         except Exception as e:
@@ -136,7 +162,4 @@ if __name__ == "__main__":
     with open("bodattv_live.m3u", "w", encoding="utf-8") as f:
         f.write(result)
 
-    if USE_SERVERS and NUM_SERVERS > 0:
-        print(f"\n✅ File berhasil dibuat dengan {NUM_SERVERS} server per match")
-    else:
-        print("\n✅ File berhasil dibuat tanpa server suffix")
+    print("\n✅ File bodattv_live.m3u berhasil dibuat dengan format worker URL yang konsisten")
