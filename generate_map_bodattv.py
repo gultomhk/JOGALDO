@@ -5,15 +5,15 @@ from pathlib import Path
 import re
 import json
 import requests
-from urllib.parse import urlparse, parse_qs, unquote, urljoin
+from urllib.parse import urljoin
 
-# ========= Konfigurasi =========
+# ========== Konfigurasi ==========
 CONFIG_FILE = Path.home() / "bodattvdata_file.txt"
 MAP_FILE = Path("map2.json")
 
 def load_config(filepath):
     config = {}
-    with open(filepath, "r", encoding="utf-8") as f:
+    with filepath.open("r", encoding="utf-8") as f:
         for line in f:
             if "=" in line:
                 key, val = line.strip().split("=", 1)
@@ -31,17 +31,17 @@ HEADERS = {
     "Referer": BASE_URL
 }
 
-# ========= Ambil daftar slug =========
+# ========== Ambil Slug ==========
 def extract_slug(row):
     if row.has_attr("onclick"):
         match = re.search(r"/match/([^\"']+)", row["onclick"])
         if match:
             return match.group(1).strip()
-    
+
     link = row.select_one("a[href^='/match/']")
     if link:
-        return link['href'].replace('/match/', '').strip()
-    
+        return link["href"].replace("/match/", "").strip()
+
     return None
 
 def extract_slugs_from_html(html, hours_threshold=2):
@@ -61,10 +61,8 @@ def extract_slugs_from_html(html, hours_threshold=2):
             waktu_tag = row.select_one(".match-time")
             if waktu_tag and waktu_tag.get("data-timestamp"):
                 timestamp = int(waktu_tag["data-timestamp"])
-                event_time_utc = datetime.fromtimestamp(timestamp, tz=timezone.utc)
-                event_time_local = event_time_utc.astimezone(tz.gettz("Asia/Jakarta"))
-
-                if event_time_local < (now - timedelta(hours=hours_threshold)):
+                event_time = datetime.fromtimestamp(timestamp, tz=timezone.utc).astimezone(tz.gettz("Asia/Jakarta"))
+                if event_time < (now - timedelta(hours=hours_threshold)):
                     continue
 
             seen.add(slug)
@@ -72,47 +70,41 @@ def extract_slugs_from_html(html, hours_threshold=2):
 
         except Exception as e:
             print(f"❌ Gagal parsing row: {e}")
-            continue
 
     print(f"📦 Total slug valid: {len(slugs)}")
     return slugs
 
-# ========= Ekstraksi m3u8 =========
+# ========== Ambil M3U8 dari halaman ==========
 def extract_m3u8_links_from_url(url):
     try:
-        headers = {"User-Agent": USER_AGENT}
-        resp = requests.get(url, headers=headers, timeout=10)
+        resp = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=10)
         if resp.status_code != 200:
             return []
-
         return re.findall(r"https?://[^\s\"']+\.m3u8", resp.text)
     except Exception as e:
         print(f"   ⚠️ Gagal ambil iframe {url}: {e}")
         return []
 
 def get_all_m3u8_from_page(soup, slug):
-    all_m3u8 = []
+    found_links = set()
 
-    # Cek tombol server dengan data-link
-    server_buttons = soup.select("button[data-link], a[data-link]")
-    for btn in server_buttons:
-        iframe_rel_url = btn.get("data-link")
-        if not iframe_rel_url:
-            continue
-        iframe_url = urljoin(BASE_URL, iframe_rel_url)
-        print(f"   🔗 Cek iframe dari data-link: {iframe_url}")
-        all_m3u8 += extract_m3u8_links_from_url(iframe_url)
+    # Dari tombol data-link
+    for btn in soup.select("button[data-link], a[data-link]"):
+        iframe_rel = btn.get("data-link")
+        if iframe_rel:
+            iframe_url = urljoin(BASE_URL, iframe_rel)
+            print(f"   🔗 Cek iframe dari data-link: {iframe_url}")
+            found_links.update(extract_m3u8_links_from_url(iframe_url))
 
-    # Cek iframe langsung (jika ada iframe[src] yang sudah .m3u8)
-    iframe_tags = soup.select("iframe[src*='.m3u8']")
-    for iframe in iframe_tags:
-        iframe_src = urljoin(BASE_URL, iframe.get("src"))
-        print(f"   🔗 Cek iframe langsung: {iframe_src}")
-        all_m3u8.append(iframe_src)
+    # Dari iframe langsung
+    for iframe in soup.select("iframe[src*='.m3u8']"):
+        src = urljoin(BASE_URL, iframe.get("src"))
+        print(f"   🔗 Cek iframe langsung: {src}")
+        found_links.add(src)
 
-    return list(set(all_m3u8))
+    return list(found_links)
 
-# ========= Simpan ke MAP =========
+# ========== Simpan ke MAP ==========
 def save_to_map(slugs):
     old_data = {}
     if MAP_FILE.exists():
@@ -120,6 +112,7 @@ def save_to_map(slugs):
             old_data = json.load(f)
 
     new_data = {}
+
     for idx, slug in enumerate(slugs, 1):
         print(f"[{idx}/{len(slugs)}] ▶ Scraping slug: {slug}", flush=True)
         try:
@@ -129,45 +122,46 @@ def save_to_map(slugs):
 
             m3u8_list = get_all_m3u8_from_page(soup, slug)
 
-            if m3u8_list:
-                if len(m3u8_list) == 1:
-                    new_data[slug] = m3u8_list[0]
-                    print(f"   ✅ 1 M3U8 ditemukan.", flush=True)
-                else:
-                    for i, link in enumerate(m3u8_list, 1):
-                        key = f"{slug} server{i}"
-                        new_data[key] = link
-                    print(f"   ✅ {len(m3u8_list)} M3U8 ditemukan dari beberapa server.", flush=True)
+            if not m3u8_list:
+                print(f"   ⚠️ Tidak ada .m3u8 ditemukan di {slug}")
+                continue
+
+            if len(m3u8_list) == 1:
+                new_data[slug] = m3u8_list[0]
+                print(f"   ✅ 1 M3U8 ditemukan.")
             else:
-                print(f"   ⚠️ Tidak ada .m3u8 ditemukan di {slug}", flush=True)
+                for i, link in enumerate(m3u8_list, 1):
+                    new_data[f"{slug} server{i}"] = link
+                print(f"   ✅ {len(m3u8_list)} M3U8 ditemukan dari beberapa server.")
 
         except Exception as e:
-            print(f"   ❌ Error slug {slug}: {e}", flush=True)
+            print(f"   ❌ Error slug {slug}: {e}")
 
-    # Gabungkan dengan data lama
+    # Gabungkan data lama dan baru
     combined = {**old_data, **new_data}
 
-    # Ambil entri berdasarkan slug list terbaru
-    keys_for_latest = []
+    # Simpan hanya yang terkait slug terkini
+    keys = []
     for slug in slugs:
-        keys_for_latest.extend([k for k in combined if k == slug or k.startswith(slug + " server")])
+        keys += [k for k in combined if k == slug or k.startswith(f"{slug} server")]
 
-    ordered = {k: combined[k] for k in keys_for_latest if k in combined}
-    limited = dict(list(ordered.items())[-100:])  # Batasi 100 entri terakhir
+    ordered = {k: combined[k] for k in keys if k in combined}
+    limited = dict(list(ordered.items())[-100:])
 
+    # Tulis jika ada perubahan
     if not MAP_FILE.exists() or json.dumps(limited, sort_keys=True) != json.dumps(old_data, sort_keys=True):
         with MAP_FILE.open("w", encoding="utf-8") as f:
             json.dump(limited, f, indent=2, ensure_ascii=False)
         print(f"✅ map2.json berhasil disimpan! Total entri: {len(limited)}")
     else:
         print("ℹ️ Tidak ada perubahan. map2.json tidak ditulis ulang.")
-        
-# ===== MAIN =====
+
+# ========== MAIN ==========
 if __name__ == "__main__":
     html_path = Path("BODATTV_PAGE_SOURCE.html")
     if not html_path.exists():
         raise FileNotFoundError("❌ File HTML tidak ditemukan")
 
     html = html_path.read_text(encoding="utf-8")
-    slug_list = extract_slugs_from_html(html)
-    save_to_map(slug_list)
+    slugs = extract_slugs_from_html(html)
+    save_to_map(slugs)
