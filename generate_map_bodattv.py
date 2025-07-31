@@ -130,17 +130,30 @@ def save_to_map(slugs):
             m3u8_list = get_all_m3u8_from_page(soup, slug)
 
             if m3u8_list:
-                new_data[slug] = m3u8_list
-                print(f"   ✅ {len(m3u8_list)} M3U8 ditemukan.", flush=True)
+                if len(m3u8_list) == 1:
+                    new_data[slug] = m3u8_list[0]
+                    print(f"   ✅ 1 M3U8 ditemukan.", flush=True)
+                else:
+                    for i, link in enumerate(m3u8_list, 1):
+                        key = f"{slug} server{i}"
+                        new_data[key] = link
+                    print(f"   ✅ {len(m3u8_list)} M3U8 ditemukan dari beberapa server.", flush=True)
             else:
                 print(f"   ⚠️ Tidak ada .m3u8 ditemukan di {slug}", flush=True)
 
         except Exception as e:
             print(f"   ❌ Error slug {slug}: {e}", flush=True)
 
+    # Gabungkan dengan data lama
     combined = {**old_data, **new_data}
-    ordered = {k: combined[k] for k in slugs if k in combined}
-    limited = dict(list(ordered.items())[-100:])
+
+    # Ambil entri berdasarkan slug list terbaru
+    keys_for_latest = []
+    for slug in slugs:
+        keys_for_latest.extend([k for k in combined if k == slug or k.startswith(slug + " server")])
+
+    ordered = {k: combined[k] for k in keys_for_latest if k in combined}
+    limited = dict(list(ordered.items())[-100:])  # Batasi 100 entri terakhir
 
     if not MAP_FILE.exists() or json.dumps(limited, sort_keys=True) != json.dumps(old_data, sort_keys=True):
         with MAP_FILE.open("w", encoding="utf-8") as f:
@@ -148,7 +161,7 @@ def save_to_map(slugs):
         print(f"✅ map2.json berhasil disimpan! Total entri: {len(limited)}")
     else:
         print("ℹ️ Tidak ada perubahan. map2.json tidak ditulis ulang.")
-
+        
 # ===== MAIN =====
 if __name__ == "__main__":
     html_path = Path("BODATTV_PAGE_SOURCE.html")
