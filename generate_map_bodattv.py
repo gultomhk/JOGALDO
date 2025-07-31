@@ -1,15 +1,13 @@
-import asyncio
-import json
-import re
-from urllib.parse import unquote
-from pathlib import Path
-
 from bs4 import BeautifulSoup
-from playwright.async_api import async_playwright
 from datetime import datetime, timedelta, timezone
 from dateutil import tz
+from pathlib import Path
+import re
+import json
+import requests
+from urllib.parse import urlparse, parse_qs, unquote, urljoin
 
-# ===== Config & Constants =====
+# ========= Konfigurasi =========
 CONFIG_FILE = Path.home() / "bodattvdata_file.txt"
 MAP_FILE = Path("map2.json")
 
@@ -28,91 +26,67 @@ if not CONFIG_FILE.exists():
 config = load_config(CONFIG_FILE)
 BASE_URL = config["BASE_URL"]
 USER_AGENT = config["USER_AGENT"]
-
 HEADERS = {
     "User-Agent": USER_AGENT,
     "Referer": BASE_URL
 }
 
-# ===== Slug Extraction =====
+now = datetime.now(tz.gettz("Asia/Jakarta"))
+
+# ========= Ambil daftar slug =========
 def extract_slug(row):
+    """Ekstrak slug dari elemen baris HTML."""
+    # Coba dari atribut onclick dulu
     if row.has_attr("onclick"):
         match = re.search(r"/match/([^\"']+)", row["onclick"])
         if match:
             return match.group(1).strip()
+    
+    # Fallback ke <a href="/match/...">
     link = row.select_one("a[href^='/match/']")
     if link:
         return link['href'].replace('/match/', '').strip()
+    
     return None
 
 def extract_slugs_from_html(html, hours_threshold=2):
     soup = BeautifulSoup(html, "html.parser")
     matches = soup.select("div.common-table-row.table-row")
     print(f"📦 Total match ditemukan: {len(matches)}")
-    now = datetime.now(tz.gettz("Asia/Jakarta"))
+
     slugs = []
     seen = set()
+    now = datetime.now(tz=tz.gettz("Asia/Jakarta"))
+
     for row in matches:
         try:
             slug = extract_slug(row)
             if not slug or slug in seen:
                 continue
+
+            # Ambil timestamp dan filter jika lebih dari threshold jam yang lalu
             waktu_tag = row.select_one(".match-time")
             if waktu_tag and waktu_tag.get("data-timestamp"):
                 timestamp = int(waktu_tag["data-timestamp"])
-                event_time = datetime.fromtimestamp(timestamp, tz=timezone.utc).astimezone(tz.gettz("Asia/Jakarta"))
-                if event_time < now - timedelta(hours=hours_threshold):
+                event_time_utc = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+                event_time_local = event_time_utc.astimezone(tz.gettz("Asia/Jakarta"))
+
+                if event_time_local < (now - timedelta(hours=hours_threshold)):
                     continue
+
             seen.add(slug)
             slugs.append(slug)
+
         except Exception as e:
             print(f"❌ Gagal parsing row: {e}")
+            continue
+
     print(f"📦 Total slug valid: {len(slugs)}")
     return slugs
 
-# ===== M3U8 Extraction per Slug =====
-async def get_m3u8_links_from_slug(slug):
-    async with async_playwright() as p:
-        browser = await p.firefox.launch(headless=True)
-        context = await browser.new_context(user_agent=USER_AGENT)
-        page = await context.new_page()
-        m3u8_links = []
-
-        try:
-            print(f"🔗 Visiting: {BASE_URL}/match/{slug}")
-            await page.goto(f"{BASE_URL}/match/{slug}", timeout=60000)
-            await page.wait_for_selector("iframe", timeout=15000)
-            buttons = await page.query_selector_all("button:has-text('Server')")
-
-            for i, button in enumerate(buttons):
-                try:
-                    await button.click()
-                    await page.wait_for_timeout(2500)
-                    iframe_el = await page.query_selector("iframe")
-                    iframe_src = await iframe_el.get_attribute("src")
-                    if not iframe_src:
-                        continue
-                    new_page = await context.new_page()
-                    await new_page.goto(iframe_src, timeout=20000)
-                    await new_page.wait_for_load_state("networkidle")
-                    content = await new_page.content()
-                    await new_page.close()
-
-                    found = re.findall(r'https?://[^\s\'"]+\.m3u8', content)
-                    for url in found:
-                        if url not in m3u8_links:
-                            m3u8_links.append(unquote(url))
-                            print(f"   ✅ Found: {url}")
-                except Exception as e:
-                    print(f"   ⚠️ Gagal load server {i+1}: {e}")
-        except Exception as e:
-            print(f"❌ Error slug {slug}: {e}")
-        finally:
-            await browser.close()
-        return m3u8_links
-
-# ===== Save Map =====
-async def save_to_map(slugs):
+# ========= Simpan ke MAP (gaya save_to_map) =========
+def save_to_map(slugs):
+    # Load data lama jika ada
     old_data = {}
     if MAP_FILE.exists():
         with MAP_FILE.open(encoding="utf-8") as f:
@@ -120,31 +94,49 @@ async def save_to_map(slugs):
 
     new_data = {}
     for idx, slug in enumerate(slugs, 1):
-        print(f"[{idx}/{len(slugs)}] ▶ Processing slug: {slug}")
-        links = await get_m3u8_links_from_slug(slug)
-        if links:
-            new_data[slug] = links
+        print(f"[{idx}/{len(slugs)}] ▶ Scraping slug: {slug}", flush=True)
+        try:
+            r = requests.get(f"{BASE_URL}/match/{slug}", headers=HEADERS, timeout=15)
+            r.raise_for_status()
+            soup = BeautifulSoup(r.text, "html.parser")
+            iframe = soup.select_one("iframe[src*='link=']")
 
+            if not iframe:
+                print(f"   ❌ iframe tidak ditemukan untuk: {slug}", flush=True)
+                continue
+
+            m3u8_encoded = parse_qs(urlparse(urljoin(BASE_URL, iframe["src"])).query).get("link", [""])[0]
+            m3u8_url = unquote(m3u8_encoded)
+
+            if ".m3u8" in m3u8_url:
+                new_data[slug] = m3u8_url
+                print(f"   ✅ M3U8 valid: {m3u8_url}", flush=True)
+            else:
+                print(f"   ⚠️ Link bukan .m3u8: {m3u8_url}", flush=True)
+        except Exception as e:
+            print(f"   ❌ Error slug {slug}: {e}", flush=True)
+
+    # Gabungkan data lama dan baru
     combined = {**old_data, **new_data}
-    ordered = {k: combined[k] for k in slugs if k in combined}
-    limited = dict(list(ordered.items())[-100:])
 
+    # Filter hanya slug yang diminta
+    ordered = {k: combined[k] for k in slugs if k in combined}
+    limited = dict(list(ordered.items())[-100:])  # Batas maksimal 100 entri
+
+    # Hanya simpan jika ada perubahan data atau file belum ada
     if not MAP_FILE.exists() or json.dumps(limited, sort_keys=True) != json.dumps(old_data, sort_keys=True):
         with MAP_FILE.open("w", encoding="utf-8") as f:
             json.dump(limited, f, indent=2, ensure_ascii=False)
-        print(f"✅ map2.json berhasil disimpan. Total: {len(limited)} entri")
+        print(f"✅ map2.json berhasil disimpan! Total entri: {len(limited)}")
     else:
-        print("ℹ️ Tidak ada perubahan. map2.json tidak diubah.")
-
-# ===== Main =====
-async def main():
+        print("ℹ️ Tidak ada perubahan. map2.json tidak ditulis ulang.")
+    
+# ===== MAIN =====
+if __name__ == "__main__":
     html_path = Path("BODATTV_PAGE_SOURCE.html")
     if not html_path.exists():
         raise FileNotFoundError("❌ File HTML tidak ditemukan")
-    html = html_path.read_text(encoding="utf-8")
-    slugs = extract_slugs_from_html(html)
-    await save_to_map(slugs)
 
-# Jalankan
-if __name__ == "__main__":
-    asyncio.run(main())
+    html = html_path.read_text(encoding="utf-8")
+    slug_list = extract_slugs_from_html(html)
+    save_to_map(slug_list)
