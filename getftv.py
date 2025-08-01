@@ -11,7 +11,7 @@ BODATTVDATA_FILE = Path.home() / "bodattvdata_file.txt"
 def extract_m3u8_urls(html):
     soup = BeautifulSoup(html, "html.parser")
     scripts = soup.find_all("script")
-    pattern = re.compile(r"https?://[^"]+\.m3u8")
+    pattern = re.compile(r'https?://[^"]+\.m3u8')
     urls = set()
     for script in scripts:
         matches = pattern.findall(script.text)
