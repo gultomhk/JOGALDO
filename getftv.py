@@ -3,21 +3,89 @@ from datetime import datetime, timedelta, timezone
 from dateutil import tz
 from pathlib import Path
 import requests
+import urllib.parse
 import re
 
 # ====== Konfigurasi ======
 BODATTVDATA_FILE = Path.home() / "bodattvdata_file.txt"
 
+HEADERS = {
+    "User-Agent": config["USER_AGENT"],
+    "Referer": config["BASE_URL"] + "/"
+}
+
 def extract_m3u8_urls(html):
+    """Ekstrak URL m3u8 dari HTML dengan berbagai metode"""
     soup = BeautifulSoup(html, "html.parser")
-    scripts = soup.find_all("script")
-    pattern = re.compile(r'https?://[^"]+\.m3u8')
-    urls = set()
-    for script in scripts:
-        matches = pattern.findall(script.text)
-        for url in matches:
-            urls.add(url)
-    return sorted(urls)
+    data_links = soup.select("[data-link]")
+    m3u8_urls = []
+
+    for tag in data_links:
+        raw = tag.get("data-link", "")
+        if raw.endswith(".m3u8") and raw.startswith("http"):
+            print(f"   🔗 Data-link langsung: ✅ {raw}")
+            m3u8_urls.append(raw)
+        elif "/player?link=" in raw:
+            decoded = urllib.parse.unquote(raw)
+            if decoded.endswith(".m3u8") and decoded.startswith("http"):
+                print(f"   🔗 Dari iframe: ✅ {decoded}")
+                m3u8_urls.append(decoded)
+            else:
+                print(f"   ⚠️ Iframe tapi bukan m3u8: {raw}")
+        else:
+            print(f"   ⚠️ Skip: {raw}")
+    return m3u8_urls
+
+# ========= Ambil daftar slug =========
+def extract_slug(row):
+    """Ekstrak slug dari elemen baris HTML."""
+    # Coba dari atribut onclick dulu
+    if row.has_attr("onclick"):
+        match = re.search(r"/match/([^\"']+)", row["onclick"])
+        if match:
+            return match.group(1).strip()
+    
+    # Fallback ke <a href="/match/...">
+    link = row.select_one("a[href^='/match/']")
+    if link:
+        return link['href'].replace('/match/', '').strip()
+    
+    return None
+
+def extract_slugs_from_html(html, hours_threshold=2):
+    soup = BeautifulSoup(html, "html.parser")
+    matches = soup.select("div.common-table-row.table-row")
+    print(f"📦 Total match ditemukan: {len(matches)}")
+
+    slugs = []
+    seen = set()
+    now = datetime.now(tz=tz.gettz("Asia/Jakarta"))
+
+    for row in matches:
+        try:
+            slug = extract_slug(row)
+            if not slug or slug in seen:
+                continue
+
+            # Ambil timestamp dan filter jika lebih dari threshold jam yang lalu
+            waktu_tag = row.select_one(".match-time")
+            if waktu_tag and waktu_tag.get("data-timestamp"):
+                timestamp = int(waktu_tag["data-timestamp"])
+                event_time_utc = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+                event_time_local = event_time_utc.astimezone(tz.gettz("Asia/Jakarta"))
+
+                if event_time_local < (now - timedelta(hours=hours_threshold)):
+                    continue
+
+            seen.add(slug)
+            slugs.append(slug)
+
+        except Exception as e:
+            print(f"❌ Gagal parsing row: {e}")
+            continue
+
+    print(f"📦 Total slug valid: {len(slugs)}")
+    return slugs
 
 def load_config(filepath):
     config = {}
