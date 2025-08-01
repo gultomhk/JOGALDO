@@ -2,12 +2,21 @@ from bs4 import BeautifulSoup
 from datetime import datetime, timedelta, timezone
 from dateutil import tz
 from pathlib import Path
-import requests
-import urllib.parse
 import re
 
-# ====== Konfigurasi awal ======
+# ====== Konfigurasi ======
 BODATTVDATA_FILE = Path.home() / "bodattvdata_file.txt"
+
+def extract_m3u8_urls(html):
+    soup = BeautifulSoup(html, "html.parser")
+    scripts = soup.find_all("script")
+    pattern = re.compile(r'https?://[^"]+\.m3u8')
+    urls = set()
+    for script in scripts:
+        matches = pattern.findall(script.text)
+        for url in matches:
+            urls.add(url)
+    return sorted(urls)
 
 def load_config(filepath):
     config = {}
@@ -18,12 +27,10 @@ def load_config(filepath):
                 config[key.strip()] = val.strip().strip('"')
     return config
 
-# ====== Load & Validasi config ======
 if not BODATTVDATA_FILE.exists():
     raise FileNotFoundError(f"❌ File config tidak ditemukan: {BODATTVDATA_FILE}")
 
 config = load_config(BODATTVDATA_FILE)
-
 required_keys = ["DEFAULT_URL", "BASE_URL", "WORKER_URL", "LOGO", "USER_AGENT"]
 missing = [key for key in required_keys if key not in config]
 if missing:
@@ -34,14 +41,8 @@ WORKER_URL = config["WORKER_URL"]
 LOGO = config["LOGO"]
 USER_AGENT = config["USER_AGENT"]
 
-HEADERS = {
-    "User-Agent": USER_AGENT,
-    "Referer": BASE_URL + "/"
-}
+now = datetime.now(tz.gettz("Asia/Jakarta"))
 
-now = datetime.now(tz=tz.gettz("Asia/Jakarta"))
-
-# ====== Fungsi-fungsi pendukung ======
 def clean_title(title):
     title = title.replace("football", "")
     title = re.sub(r"\s*[:|•]\s*", " ", title)
@@ -49,40 +50,6 @@ def clean_title(title):
     title = re.sub(r"\s{2,}", " ", title)
     return title.strip(" -")
 
-def extract_slug(row):
-    if row.has_attr("onclick"):
-        match = re.search(r"/match/([^\"']+)", row["onclick"])
-        if match:
-            return match.group(1).strip()
-
-    link = row.select_one("a[href^='/match/']")
-    if link:
-        return link['href'].replace('/match/', '').strip()
-
-    return None
-
-def extract_m3u8_urls(html):
-    soup = BeautifulSoup(html, "html.parser")
-    data_links = soup.select("[data-link]")
-    m3u8_urls = []
-
-    for tag in data_links:
-        raw = tag.get("data-link", "")
-        if raw.endswith(".m3u8") and raw.startswith("http"):
-            print(f"   🔗 Data-link langsung: ✅ {raw}")
-            m3u8_urls.append(raw)
-        elif "/player?link=" in raw:
-            decoded = urllib.parse.unquote(raw)
-            if decoded.endswith(".m3u8") and decoded.startswith("http"):
-                print(f"   🔗 Dari iframe: ✅ {decoded}")
-                m3u8_urls.append(decoded)
-            else:
-                print(f"   ⚠️ Iframe tapi bukan m3u8: {raw}")
-        else:
-            print(f"   ⚠️ Skip: {raw}")
-    return m3u8_urls
-
-# ====== Ekstrak M3U dari HTML utama ======
 def extract_matches_from_html(html):
     soup = BeautifulSoup(html, "html.parser")
     output = ["#EXTM3U"]
@@ -93,8 +60,20 @@ def extract_matches_from_html(html):
 
     for row in matches_table:
         try:
-            slug = extract_slug(row)
-            if not slug or slug in seen:
+            slug = None
+            link = row.select_one("a[href^='/match/']")
+            if link:
+                slug = link['href'].replace('/match/', '').strip()
+
+            if not slug and row.has_attr("onclick"):
+                match = re.search(r"/match/([^']+)", row["onclick"])
+                if match:
+                    slug = match.group(1).strip()
+
+            if not slug:
+                continue
+                
+            if slug in seen:
                 continue
             seen.add(slug)
 
@@ -109,7 +88,11 @@ def extract_matches_from_html(html):
                 event_time_local = now
 
             slug_lower = slug.lower()
-            is_exception = any(kw in slug_lower for kw in ["tennis", "billiards", "snooker", "worldssp", "superbike"])
+            is_exception = any(
+                keyword in slug_lower
+                for keyword in ["tennis", "billiards", "snooker", "worldssp", "superbike"]
+            )
+
             if not is_exception and event_time_local < (now - timedelta(hours=2)):
                 continue
 
@@ -117,6 +100,7 @@ def extract_matches_from_html(html):
             if wrapper:
                 name_tags = wrapper.select(".club-name")
                 texts = [t.text.strip() for t in name_tags if t.text.strip().lower() != "vs"]
+
                 if len(texts) >= 2:
                     title = f"{texts[0]} vs {texts[1]}"
                 elif len(texts) == 1:
@@ -133,36 +117,32 @@ def extract_matches_from_html(html):
 
             print(f"📃 Parsed: {waktu} | {title}")
 
-            # Fetch halaman detail untuk cari link m3u8
-            detail_url = f"{BASE_URL}/match/{slug}"
-            try:
-                resp = requests.get(detail_url, headers=HEADERS, timeout=10)
-                m3u8_urls = extract_m3u8_urls(resp.text)
-            except Exception as e:
-                print(f"⚠️  Gagal fetch detail untuk {slug}: {e}")
-                m3u8_urls = []
+            # Daftar semua kemungkinan pola server
+            server_patterns = [
+                "",  # Tanpa server suffix
+                "server1",
+                "server2", 
+                "server3",
+                "server4",
+                "server5"
+            ]
 
-            # Tambahkan entri playlist
-            if not m3u8_urls:
-                display_name = f"{waktu} {title}"
-                url = f"{WORKER_URL}{slug}"
+            for server_suffix in server_patterns:
+                full_suffix = server_suffix
+                url_suffix = server_suffix
+                
+                # Format nama yang berbeda untuk entri tanpa server
+                if not server_suffix:
+                    display_name = f"{waktu} {title}"
+                else:
+                    display_name = f"{waktu} {title} {server_suffix}"
+                
                 output += [
                     f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{LOGO}",{display_name}',
                     f'#EXTVLCOPT:http-user-agent={USER_AGENT}',
                     f'#EXTVLCOPT:http-referrer={BASE_URL}/',
-                    url
+                    f'{WORKER_URL}{slug}{url_suffix}'
                 ]
-            else:
-                for i, _ in enumerate(m3u8_urls):
-                    suffix = f"server{i+1}" if i > 0 else ""
-                    display_name = f"{waktu} {title} {suffix}".strip()
-                    url = f"{WORKER_URL}{slug}/{suffix}" if suffix else f"{WORKER_URL}{slug}"
-                    output += [
-                        f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{LOGO}",{display_name}',
-                        f'#EXTVLCOPT:http-user-agent={USER_AGENT}',
-                        f'#EXTVLCOPT:http-referrer={BASE_URL}/',
-                        url
-                    ]
 
         except Exception as e:
             print(f"❌ Error parsing table row: {e}")
@@ -170,7 +150,6 @@ def extract_matches_from_html(html):
 
     return "\n".join(output)
 
-# ====== Main runner ======
 if __name__ == "__main__":
     with open("BODATTV_PAGE_SOURCE.html", "r", encoding="utf-8") as f:
         html = f.read()
