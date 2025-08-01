@@ -108,12 +108,19 @@ def extract_matches_from_html(html):
                 waktu = "00/00-00.00"
                 event_time_local = now
 
+            # ✅ Cek apakah sedang live
+            is_live = row.select_one(".live-text") is not None
+            if not is_live and event_time_local < (now - timedelta(hours=2)):
+                print(f"⏩ Lewat waktu & bukan live, skip: {slug}")
+                continue
+
+            # ✅ Skip keyword pengecualian
             slug_lower = slug.lower()
             is_exception = any(
                 keyword in slug_lower
                 for keyword in ["tennis", "billiards", "snooker", "worldssp", "superbike"]
             )
-            if not is_exception and event_time_local < (now - timedelta(hours=2)):
+            if not is_live and not is_exception and event_time_local < (now - timedelta(hours=2)):
                 continue
 
             wrapper = row.select_one(".list-club-wrapper")
@@ -138,7 +145,7 @@ def extract_matches_from_html(html):
 
             # Ambil halaman slug dan hitung jumlah m3u8
             slug_html = get_slug_page(slug)
-            m3u8_urls = extract_m3u8_urls(slug_html)  # ✅ GANTI fungsi lama ke versi baru
+            m3u8_urls = extract_m3u8_urls(slug_html)
             num_servers = len(m3u8_urls)
 
             if num_servers == 0:
