@@ -9,11 +9,6 @@ import re
 # ====== Konfigurasi ======
 BODATTVDATA_FILE = Path.home() / "bodattvdata_file.txt"
 
-HEADERS = {
-    "User-Agent": config["USER_AGENT"],
-    "Referer": config["BASE_URL"] + "/"
-}
-
 def extract_m3u8_urls(html):
     """Ekstrak URL m3u8 dari HTML dengan berbagai metode"""
     soup = BeautifulSoup(html, "html.parser")
@@ -96,19 +91,23 @@ def load_config(filepath):
                 config[key.strip()] = val.strip().strip('"')
     return config
 
+# Cek dan load config
 if not BODATTVDATA_FILE.exists():
     raise FileNotFoundError(f"❌ File config tidak ditemukan: {BODATTVDATA_FILE}")
 
 config = load_config(BODATTVDATA_FILE)
+
+# Validasi isi config
 required_keys = ["DEFAULT_URL", "BASE_URL", "WORKER_URL", "LOGO", "USER_AGENT"]
 missing = [key for key in required_keys if key not in config]
 if missing:
     raise ValueError(f"❌ Missing config keys: {', '.join(missing)}")
 
-BASE_URL = config["BASE_URL"]
-WORKER_URL = config["WORKER_URL"]
-LOGO = config["LOGO"]
-USER_AGENT = config["USER_AGENT"]
+# Baru di sini HEADERS boleh didefinisikan
+HEADERS = {
+    "User-Agent": config["USER_AGENT"],
+    "Referer": config["BASE_URL"] + "/"
+}
 
 now = datetime.now(tz.gettz("Asia/Jakarta"))
 
