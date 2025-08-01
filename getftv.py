@@ -3,7 +3,6 @@ from datetime import datetime, timedelta, timezone
 from dateutil import tz
 from pathlib import Path
 import re
-import json
 
 # ====== Konfigurasi ======
 BODATTVDATA_FILE = Path.home() / "bodattvdata_file.txt"
@@ -28,17 +27,6 @@ def load_config(filepath):
                 config[key.strip()] = val.strip().strip('"')
     return config
 
-def load_map_file(filepath):
-    try:
-        with open(filepath, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        print(f"⚠️ Map file not found: {filepath}")
-        return {}
-    except json.JSONDecodeError:
-        print(f"⚠️ Invalid JSON in map file: {filepath}")
-        return {}
-
 if not BODATTVDATA_FILE.exists():
     raise FileNotFoundError(f"❌ File config tidak ditemukan: {BODATTVDATA_FILE}")
 
@@ -52,7 +40,6 @@ BASE_URL = config["BASE_URL"]
 WORKER_URL = config["WORKER_URL"]
 LOGO = config["LOGO"]
 USER_AGENT = config["USER_AGENT"]
-
 
 now = datetime.now(tz.gettz("Asia/Jakarta"))
 
@@ -127,12 +114,10 @@ def extract_matches_from_html(html):
 
             print(f"📃 Parsed: {waktu} | {title}")
 
-            server_count = get_server_count(slug)
-
-            for i in range(1, server_count + 1):
-                server_suffix = f" server{i}" if server_count > 1 else ""
+            for i in range(1, 4):  # Default to try 3 servers
+                server_suffix = f"server{i}"
                 output += [
-                    f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{LOGO}",{waktu} {title}{server_suffix}',
+                    f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{LOGO}",{waktu} {title} {server_suffix}',
                     f'#EXTVLCOPT:http-user-agent={USER_AGENT}',
                     f'#EXTVLCOPT:http-referrer={BASE_URL}/',
                     f'{WORKER_URL}{slug}{server_suffix}'
