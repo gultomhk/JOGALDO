@@ -110,49 +110,48 @@ def extract_slugs_from_html(html, hours_threshold=2):
 
 # ========= Simpan ke MAP =========
 def save_to_map(slugs):
-    """Simpan URL m3u8 ke file map dengan berbagai metode ekstraksi"""
-    # Load data lama jika ada
-    old_data = {}
-    if MAP_FILE.exists():
-        with MAP_FILE.open(encoding="utf-8") as f:
-            old_data = json.load(f)
-
+    """Simpan hanya slug yang berhasil diekstrak menjadi .m3u8"""
     new_data = {}
+
     for idx, slug in enumerate(slugs, 1):
         print(f"[{idx}/{len(slugs)}] ▶ Scraping slug: {slug}", flush=True)
+
         try:
             r = requests.get(f"{BASE_URL}/match/{slug}", headers=HEADERS, timeout=15)
             r.raise_for_status()
-            
-            # Coba ekstrak dengan berbagai metode
+
+            # Ekstrak m3u8 dari halaman HTML
             m3u8_urls = extract_m3u8_urls(r.text)
-            
+
+            # Fallback ke iframe player jika belum ketemu
             if not m3u8_urls:
-                # Fallback ke metode iframe lama
                 soup = BeautifulSoup(r.text, "html.parser")
                 iframe = soup.select_one("iframe[src*='link=']")
                 if iframe:
-                    m3u8_encoded = parse_qs(urlparse(urljoin(BASE_URL, iframe["src"])).query).get("link", [""])[0]
+                    m3u8_encoded = parse_qs(
+                        urlparse(urljoin(BASE_URL, iframe["src"])).query
+                    ).get("link", [""])[0]
                     m3u8_url = unquote(m3u8_encoded)
                     if ".m3u8" in m3u8_url:
                         m3u8_urls.append(m3u8_url)
-            
-            # Simpan semua URL yang ditemukan
-            for i, url in enumerate(m3u8_urls, 1):
-                key = f"{slug} server{i}" if len(m3u8_urls) > 1 else slug
-                new_data[key] = url
-                print(f"   ✅ M3U8 ditemukan ({i}): {url}", flush=True)
-                
+
+            # Simpan hanya slug yang berhasil menemukan URL m3u8
+            if m3u8_urls:
+                for i, url in enumerate(m3u8_urls, 1):
+                    key = f"{slug} server{i}" if len(m3u8_urls) > 1 else slug
+                    new_data[key] = url
+                    print(f"   ✅ M3U8 ditemukan ({i}): {url}", flush=True)
+            else:
+                print(f"   ⚠️ Tidak ditemukan .m3u8 pada slug: {slug}", flush=True)
+
         except Exception as e:
-            print(f"   ❌ Error slug {slug}: {e}", flush=True)
+            print(f"   ❌ Error saat proses slug '{slug}': {e}", flush=True)
 
-    # Gabungkan data lama dan baru
-    combined = {**old_data, **new_data}
-
-    # Simpan semua data yang digabungkan (tanpa filter)
+    # Simpan hanya data baru yang berhasil
     with MAP_FILE.open("w", encoding="utf-8") as f:
-        json.dump(combined, f, indent=2, ensure_ascii=False)
-    print(f"✅ map2.json berhasil disimpan! Total entri: {len(combined)}")
+        json.dump(new_data, f, indent=2, ensure_ascii=False)
+
+    print(f"✅ map2.json berhasil disimpan! Total entri berhasil: {len(new_data)}")
 
 # ===== MAIN =====
 if __name__ == "__main__":
