@@ -1,13 +1,35 @@
-from bs4 import BeautifulSoup   
+from bs4 import BeautifulSoup
 from datetime import datetime, timedelta, timezone
 from dateutil import tz
 from pathlib import Path
+import urllib.parse
+import requests
 import re
-import json
 
 # ====== Konfigurasi ======
 BODATTVDATA_FILE = Path.home() / "bodattvdata_file.txt"
-MAP_FILE = Path("map2.json")
+
+def extract_m3u8_urls(html):
+    """Ekstrak URL .m3u8 dari elemen dengan atribut data-link"""
+    soup = BeautifulSoup(html, "html.parser")
+    data_links = soup.select("[data-link]")
+    m3u8_urls = []
+
+    for tag in data_links:
+        raw = tag.get("data-link", "")
+        if raw.endswith(".m3u8") and raw.startswith("http"):
+            print(f"   🔗 Data-link langsung: ✅ {raw}")
+            m3u8_urls.append(raw)
+        elif "/player?link=" in raw:
+            decoded = urllib.parse.unquote(raw)
+            if decoded.endswith(".m3u8") and decoded.startswith("http"):
+                print(f"   🔗 Dari iframe: ✅ {decoded}")
+                m3u8_urls.append(decoded)
+            else:
+                print(f"   ⚠️ Iframe tapi bukan m3u8: {raw}")
+        else:
+            print(f"   ⚠️ Skip: {raw}")
+    return m3u8_urls
 
 def load_config(filepath):
     config = {}
@@ -17,17 +39,6 @@ def load_config(filepath):
                 key, val = line.strip().split("=", 1)
                 config[key.strip()] = val.strip().strip('"')
     return config
-
-def load_map_file(filepath):
-    try:
-        with open(filepath, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        print(f"⚠️ Map file not found: {filepath}")
-        return {}
-    except json.JSONDecodeError:
-        print(f"⚠️ Invalid JSON in map file: {filepath}")
-        return {}
 
 if not BODATTVDATA_FILE.exists():
     raise FileNotFoundError(f"❌ File config tidak ditemukan: {BODATTVDATA_FILE}")
@@ -42,7 +53,6 @@ BASE_URL = config["BASE_URL"]
 WORKER_URL = config["WORKER_URL"]
 LOGO = config["LOGO"]
 USER_AGENT = config["USER_AGENT"]
-server_map = load_map_file(MAP_FILE)
 
 now = datetime.now(tz.gettz("Asia/Jakarta"))
 
@@ -53,26 +63,16 @@ def clean_title(title):
     title = re.sub(r"\s{2,}", " ", title)
     return title.strip(" -")
 
-def get_server_count(slug):
-    """Count how many servers available for this slug"""
-    base_key = slug
-    count = 0
-    
-    # Check for numbered servers (server1, server2, etc.)
-    i = 1
-    while True:
-        server_key = f"{base_key} server{i}"
-        if server_key in server_map:
-            count += 1
-            i += 1
-        else:
-            break
-    
-    # If no specific servers, check for direct match
-    if count == 0 and base_key in server_map:
-        count = 1
-    
-    return count if count > 0 else 1  # Default to 1 if no mapping
+def get_slug_page(slug):
+    try:
+        url = f"{BASE_URL}/match/{slug}"
+        headers = {"User-Agent": USER_AGENT, "Referer": BASE_URL}
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+        return response.text
+    except Exception as e:
+        print(f"❌ Gagal ambil halaman slug {slug}: {e}")
+        return ""
 
 def extract_matches_from_html(html):
     soup = BeautifulSoup(html, "html.parser")
@@ -109,8 +109,10 @@ def extract_matches_from_html(html):
                 event_time_local = now
 
             slug_lower = slug.lower()
-            is_exception = any(keyword in slug_lower for keyword in ["tennis", "billiards", "snooker", "worldssp", "superbike"])
-
+            is_exception = any(
+                keyword in slug_lower
+                for keyword in ["tennis", "billiards", "snooker", "worldssp", "superbike"]
+            )
             if not is_exception and event_time_local < (now - timedelta(hours=2)):
                 continue
 
@@ -118,7 +120,6 @@ def extract_matches_from_html(html):
             if wrapper:
                 name_tags = wrapper.select(".club-name")
                 texts = [t.text.strip() for t in name_tags if t.text.strip().lower() != "vs"]
-
                 if len(texts) >= 2:
                     title = f"{texts[0]} vs {texts[1]}"
                 elif len(texts) == 1:
@@ -135,13 +136,21 @@ def extract_matches_from_html(html):
 
             print(f"📃 Parsed: {waktu} | {title}")
 
-            # Determine how many servers we should create
-            server_count = get_server_count(slug)
-            
-            for i in range(1, server_count + 1):
-                server_suffix = f" server{i}" if server_count > 1 else ""
+            # Ambil halaman slug dan hitung jumlah m3u8
+            slug_html = get_slug_page(slug)
+            m3u8_urls = extract_m3u8_urls(slug_html)
+            num_servers = len(m3u8_urls)
+
+            if num_servers == 0:
+                print(f"⚠️  Tidak ada server untuk {slug}, skip")
+                continue
+
+            for idx in range(num_servers):
+                server_suffix = "" if idx == 0 else f"server{idx + 1}"
+                display_name = f"{waktu} {title}" if idx == 0 else f"{waktu} {title} {server_suffix}"
+
                 output += [
-                    f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{LOGO}",{waktu} {title}{server_suffix}',
+                    f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{LOGO}",{display_name}',
                     f'#EXTVLCOPT:http-user-agent={USER_AGENT}',
                     f'#EXTVLCOPT:http-referrer={BASE_URL}/',
                     f'{WORKER_URL}{slug}{server_suffix}'
