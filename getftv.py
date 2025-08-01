@@ -50,6 +50,17 @@ def clean_title(title):
     title = re.sub(r"\s{2,}", " ", title)
     return title.strip(" -")
 
+def get_slug_page(slug):
+    try:
+        url = f"{BASE_URL}/match/{slug}"
+        headers = {"User-Agent": USER_AGENT, "Referer": BASE_URL}
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+        return response.text
+    except Exception as e:
+        print(f"❌ Gagal ambil halaman slug {slug}: {e}")
+        return ""
+
 def extract_matches_from_html(html):
     soup = BeautifulSoup(html, "html.parser")
     output = ["#EXTM3U"]
@@ -70,10 +81,7 @@ def extract_matches_from_html(html):
                 if match:
                     slug = match.group(1).strip()
 
-            if not slug:
-                continue
-                
-            if slug in seen:
+            if not slug or slug in seen:
                 continue
             seen.add(slug)
 
@@ -92,7 +100,6 @@ def extract_matches_from_html(html):
                 keyword in slug_lower
                 for keyword in ["tennis", "billiards", "snooker", "worldssp", "superbike"]
             )
-
             if not is_exception and event_time_local < (now - timedelta(hours=2)):
                 continue
 
@@ -100,7 +107,6 @@ def extract_matches_from_html(html):
             if wrapper:
                 name_tags = wrapper.select(".club-name")
                 texts = [t.text.strip() for t in name_tags if t.text.strip().lower() != "vs"]
-
                 if len(texts) >= 2:
                     title = f"{texts[0]} vs {texts[1]}"
                 elif len(texts) == 1:
@@ -117,31 +123,24 @@ def extract_matches_from_html(html):
 
             print(f"📃 Parsed: {waktu} | {title}")
 
-            # Daftar semua kemungkinan pola server
-            server_patterns = [
-                "",  # Tanpa server suffix
-                "server1",
-                "server2", 
-                "server3",
-                "server4",
-                "server5"
-            ]
+            # Ambil halaman slug dan hitung jumlah m3u8
+            slug_html = get_slug_page(slug)
+            m3u8_urls = extract_m3u8_urls(slug_html)
+            num_servers = len(m3u8_urls)
 
-            for server_suffix in server_patterns:
-                full_suffix = server_suffix
-                url_suffix = server_suffix
-                
-                # Format nama yang berbeda untuk entri tanpa server
-                if not server_suffix:
-                    display_name = f"{waktu} {title}"
-                else:
-                    display_name = f"{waktu} {title} {server_suffix}"
-                
+            if num_servers == 0:
+                print(f"⚠️  Tidak ada server untuk {slug}, skip")
+                continue
+
+            for idx in range(num_servers):
+                server_suffix = "" if idx == 0 else f"server{idx + 1}"
+                display_name = f"{waktu} {title}" if idx == 0 else f"{waktu} {title} {server_suffix}"
+
                 output += [
                     f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{LOGO}",{display_name}',
                     f'#EXTVLCOPT:http-user-agent={USER_AGENT}',
                     f'#EXTVLCOPT:http-referrer={BASE_URL}/',
-                    f'{WORKER_URL}{slug}{url_suffix}'
+                    f'{WORKER_URL}{slug}{server_suffix}'
                 ]
 
         except Exception as e:
