@@ -2,8 +2,6 @@ name: Update map2.json BODATTV
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 * * * *"  # Tiap jam
 
 permissions:
   contents: write  # dibutuhkan untuk push pakai GITHUB_TOKEN
