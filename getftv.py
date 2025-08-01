@@ -63,27 +63,6 @@ def clean_title(title):
     title = re.sub(r"\s{2,}", " ", title)
     return title.strip(" -")
 
-def get_server_count(slug):
-    """Count how many servers available for this slug"""
-    base_key = slug
-    count = 0
-
-    # Check for numbered servers (server1, server2, etc.)
-    i = 1
-    while True:
-        server_key = f"{base_key} server{i}"
-        if server_key in server_map:
-            count += 1
-            i += 1
-        else:
-            break
-
-    # If no specific servers, check for direct match
-    if count == 0 and base_key in server_map:
-        count = 1
-
-    return count if count > 0 else 1  # Default to 1 if no mapping
-
 def extract_matches_from_html(html):
     soup = BeautifulSoup(html, "html.parser")
     output = ["#EXTM3U"]
