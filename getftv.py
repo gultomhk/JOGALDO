@@ -108,36 +108,44 @@ def extract_matches_from_html(html):
 
             print(f"📃 Parsed: {waktu} | {title}")
 
-            # Pola server (urutkan dari default ke alternatif)
-            server_patterns = [
-                "",  # default
-                "server1", "server2", "server3", "server4", "server5",
-                "alt", "backup", "mirror", "stream", "live"
-            ]
+            # Ambil HTML detail halaman pertandingan
+            detail_url = f"{BASE_URL}/match/{slug}"
+            try:
+                resp = requests.get(detail_url, headers=HEADERS, timeout=10)
+                m3u8_urls = extract_m3u8_urls(resp.text)
+            except Exception as e:
+                print(f"⚠️  Gagal fetch detail untuk {slug}: {e}")
+                m3u8_urls = []
 
-            for suffix in server_patterns:
-                if suffix:
-                    display_name = f"{waktu} {title} {suffix}"
-                    slug_full = f"{slug} {suffix}"
-                    url = f"{WORKER_URL}{slug}/{suffix}"
-                else:
-                    display_name = f"{waktu} {title}"
-                    slug_full = slug
-                    url = f"{WORKER_URL}{slug}"
-
+            if not m3u8_urls:
+                # Tetap masukkan entri jika tidak ada server ditemukan
+                display_name = f"{waktu} {title}"
+                url = f"{WORKER_URL}{slug}"
                 output += [
                     f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{LOGO}",{display_name}',
                     f'#EXTVLCOPT:http-user-agent={USER_AGENT}',
                     f'#EXTVLCOPT:http-referrer={BASE_URL}/',
                     url
                 ]
+            else:
+                for i, real_url in enumerate(m3u8_urls):
+                    suffix = f"server{i+1}" if i > 0 else ""
+                    display_name = f"{waktu} {title} {suffix}".strip()
+                    slug_full = f"{slug} {suffix}".strip()
+                    url = f"{WORKER_URL}{slug}/{suffix}" if suffix else f"{WORKER_URL}{slug}"
+                    output += [
+                        f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{LOGO}",{display_name}',
+                        f'#EXTVLCOPT:http-user-agent={USER_AGENT}',
+                        f'#EXTVLCOPT:http-referrer={BASE_URL}/',
+                        url
+                    ]
 
         except Exception as e:
             print(f"❌ Error parsing table row: {e}")
             continue
 
     return "\n".join(output)
-
+    
 if __name__ == "__main__":
     with open("BODATTV_PAGE_SOURCE.html", "r", encoding="utf-8") as f:
         html = f.read()
