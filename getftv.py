@@ -138,7 +138,7 @@ def extract_matches_from_html(html):
 
             # Ambil halaman slug dan hitung jumlah m3u8
             slug_html = get_slug_page(slug)
-            m3u8_urls = extract_m3u8_urls(slug_html)
+            m3u8_urls = extract_m3u8_urls(slug_html)  # ✅ GANTI fungsi lama ke versi baru
             num_servers = len(m3u8_urls)
 
             if num_servers == 0:
