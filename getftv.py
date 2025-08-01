@@ -64,8 +64,7 @@ def extract_matches_from_html(html):
             link = row.select_one("a[href^='/match/']")
             if link:
                 slug = link['href'].replace('/match/', '').strip()
-
-            if not slug and row.has_attr("onclick"):
+            elif row.has_attr("onclick"):
                 match = re.search(r"/match/([^']+)", row["onclick"])
                 if match:
                     slug = match.group(1).strip()
@@ -85,11 +84,7 @@ def extract_matches_from_html(html):
                 event_time_local = now
 
             slug_lower = slug.lower()
-            is_exception = any(
-                keyword in slug_lower
-                for keyword in ["tennis", "billiards", "snooker", "worldssp", "superbike"]
-            )
-
+            is_exception = any(kw in slug_lower for kw in ["tennis", "billiards", "snooker", "worldssp", "superbike"])
             if not is_exception and event_time_local < (now - timedelta(hours=2)):
                 continue
 
@@ -97,7 +92,6 @@ def extract_matches_from_html(html):
             if wrapper:
                 name_tags = wrapper.select(".club-name")
                 texts = [t.text.strip() for t in name_tags if t.text.strip().lower() != "vs"]
-
                 if len(texts) >= 2:
                     title = f"{texts[0]} vs {texts[1]}"
                 elif len(texts) == 1:
@@ -114,13 +108,28 @@ def extract_matches_from_html(html):
 
             print(f"📃 Parsed: {waktu} | {title}")
 
-            for i in range(1, 4):  # Default to try 3 servers
-                server_suffix = f"server{i}"
+            # Pola server (urutkan dari default ke alternatif)
+            server_patterns = [
+                "",  # default
+                "server1", "server2", "server3", "server4", "server5",
+                "alt", "backup", "mirror", "stream", "live"
+            ]
+
+            for suffix in server_patterns:
+                if suffix:
+                    display_name = f"{waktu} {title} {suffix}"
+                    slug_full = f"{slug} {suffix}"
+                    url = f"{WORKER_URL}{slug}/{suffix}"
+                else:
+                    display_name = f"{waktu} {title}"
+                    slug_full = slug
+                    url = f"{WORKER_URL}{slug}"
+
                 output += [
-                    f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{LOGO}",{waktu} {title} {server_suffix}',
+                    f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{LOGO}",{display_name}',
                     f'#EXTVLCOPT:http-user-agent={USER_AGENT}',
                     f'#EXTVLCOPT:http-referrer={BASE_URL}/',
-                    f'{WORKER_URL}{slug}{server_suffix}'
+                    url
                 ]
 
         except Exception as e:
