@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 from datetime import datetime, timedelta, timezone
 from dateutil import tz
 from pathlib import Path
+import requests
 import re
 
 # ====== Konfigurasi ======
