@@ -1,4 +1,4 @@
-from bs4 import BeautifulSoup  
+from bs4 import BeautifulSoup
 from datetime import datetime, timedelta, timezone
 from dateutil import tz
 from pathlib import Path
@@ -7,7 +7,17 @@ import json
 
 # ====== Konfigurasi ======
 BODATTVDATA_FILE = Path.home() / "bodattvdata_file.txt"
-MAP_FILE = Path("map2.json")
+
+def extract_m3u8_urls(html):
+    soup = BeautifulSoup(html, "html.parser")
+    scripts = soup.find_all("script")
+    pattern = re.compile(r"https?://[^"]+\.m3u8")
+    urls = set()
+    for script in scripts:
+        matches = pattern.findall(script.text)
+        for url in matches:
+            urls.add(url)
+    return sorted(urls)
 
 def load_config(filepath):
     config = {}
@@ -42,7 +52,7 @@ BASE_URL = config["BASE_URL"]
 WORKER_URL = config["WORKER_URL"]
 LOGO = config["LOGO"]
 USER_AGENT = config["USER_AGENT"]
-server_map = load_map_file(MAP_FILE)
+
 
 now = datetime.now(tz.gettz("Asia/Jakarta"))
 
@@ -57,7 +67,7 @@ def get_server_count(slug):
     """Count how many servers available for this slug"""
     base_key = slug
     count = 0
-    
+
     # Check for numbered servers (server1, server2, etc.)
     i = 1
     while True:
@@ -67,11 +77,11 @@ def get_server_count(slug):
             i += 1
         else:
             break
-    
+
     # If no specific servers, check for direct match
     if count == 0 and base_key in server_map:
         count = 1
-    
+
     return count if count > 0 else 1  # Default to 1 if no mapping
 
 def extract_matches_from_html(html):
@@ -109,7 +119,10 @@ def extract_matches_from_html(html):
                 event_time_local = now
 
             slug_lower = slug.lower()
-            is_exception = any(keyword in slug_lower for keyword in ["tennis", "billiards", "snooker", "worldssp", "superbike"])
+            is_exception = any(
+                keyword in slug_lower
+                for keyword in ["tennis", "billiards", "snooker", "worldssp", "superbike"]
+            )
 
             if not is_exception and event_time_local < (now - timedelta(hours=2)):
                 continue
@@ -135,9 +148,8 @@ def extract_matches_from_html(html):
 
             print(f"📃 Parsed: {waktu} | {title}")
 
-            # Determine how many servers we should create
             server_count = get_server_count(slug)
-            
+
             for i in range(1, server_count + 1):
                 server_suffix = f" server{i}" if server_count > 1 else ""
                 output += [
