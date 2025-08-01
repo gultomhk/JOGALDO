@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 from datetime import datetime, timedelta, timezone
 from dateutil import tz
 from pathlib import Path
+import urllib.parse
 import requests
 import re
 
@@ -9,15 +10,26 @@ import re
 BODATTVDATA_FILE = Path.home() / "bodattvdata_file.txt"
 
 def extract_m3u8_urls(html):
+    """Ekstrak URL m3u8 dari HTML dengan berbagai metode"""
     soup = BeautifulSoup(html, "html.parser")
-    scripts = soup.find_all("script")
-    pattern = re.compile(r'https?://[^"]+\.m3u8')
-    urls = set()
-    for script in scripts:
-        matches = pattern.findall(script.text)
-        for url in matches:
-            urls.add(url)
-    return sorted(urls)
+    data_links = soup.select("[data-link]")
+    m3u8_urls = []
+
+    for tag in data_links:
+        raw = tag.get("data-link", "")
+        if raw.endswith(".m3u8") and raw.startswith("http"):
+            print(f"   🔗 Data-link langsung: ✅ {raw}")
+            m3u8_urls.append(raw)
+        elif "/player?link=" in raw:
+            decoded = urllib.parse.unquote(raw)
+            if decoded.endswith(".m3u8") and decoded.startswith("http"):
+                print(f"   🔗 Dari iframe: ✅ {decoded}")
+                m3u8_urls.append(decoded)
+            else:
+                print(f"   ⚠️ Iframe tapi bukan m3u8: {raw}")
+        else:
+            print(f"   ⚠️ Skip: {raw}")
+    return m3u8_urls
 
 def load_config(filepath):
     config = {}
