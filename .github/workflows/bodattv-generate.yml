@@ -29,7 +29,7 @@ jobs:
       - name: 📦 Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install playwright beautifulsoup4 python-dateutil
+          pip install requests playwright beautifulsoup4 python-dateutil
           playwright install --with-deps
 
       - name: 📄 Ambil file bodattvdata dari repo privat lain
