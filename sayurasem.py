@@ -162,13 +162,13 @@ def main():
 
     fixture_html = safe_get(f"https://{DOMAIN}/fixture/all.html", proxies)
     upcoming_html = safe_get(f"https://{DOMAIN}/upcoming.html", proxies)
+    playing_html = safe_get(f"https://{DOMAIN}/playing.html", proxies)
 
     fixtures = parse_fixture(fixture_html) if fixture_html else []
     upcoming = parse_upcoming(upcoming_html) if upcoming_html else []
-
-    playing_html = safe_get(f"https://{DOMAIN}/playing.html", proxies)
     playing = parse_playing(playing_html) if playing_html else []
 
+    today = [f for f in fixtures if f.starttime.date() == date.today()]
     focus = today + upcoming + playing
 
     print(f"\n📆 Total Pertandingan: {len(focus)}")
