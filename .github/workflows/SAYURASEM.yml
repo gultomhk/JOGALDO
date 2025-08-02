@@ -33,15 +33,15 @@ jobs:
         run: |
           python3 sayurasem.py
 
-      - name: 🔄 Push all.m3u ke repo privat
+      - name: 🔄 Push sayurasem.m3u ke repo privat
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "actions@github.com"
 
           git clone https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} outputrepo
-          cp all.m3u outputrepo/sayurasem.m3u
+          cp sayurasem.m3u outputrepo/sayurasem.m3u
 
           cd outputrepo
           git add sayurasem.m3u
-          git commit -m "🆕 Update all.m3u: $(date '+%Y-%m-%d %H:%M:%S')" || echo "Tidak ada perubahan"
+          git commit -m "🆕 Update sayurasem.m3u: $(date '+%Y-%m-%d %H:%M:%S')" || echo "Tidak ada perubahan"
           git push
