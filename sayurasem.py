@@ -128,7 +128,7 @@ def save_to_m3u(items, file="sayurasem.m3u"):
             if not cid: continue
             waktu = item.starttime.strftime("%d/%m-%H.%M")
             nama = f"{waktu} {item.title} - {link.name}"
-            logo = "https://i.ibb.co/qY2HZWX5/512x512bb.jpg"
+            logo = "https://i.ibb.co/kszm8SDV/ggsunnamed.jpg"
             group = "⚽️| LIVE EVENT"
             stream_url = WORKER_URL_TEMPLATE.format(channel_id=cid)
             lines.append(f'#EXTINF:-1 tvg-logo="{logo}" group-title="{group}",{nama}')
