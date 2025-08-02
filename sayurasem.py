@@ -47,6 +47,8 @@ class JetItem:
 def safe_get(url):
     try:
         r = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+        print(f"↪️ Status {url}: {r.status_code}")
+        print("Response headers:", r.headers)
         r.raise_for_status()
         return r.text
     except Exception as e:
