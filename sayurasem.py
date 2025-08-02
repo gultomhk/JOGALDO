@@ -5,13 +5,12 @@ import json
 import urllib.parse
 from pytz import timezone
 from pathlib import Path
-import urllib3
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+from functools import lru_cache
 
-# Zona waktu WIB
+# Zona waktu lokal
 wib = timezone("Asia/Jakarta")
 
-# ====== Load konfigurasi dari aebabami_file.txt ======
+# Konfigurasi Dinamis dari File
 AEBABAMI_FILE = Path.home() / "aebabami_file.txt"
 CONFIG = {}
 
@@ -23,15 +22,12 @@ M3U8_TEMPLATE_URL = CONFIG.get("M3U8_TEMPLATE_URL")
 WORKER_URL_TEMPLATE = CONFIG.get("WORKER_URL_TEMPLATE")
 PROXY_LIST_URL = CONFIG.get("PROXY_LIST_URL")
 
-TIMEOUT = 15
-
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Referer": f"https://{DOMAIN}/",
     "Origin": f"https://{DOMAIN}"
 }
 
-# === Kelas item & link ===
 class JetLink:
     def __init__(self, url, name=None, links=False, headers=None, inputstream=None):
         self.url = url
@@ -48,54 +44,38 @@ class JetItem:
         self.starttime = starttime
         self.icon = icon
 
-# === Mendapatkan daftar proxy ===
+@lru_cache(maxsize=1)
 def get_working_proxy_list():
+    print(f"🌍 Ambil daftar proxy dari: {PROXY_LIST_URL}")
     try:
-        resp = requests.get(PROXY_LIST_URL, timeout=10)
-        proxies = [line.strip() for line in resp.text.splitlines() if line.strip()]
-        return proxies
+        r = requests.get(PROXY_LIST_URL, timeout=10)
+        r.raise_for_status()
+        proxies = r.text.strip().splitlines()
+        return [p.strip() for p in proxies if p.strip()]
     except Exception as e:
-        print(f"⚠️ Gagal ambil daftar proxy: {e}")
+        print(f"❌ Gagal ambil daftar proxy: {e}")
         return []
 
-# === Request dengan fallback proxy ===
 def safe_get(url):
-    print(f"🌐 Mencoba akses: {url}")
-    # Coba langsung tanpa proxy
-    try:
-        r = requests.get(url, headers=HEADERS, timeout=10)
-        r.raise_for_status()
-        print("✅ Berhasil tanpa proxy")
-        return r.text
-    except:
-        print("⛔ Gagal tanpa proxy, coba proxy...")
-
-    # Coba proxy satu per satu
+    print(f"🌐 Akses via proxy: {url}")
     for proxy_url in get_working_proxy_list():
-        proxies = {
-            "http": proxy_url,
-            "https": proxy_url
-        }
+        proxies = {"http": proxy_url, "https": proxy_url}
         try:
             print(f"🔁 Coba proxy: {proxy_url}")
             r = requests.get(url, headers=HEADERS, timeout=10, proxies=proxies, verify=False)
             r.raise_for_status()
-            print(f"✅ Berhasil pakai proxy: {proxy_url}")
+            print(f"✅ Sukses proxy: {proxy_url}")
             return r.text
         except Exception as e:
-            print(f"❌ Proxy gagal: {proxy_url} - {e}")
+            print(f"❌ Gagal: {proxy_url} - {e}")
             continue
-
-    print("❌ Semua proxy gagal.")
+    print(f"⛔ Semua proxy gagal untuk {url}")
     return None
 
-# === Parsing fixture dan upcoming ===
 def get_fixture_items():
     print("📺 Mengambil fixture...")
     items = []
-    url = f"https://{DOMAIN}/fixture/all.html"
-
-    html = safe_get(url)
+    html = safe_get(f"https://{DOMAIN}/fixture/all.html")
     if not html:
         return []
 
@@ -103,29 +83,27 @@ def get_fixture_items():
     max_date = datetime.now() + timedelta(days=2)
     for game in soup.select("div.fixture-page-item"):
         try:
-            team_left = game.select_one("span.name-team-left").text
-            team_right = game.select_one("span.name-team-right").text
+            team_left = game.select_one("span.name-team-left").text.strip()
+            team_right = game.select_one("span.name-team-right").text.strip()
             title = f"{team_left} vs {team_right}"
             league = game.select_one("div.tournament").text.strip()
-            utc_time = datetime.fromtimestamp(int(game.select_one(".time-format").get("data-time")) // 1000) + timedelta(hours=7)
-            if utc_time > max_date:
+            ts = int(game.select_one(".time-format")["data-time"]) // 1000
+            starttime = datetime.fromtimestamp(ts) + timedelta(hours=7)
+            if starttime > max_date:
                 continue
-            href = game.select_one("a").get("href")
-            full_url = href if href.startswith("http") else f"https://{DOMAIN}{href}"
-            items.append(JetItem(title, links=[JetLink(full_url, links=True)], league=league, starttime=utc_time))
+            href = game.select_one("a")["href"]
+            url = href if href.startswith("http") else f"https://{DOMAIN}{href}"
+            items.append(JetItem(title, [JetLink(url, links=True)], league, starttime))
         except Exception as e:
-            print("⚠️ Gagal parse fixture:", e)
+            print(f"⚠️ Gagal parse fixture: {e}")
             continue
-
-    print(f"✅ Total fixture ditemukan: {len(items)}")
+    print(f"✅ Total fixture: {len(items)}")
     return items
 
 def get_upcoming_items():
     print("📺 Mengambil upcoming...")
     items = []
-    url = f"https://{DOMAIN}/upcoming.html"
-
-    html = safe_get(url)
+    html = safe_get(f"https://{DOMAIN}/upcoming.html")
     if not html:
         return []
 
@@ -136,63 +114,52 @@ def get_upcoming_items():
             right = match.select_one("span.name-team-right").text.strip()
             title = f"{left} vs {right}"
             league = match.select_one("p.tour-name").text.strip()
-            timestamp = int(match.select_one(".time-format").get("data-time")) // 1000
-            utc_time = datetime.fromtimestamp(timestamp) + timedelta(hours=7)
-            href = match.select_one("a.btn-watch").get("href")
-            full_url = href if href.startswith("http") else f"https://{DOMAIN}{href}"
-            items.append(JetItem(title, links=[JetLink(full_url, links=True)], league=league, starttime=utc_time))
+            ts = int(match.select_one(".time-format")["data-time"]) // 1000
+            starttime = datetime.fromtimestamp(ts) + timedelta(hours=7)
+            href = match.select_one("a.btn-watch")["href"]
+            url = href if href.startswith("http") else f"https://{DOMAIN}{href}"
+            items.append(JetItem(title, [JetLink(url, links=True)], league, starttime))
         except Exception as e:
-            print("⚠️ Gagal parse upcoming:", e)
+            print(f"⚠️ Gagal parse upcoming: {e}")
             continue
-
-    print(f"✅ Total upcoming ditemukan: {len(items)}")
+    print(f"✅ Total upcoming: {len(items)}")
     return items
 
-# === Link streaming ===
-def clean_url(url: str) -> str:
-    return url.replace('https://live-tv.vipcdn.live', M3U8_TEMPLATE_URL.split("/{channel_id}")[0])
+def clean_url(url):
+    return url.replace('https://live-tv.vipcdn.live', M3U8_TEMPLATE_URL.split('/{channel_id}')[0])
 
 def resolve_final_url_from_index(index_url):
     try:
-        parsed = urllib.parse.urlparse(index_url)
-        parts = parsed.path.strip("/").split("/")
-        if len(parts) >= 1:
-            channel_id = parts[0]
-            return M3U8_TEMPLATE_URL.format(channel_id=channel_id)
+        parts = urllib.parse.urlparse(index_url).path.strip("/").split("/")
+        if parts:
+            return M3U8_TEMPLATE_URL.format(channel_id=parts[0])
     except Exception as e:
-        print(f"⚠️ Gagal parsing m3u8 dari {index_url}: {e}")
+        print(f"⚠️ Gagal konversi m3u8: {e}")
     return index_url
 
 def get_links_from_live_page(url):
     print(f"🔗 Ambil link dari: {url}")
     html = safe_get(url)
     if not html:
-        print("❌ Gagal ambil halaman live.")
+        print("❌ Tidak bisa ambil halaman live")
         return []
-
     soup = BeautifulSoup(html, "html.parser")
     links = []
     for tag in soup.select("a.link-channel"):
-        raw_url = tag.get("data-url")
-        if not raw_url:
+        raw = tag.get("data-url")
+        if not raw:
             continue
-        m3u8_url = resolve_final_url_from_index(clean_url(raw_url))
+        m3u8 = resolve_final_url_from_index(clean_url(raw))
         name = tag.text.strip()
-        user_agent = "Mozilla/5.0 (iPhone; CPU iPhone OS 13_1_2 like Mac OS X)" if "score806" in m3u8_url else HEADERS["User-Agent"]
-        links.append(JetLink(m3u8_url, name=name, headers={
+        links.append(JetLink(m3u8, name=name, headers={
             "Referer": f"https://{DOMAIN}/",
-            "User-Agent": user_agent,
+            "User-Agent": HEADERS["User-Agent"],
             "Origin": f"https://{DOMAIN}"
         }))
     return links
 
-# === Output M3U ===
 def extract_channel_id(url):
-    parsed = urllib.parse.urlparse(url)
-    parts = parsed.path.strip("/").split("/")
-    if parts:
-        return parts[0]
-    return None
+    return urllib.parse.urlparse(url).path.strip("/").split("/")[0]
 
 def save_to_m3u(items, filename="sayurasem.m3u"):
     lines = ["#EXTM3U"]
@@ -200,44 +167,33 @@ def save_to_m3u(items, filename="sayurasem.m3u"):
         if not item.links:
             continue
         for link in item.links:
-            channel_id = extract_channel_id(link.url)
-            if not channel_id:
+            cid = extract_channel_id(link.url)
+            if not cid:
                 continue
-
-            time_str = item.starttime.astimezone(wib).strftime("%d/%m-%H.%M")
-            title_line = f'{time_str} {item.title} - {link.name}'
-            logo = "https://i.ibb.co/qY2HZWX5/512x512bb.jpg"
-            group = "⚽️| LIVE EVENT"
-            worker_url = WORKER_URL_TEMPLATE.format(channel_id=channel_id)
-
-            lines.append(f'#EXTINF:-1 tvg-logo="{logo}" group-title="{group}",{title_line}')
-            lines.append(worker_url)
-
-    with open(filename, "w", encoding="utf-8") as f:
-        f.write("\n".join(lines))
-    print(f"💾 Playlist M3U disimpan ke {filename}")
-
-def is_today(dt):
-    return dt.date() == date.today()
+            tstr = item.starttime.astimezone(wib).strftime("%d/%m-%H.%M")
+            title = f"{tstr} {item.title} - {link.name}"
+            m3u = WORKER_URL_TEMPLATE.format(channel_id=cid)
+            lines.append(f'#EXTINF:-1 tvg-logo="https://i.ibb.co/qY2HZWX5/512x512bb.jpg" group-title="\u26bd\ufe0f| LIVE EVENT",{title}')
+            lines.append(m3u)
+    Path(filename).write_text("\n".join(lines), encoding="utf-8")
+    print(f"💾 Disimpan: {filename}")
 
 def main():
-    fixture_items = get_fixture_items()
-    upcoming_items = get_upcoming_items()
+    fixture = get_fixture_items()
+    upcoming = get_upcoming_items()
+    live_today = [i for i in fixture if i.starttime.date() == date.today()]
 
-    today_items = [i for i in fixture_items if is_today(i.starttime)]
+    print(f"\n📆 LIVE hari ini: {len(live_today)}")
+    for i in live_today:
+        print(f"🗓 {i.starttime} | {i.league} | {i.title}")
+        i.links = get_links_from_live_page(i.links[0].url)
 
-    print(f"\n📆 LIVE hari ini: {len(today_items)}")
-    for item in today_items:
-        print(f"🗓 {item.starttime} | {item.league} | {item.title}")
-        item.links = get_links_from_live_page(item.links[0].url)
+    print(f"\n📆 UPCOMING: {len(upcoming)}")
+    for i in upcoming:
+        print(f"🗓 {i.starttime} | {i.league} | {i.title}")
+        i.links = get_links_from_live_page(i.links[0].url)
 
-    print(f"\n📆 UPCOMING: {len(upcoming_items)}")
-    for item in upcoming_items:
-        print(f"🗓 {item.starttime} | {item.league} | {item.title}")
-        item.links = get_links_from_live_page(item.links[0].url)
-
-    all_focus_items = today_items + upcoming_items
-    save_to_m3u(all_focus_items, "sayurasem.m3u")
+    save_to_m3u(live_today + upcoming)
 
 if __name__ == "__main__":
     main()
