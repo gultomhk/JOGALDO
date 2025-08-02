@@ -60,6 +60,24 @@ def safe_get(url, proxies):
     print(f"❌ Gagal ambil {url} dengan semua proxy.")
     return None
 
+def parse_playing(html):
+    soup = BeautifulSoup(html, "html.parser")
+    items = []
+    for m in soup.select("div.row-item-match"):
+        try:
+            t1 = m.select_one("span.name-team-left").text.strip()
+            t2 = m.select_one("span.name-team-right").text.strip()
+            title = f"{t1} vs {t2}"
+            league = m.select_one("p.tour-name").text.strip()
+            ts = int(m.select_one(".time-format")["data-time"]) // 1000
+            dt = datetime.fromtimestamp(ts, tz=wib)
+            href = m.select_one("a.btn-watch").get("href")
+            full_url = href if href.startswith("http") else f"https://{DOMAIN}{href}"
+            items.append(JetItem(title, [JetLink(full_url)], league, dt))
+        except:
+            continue
+    return items
+
 def parse_fixture(html, max_days=2):
     soup = BeautifulSoup(html, "html.parser")
     items, batas = [], datetime.now() + timedelta(days=max_days)
@@ -148,8 +166,10 @@ def main():
     fixtures = parse_fixture(fixture_html) if fixture_html else []
     upcoming = parse_upcoming(upcoming_html) if upcoming_html else []
 
-    today = [f for f in fixtures if f.starttime.date() == date.today()]
-    focus = today + upcoming
+    playing_html = safe_get(f"https://{DOMAIN}/playing.html", proxies)
+    playing = parse_playing(playing_html) if playing_html else []
+
+    focus = today + upcoming + playing
 
     print(f"\n📆 Total Pertandingan: {len(focus)}")
     for item in focus:
