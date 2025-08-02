@@ -1,0 +1,47 @@
+name: ⏱️ Auto Generate SAYURASEM M3U
+
+on:
+  schedule:
+    - cron: "0 * * * *" # Setiap 1 jam
+  workflow_dispatch:
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repo ini
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 📁 Ambil file konfigurasi dari repo privat
+        shell: bash
+        run: |
+          git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} configrepo
+          cp configrepo/aebabami_file.txt $HOME/aebabami_file.txt
+
+      - name: 📦 Install dependensi Python
+        run: |
+          python -m pip install --upgrade pip
+          pip install beautifulsoup4 requests pytz
+
+      - name: 🚀 Jalankan script utama
+        run: |
+          python3 sayurasem.py
+
+      - name: 🔄 Push all.m3u ke repo privat
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "actions@github.com"
+
+          git clone https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} outputrepo
+          cp all.m3u outputrepo/sayurasem.m3u
+
+          cd outputrepo
+          git add sayurasem.m3u
+          git commit -m "🆕 Update all.m3u: $(date '+%Y-%m-%d %H:%M:%S')" || echo "Tidak ada perubahan"
+          git push
