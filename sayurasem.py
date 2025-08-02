@@ -5,11 +5,13 @@ import json
 import urllib.parse
 from pytz import timezone
 from pathlib import Path
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# Zona waktu
+# Zona waktu WIB
 wib = timezone("Asia/Jakarta")
 
-# ====== Konfigurasi Dinamis ======
+# ====== Load konfigurasi dari aebabami_file.txt ======
 AEBABAMI_FILE = Path.home() / "aebabami_file.txt"
 CONFIG = {}
 
@@ -19,6 +21,7 @@ with open(AEBABAMI_FILE, "r", encoding="utf-8") as f:
 DOMAIN = CONFIG.get("DOMAIN")
 M3U8_TEMPLATE_URL = CONFIG.get("M3U8_TEMPLATE_URL")
 WORKER_URL_TEMPLATE = CONFIG.get("WORKER_URL_TEMPLATE")
+PROXY_LIST_URL = CONFIG.get("PROXY_LIST_URL")
 
 TIMEOUT = 15
 
@@ -28,6 +31,7 @@ HEADERS = {
     "Origin": f"https://{DOMAIN}"
 }
 
+# === Kelas item & link ===
 class JetLink:
     def __init__(self, url, name=None, links=False, headers=None, inputstream=None):
         self.url = url
@@ -44,17 +48,48 @@ class JetItem:
         self.starttime = starttime
         self.icon = icon
 
-def safe_get(url):
+# === Mendapatkan daftar proxy ===
+def get_working_proxy_list():
     try:
-        r = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
-        print(f"↪️ Status {url}: {r.status_code}")
-        print("Response headers:", r.headers)
-        r.raise_for_status()
-        return r.text
+        resp = requests.get(PROXY_LIST_URL, timeout=10)
+        proxies = [line.strip() for line in resp.text.splitlines() if line.strip()]
+        return proxies
     except Exception as e:
-        print(f"⚠️ Gagal ambil {url}: {e}")
-        return None
+        print(f"⚠️ Gagal ambil daftar proxy: {e}")
+        return []
 
+# === Request dengan fallback proxy ===
+def safe_get(url):
+    print(f"🌐 Mencoba akses: {url}")
+    # Coba langsung tanpa proxy
+    try:
+        r = requests.get(url, headers=HEADERS, timeout=10)
+        r.raise_for_status()
+        print("✅ Berhasil tanpa proxy")
+        return r.text
+    except:
+        print("⛔ Gagal tanpa proxy, coba proxy...")
+
+    # Coba proxy satu per satu
+    for proxy_url in get_working_proxy_list():
+        proxies = {
+            "http": proxy_url,
+            "https": proxy_url
+        }
+        try:
+            print(f"🔁 Coba proxy: {proxy_url}")
+            r = requests.get(url, headers=HEADERS, timeout=10, proxies=proxies, verify=False)
+            r.raise_for_status()
+            print(f"✅ Berhasil pakai proxy: {proxy_url}")
+            return r.text
+        except Exception as e:
+            print(f"❌ Proxy gagal: {proxy_url} - {e}")
+            continue
+
+    print("❌ Semua proxy gagal.")
+    return None
+
+# === Parsing fixture dan upcoming ===
 def get_fixture_items():
     print("📺 Mengambil fixture...")
     items = []
@@ -113,6 +148,7 @@ def get_upcoming_items():
     print(f"✅ Total upcoming ditemukan: {len(items)}")
     return items
 
+# === Link streaming ===
 def clean_url(url: str) -> str:
     return url.replace('https://live-tv.vipcdn.live', M3U8_TEMPLATE_URL.split("/{channel_id}")[0])
 
@@ -124,7 +160,7 @@ def resolve_final_url_from_index(index_url):
             channel_id = parts[0]
             return M3U8_TEMPLATE_URL.format(channel_id=channel_id)
     except Exception as e:
-        print(f"⚠️ Gagal konstruksi final m3u8 dari {index_url}: {e}")
+        print(f"⚠️ Gagal parsing m3u8 dari {index_url}: {e}")
     return index_url
 
 def get_links_from_live_page(url):
@@ -150,6 +186,7 @@ def get_links_from_live_page(url):
         }))
     return links
 
+# === Output M3U ===
 def extract_channel_id(url):
     parsed = urllib.parse.urlparse(url)
     parts = parsed.path.strip("/").split("/")
@@ -189,18 +226,17 @@ def main():
 
     today_items = [i for i in fixture_items if is_today(i.starttime)]
 
-    print(f"\n📆 Pertandingan LIVE hari ini: {len(today_items)}")
+    print(f"\n📆 LIVE hari ini: {len(today_items)}")
     for item in today_items:
         print(f"🗓 {item.starttime} | {item.league} | {item.title}")
         item.links = get_links_from_live_page(item.links[0].url)
 
-    print(f"\n📆 Pertandingan UPCOMING: {len(upcoming_items)}")
+    print(f"\n📆 UPCOMING: {len(upcoming_items)}")
     for item in upcoming_items:
         print(f"🗓 {item.starttime} | {item.league} | {item.title}")
         item.links = get_links_from_live_page(item.links[0].url)
 
     all_focus_items = today_items + upcoming_items
-
     save_to_m3u(all_focus_items, "sayurasem.m3u")
 
 if __name__ == "__main__":
