@@ -97,14 +97,24 @@ def save_to_m3u(items, filename="jajang.m3u"):
     lines = ["#EXTM3U"]
     logo = CONFIG.get("LOGO_URL", "https://i.ibb.co/qY2HZWX5/512x512bb.jpg")
     group = CONFIG.get("GROUP_NAME", "⚽️| LIVE EVENT")
+    seen = set()
+
     for item in items:
         waktu = item.starttime.astimezone(wib).strftime("%d/%m-%H.%M")
         nama = f"{waktu} {item.title}"
         stream_url = WORKER_TEMPLATE2.format(slug=item.slug)
+        entry_key = f"{nama}|{stream_url}"  # gunakan kombinasi sebagai kunci unik
+
+        if entry_key in seen:
+            continue  # skip duplikat
+
+        seen.add(entry_key)
         lines.append(f'#EXTINF:-1 tvg-logo="{logo}" group-title="{group}",{nama}')
         lines.append(stream_url)
+
     with open(filename, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))
+
     print(f"✅ Playlist M3U disimpan: {filename}")
 
 def main():
