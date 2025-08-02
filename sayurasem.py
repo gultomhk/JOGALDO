@@ -155,7 +155,7 @@ def extract_channel_id(url):
         return parts[0]
     return None
 
-def save_to_m3u(items, filename="all.m3u"):
+def save_to_m3u(items, filename="sayurasem.m3u"):
     lines = ["#EXTM3U"]
     for item in items:
         if not item.links:
