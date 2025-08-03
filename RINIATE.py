@@ -85,11 +85,15 @@ def parse_item(m, dt):
 def resolve_m3u8(url):
     try:
         path = urllib.parse.urlparse(url).path.strip("/")
-        cid = path.split("/")[0]
-        return url, cid
+        if path.endswith(".html"):
+            slug = path.split("/")[-1].removesuffix(".html")  # Ambil nama file tanpa ".html"
+            return url, slug
+        else:
+            cid = path.split("/")[0]
+            return url, cid
     except:
         return url, None
-
+        
 def clean_url(url):
     return url 
 
