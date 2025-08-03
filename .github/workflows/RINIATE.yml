@@ -9,6 +9,9 @@ jobs:
   generate-map3:
     runs-on: ubuntu-latest
 
+permissions:
+  contents: write  # dibutuhkan untuk push pakai GITHUB_TOKEN
+
     steps:
       - name: ⬇️ Checkout repo publik ini
         uses: actions/checkout@v3
