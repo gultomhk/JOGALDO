@@ -46,3 +46,4 @@ jobs:
             git commit -m "auto: update map3.json"
             git pull --rebase origin master
             git push origin master
+          fi
