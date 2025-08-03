@@ -17,7 +17,7 @@ DOMAIN = CONFIG["DOMAIN"]
 PROXY_LIST_URL = CONFIG["PROXY_LIST_URL"]
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "User-Agent": "Mozilla/5.0",
     "Referer": f"https://{DOMAIN}/",
     "Origin": f"https://{DOMAIN}"
 }
@@ -29,11 +29,12 @@ class JetLink:
         self.headers = headers or {}
 
 class JetItem:
-    def __init__(self, title, links, league, starttime):
+    def __init__(self, title, links, league, starttime, page_url=None):
         self.title = title
         self.links = links
         self.league = league
         self.starttime = starttime
+        self.page_url = page_url  # ⬅️ Tambahkan atribut ini
 
 def load_proxies():
     try:
@@ -80,22 +81,22 @@ def parse_item(m, dt):
     href = m.select_one("a.btn-watch") or m.select_one("a")
     full_url = href.get("href")
     full_url = full_url if full_url.startswith("http") else f"https://{DOMAIN}{full_url}"
-    return JetItem(title, [JetLink(full_url)], league, dt)
+    return JetItem(title, [JetLink(full_url)], league, dt, page_url=full_url)  # ⬅️ Simpan page_url di sini
 
 def resolve_m3u8(url):
     try:
         path = urllib.parse.urlparse(url).path.strip("/")
         if path.endswith(".html"):
-            slug = path.split("/")[-1].removesuffix(".html")  # Ambil nama file tanpa ".html"
+            slug = path.split("/")[-1].removesuffix(".html")
             return url, slug
         else:
             cid = path.split("/")[0]
             return url, cid
     except:
         return url, None
-        
+
 def clean_url(url):
-    return url 
+    return url
 
 def get_links(live_url, proxies):
     html = safe_get(live_url, proxies)
@@ -114,15 +115,17 @@ def get_links(live_url, proxies):
 def save_to_map3_json(items, file="map3.json"):
     result = {}
     for item in items:
-        page_url = item.url  # URL halaman pertandingan (HTML)
+        page_url = item.page_url
+        if not page_url:
+            continue
         path = urllib.parse.urlparse(page_url).path.strip("/")
         if path.endswith(".html"):
             slug = path.split("/")[-1].removesuffix(".html")
         else:
-            continue  # Skip jika bukan .html
+            continue
 
         for link in item.links:
-            result[slug] = link.url  # Ambil slug dari halaman, bukan dari link m3u8
+            result[slug] = link.url
     Path(file).write_text(json.dumps(result, indent=2), encoding="utf-8")
     print(f"✅ JSON disimpan: {file}")
 
@@ -145,7 +148,7 @@ def main():
     print(f"\n📆 Total Pertandingan: {len(focus)}")
     for item in focus:
         print(f"🕒 {item.starttime.strftime('%d/%m %H:%M')} | {item.league} | {item.title}")
-        item.links = get_links(item.links[0].url, proxies)
+        item.links = get_links(item.page_url, proxies)
 
     save_to_map3_json(focus)
 
