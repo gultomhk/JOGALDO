@@ -3,14 +3,15 @@ name: 🔄 Generate map3.json setiap jam
 on:
   schedule:
     - cron: '0 * * * *'  # Setiap jam
-  workflow_dispatch:     # Bisa juga dijalankan manual
+  workflow_dispatch:     # 
+
+# ⛳️ 
+permissions:
+  contents: write
 
 jobs:
   generate-map3:
     runs-on: ubuntu-latest
-
-permissions:
-  contents: write  # dibutuhkan untuk push pakai GITHUB_TOKEN
 
     steps:
       - name: ⬇️ Checkout repo publik ini
@@ -45,10 +46,5 @@ permissions:
             echo "✅ Tidak ada perubahan"
           else
             git commit -m "auto: update map3.json"
-
-            # Setelah commit lokal, tarik perubahan terbaru dari remote
             git pull --rebase origin master
-
-            # Push commit yang sudah direbase
             git push origin master
-          fi
