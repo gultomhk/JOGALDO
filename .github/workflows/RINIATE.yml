@@ -38,4 +38,4 @@ jobs:
           git config --global user.email 'github-actions@users.noreply.github.com'
           git add map3.json
           git commit -m "🔄 Update map3.json - $(date +'%Y-%m-%d %H:%M')" || echo "Tidak ada perubahan"
-          git push
+          git push https://x-access-token:${{ secrets.GH_PAT }}@github.com/${{ github.repository }}.git HEAD:master
