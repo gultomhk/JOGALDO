@@ -114,10 +114,15 @@ def get_links(live_url, proxies):
 def save_to_map3_json(items, file="map3.json"):
     result = {}
     for item in items:
+        page_url = item.url  # URL halaman pertandingan (HTML)
+        path = urllib.parse.urlparse(page_url).path.strip("/")
+        if path.endswith(".html"):
+            slug = path.split("/")[-1].removesuffix(".html")
+        else:
+            continue  # Skip jika bukan .html
+
         for link in item.links:
-            _, cid = resolve_m3u8(link.url)
-            if cid:
-                result[cid] = link.url
+            result[slug] = link.url  # Ambil slug dari halaman, bukan dari link m3u8
     Path(file).write_text(json.dumps(result, indent=2), encoding="utf-8")
     print(f"✅ JSON disimpan: {file}")
 
