@@ -1,0 +1,41 @@
+name: 🔄 Generate map3.json setiap jam
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # Setiap jam
+  workflow_dispatch:     # Bisa juga dijalankan manual
+
+jobs:
+  generate-map3:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⬇️ Checkout repo publik ini
+        uses: actions/checkout@v3
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: 📁 Ambil file konfigurasi dari repo privat
+        shell: bash
+        run: |
+          git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} configrepo
+          cp configrepo/aebabami_file.txt $HOME/aebabami_file.txt
+
+      - name: 📦 Install dependensi
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests beautifulsoup4 pytz
+
+      - name: 🚀 Jalankan script Python
+        run: python RINIATE.py
+
+      - name: 🚀 Commit dan push map3.json
+        run: |
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@users.noreply.github.com'
+          git add map3.json
+          git commit -m "🔄 Update map3.json - $(date +'%Y-%m-%d %H:%M')" || echo "Tidak ada perubahan"
+          git push
