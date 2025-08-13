@@ -2,6 +2,7 @@ import os
 import asyncio
 from pathlib import Path
 from playwright.async_api import async_playwright
+import requests
 
 BODATTVDATA_FILE = Path.home() / "bodattvdata_file.txt"
 
@@ -15,10 +16,29 @@ def load_config(filepath):
     return config
 
 config = load_config(BODATTVDATA_FILE)
-DEFAULT_URL = config.get("DEFAULT_URL")
 
+DEFAULT_URL = config.get("DEFAULT_URL")
+BASE_URL = config.get("BASE_URL1")  # ambil BASE_URL1 sebagai BASE_URL
+
+# Fungsi 1: download dengan requests
+def download_static_html():
+    OUTPUT_FILE = "926page_source.html"
+
+    headers = {
+        "User-Agent": config.get("USER_AGENT", "Mozilla/5.0")
+    }
+
+    print(f"🔄 Downloading HTML from {BASE_URL} ...")
+    response = requests.get(BASE_URL, headers=headers)
+    response.raise_for_status()
+
+    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+        f.write(response.text)
+
+    print(f"✅ HTML saved to {OUTPUT_FILE}")
+
+# Fungsi 2: fetch pakai Playwright
 async def scroll_page(page):
-    # Scroll pelan-pelan sampai mentok
     previous_height = None
     while True:
         current_height = await page.evaluate("document.body.scrollHeight")
@@ -28,7 +48,7 @@ async def scroll_page(page):
         await page.wait_for_timeout(2000)
         previous_height = current_height
 
-async def fetch_fstv_html():
+async def fetch_dynamic_html_playwright():
     async with async_playwright() as p:
         browser = await p.firefox.launch(headless=True)
         context = await browser.new_context(user_agent=config.get("USER_AGENT"))
@@ -38,22 +58,19 @@ async def fetch_fstv_html():
         await page.goto(DEFAULT_URL, timeout=60000)
         await page.wait_for_load_state("networkidle")
 
-        # Scroll ke bawah sampai mentok
         print("📜 Scrolling page...")
         await scroll_page(page)
 
-        # Tunggu elemen utama dan tombol/tab server muncul
         await page.wait_for_selector('.slide-item, .common-table-row', timeout=30000)
 
-        # Coba klik tab jika ada
         try:
-            tab_button = await page.query_selector("button:has-text('Server')")  # ganti sesuai teks tab jika perlu
+            tab_button = await page.query_selector("button:has-text('Server')")
             if tab_button:
                 print("🖱️ Clicking server tab...")
                 await tab_button.click()
                 await page.wait_for_timeout(2000)
-        except:
-            print("⚠️ No server tab found.")
+        except Exception as e:
+            print(f"⚠️ No server tab found or error: {e}")
 
         html = await page.content()
         with open("BODATTV_PAGE_SOURCE.html", "w", encoding="utf-8") as f:
@@ -63,4 +80,6 @@ async def fetch_fstv_html():
         await browser.close()
 
 if __name__ == "__main__":
-    asyncio.run(fetch_fstv_html())
+    # Pilih mau jalanin yang mana:
+    # download_static_html()
+    asyncio.run(fetch_dynamic_html_playwright())
