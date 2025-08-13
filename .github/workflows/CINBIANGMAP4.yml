@@ -35,11 +35,13 @@ jobs:
           pip install --force-reinstall blinker==1.4
           pip install selenium selenium-wire beautifulsoup4
           sudo apt-get update
-          sudo apt-get install -y chromium-browser chromium-chromedriver
+          sudo apt-get install -y chromium-browser || true
+          sudo apt-get install -y chromium chromium-driver
 
       - name: Run cinbiang.py script
         env:
-          PATH: /usr/lib/chromium-browser/:$PATH
+          CHROME_BIN: /usr/bin/chromium
+          CHROMEDRIVER_PATH: /usr/bin/chromedriver
         run: python cinbiang.py
 
       - name: Commit & Push changes if any
