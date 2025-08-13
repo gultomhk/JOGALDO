@@ -121,7 +121,7 @@ try:
         final_link_norm = normalize_m3u8_url(final_link)
 
         print(f"   🔍 previous_url_norm: {previous_url_norm}")
-        print(f"   🔍 final_link_norm  : {picked_norm}")
+        print(f"   🔍 final_link_norm  : {final_link_norm}")
         
         if previous_url_norm == final_link_norm:
             print("   ⚠️ URL sama dengan sebelumnya, aktifkan placeholder")
