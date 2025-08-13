@@ -108,9 +108,10 @@ try:
         url = f"{BASE_URL}/live/{lid}"
         print(f"🎯 Live URL: {url}")
 
+        # Kalau placeholder aktif, hentikan pencarian
         if placeholder_active:
-            print(f"   ⚠️ Placeholder aktif, ID {lid} di-skip")
-            continue
+            print(f"   ⚠️ Placeholder aktif, hentikan pencarian ID berikutnya")
+            break
 
         driver.get("about:blank")
         time.sleep(1)
@@ -123,7 +124,8 @@ try:
             driver.get(url)
         except Exception as e:
             print(f"   ❌ Failed to load URL: {str(e)}")
-            continue
+            placeholder_active = True
+            break
 
         # Coba tunggu player element
         try:
@@ -132,6 +134,8 @@ try:
             )
         except Exception as e:
             print(f"   ⚠️ Timeout waiting for player element: {str(e)}")
+            placeholder_active = True
+            break
 
         time.sleep(3)
 
@@ -151,15 +155,16 @@ try:
 
         if not m3u8_links:
             print("   ❌ Tidak ditemukan .m3u8")
-            continue
+            placeholder_active = True
+            break
 
         final_link = m3u8_links[-1]
         final_link_norm = normalize_m3u8_url(final_link)
 
         if previous_url_norm == final_link_norm:
-            print(f"   ⚠️ URL sama dengan sebelumnya, aktifkan placeholder dan skip ID ini")
+            print(f"   ⚠️ URL sama dengan sebelumnya, aktifkan placeholder dan hentikan pencarian")
             placeholder_active = True
-            continue
+            break
 
         print(f"   ✅ Found .m3u8: {final_link}")
         results[lid] = final_link.strip()
@@ -172,7 +177,7 @@ finally:
         driver.quit()
     except:
         pass
-
+        
 print("\n📦 Ringkasan hasil:")
 for lid, link in results.items():
     print(f"{lid}: {link}")
