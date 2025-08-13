@@ -1,7 +1,6 @@
 from pathlib import Path
 from seleniumwire import webdriver
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
@@ -12,6 +11,9 @@ import json
 import sys
 import os
 import shutil
+
+# Optional: Gunakan webdriver-manager agar selalu cocok versi
+from webdriver_manager.chrome import ChromeDriverManager
 
 CONFIG_FILE = Path.home() / "926data_file.txt"
 
@@ -64,7 +66,7 @@ live_ids = [a["href"].split("/")[-1] for a in soup.find_all("a", href=True) if a
 print(f"Found {len(live_ids)} live IDs:", live_ids)
 
 options = Options()
-options.add_argument("--headless=new")  # mode headless modern
+options.add_argument("--headless=new")  
 options.add_argument("--disable-gpu")
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
@@ -73,7 +75,7 @@ options.add_argument("--mute-audio")
 if config.get("USER_AGENT"):
     options.add_argument(f'user-agent={config["USER_AGENT"]}')
 
-# Deteksi binary Chrome otomatis
+# Deteksi binary Chrome
 chrome_bin = os.getenv("CHROME_BIN") or shutil.which("google-chrome") or shutil.which("chromium-browser") or shutil.which("chromium")
 if not chrome_bin:
     print("❌ Tidak menemukan Chrome/Chromium di sistem.")
@@ -89,9 +91,11 @@ seleniumwire_options = {
 }
 
 try:
+    # Gunakan webdriver-manager agar selalu match versi
     driver = webdriver.Chrome(
+        ChromeDriverManager().install(),
         options=options,
-        seleniumwire_options=seleniumwire_options  # chromedriver otomatis oleh Selenium >=4.6
+        seleniumwire_options=seleniumwire_options
     )
 except Exception as e:
     print(f"❌ Failed to initialize WebDriver: {str(e)}")
