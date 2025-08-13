@@ -35,7 +35,7 @@ if not BASE_URL:
     print("❌ BASE_URL not found in config")
     sys.exit(1)
 
-# --- Normalizer (untuk deteksi duplikat) ---
+# --- Normalizer ---
 def normalize_m3u8_url(url):
     try:
         parsed = urlparse(url.lower())
@@ -44,8 +44,7 @@ def normalize_m3u8_url(url):
             qs.pop(param, None)
         new_query = urlencode(qs, doseq=True)
         return urlunparse(parsed._replace(path=parsed.path.rstrip('/'), query=new_query)).strip()
-    except Exception as e:
-        print(f"⚠️ Error normalizing URL {url}: {e}")
+    except:
         return url
 
 # --- Setup Chrome ---
@@ -67,10 +66,10 @@ except Exception as e:
     print(f"❌ Failed to initialize Chrome WebDriver: {e}")
     sys.exit(1)
 
-# --- Ambil daftar live IDs langsung dari BASE_URL ---
+# --- Ambil daftar live IDs ---
 print(f"🔍 Mengambil daftar live dari {BASE_URL} ...")
 driver.get(BASE_URL)
-time.sleep(3)  # tunggu render awal
+time.sleep(3)
 soup = BeautifulSoup(driver.page_source, "html.parser")
 live_ids = [a["href"].split("/")[-1] for a in soup.find_all("a", href=True) if a["href"].startswith("/bofang/")]
 print(f"Found {len(live_ids)} live IDs:", live_ids)
@@ -88,9 +87,12 @@ try:
             print(f"   ⚠️ Placeholder aktif, ID {lid} di-skip")
             continue
 
+        # Reset halaman dan cache
         driver.get("about:blank")
         time.sleep(0.5)
         driver.requests.clear()
+        driver.execute_cdp_cmd('Network.clearBrowserCache', {})
+        driver.execute_cdp_cmd('Network.clearBrowserCookies', {})
 
         try:
             driver.get(url)
@@ -99,12 +101,11 @@ try:
             placeholder_active = True
             continue
 
-        # Tunggu elemen player
+        # Tunggu player
         try:
             WebDriverWait(driver, 15).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "video, iframe, .player, .live-container"))
             )
-            print("   ℹ️ Player terdeteksi")
         except:
             print("   ⚠️ Player tidak ditemukan dalam 15 detik")
             placeholder_active = True
@@ -132,10 +133,6 @@ try:
 
         final_link = m3u8_links[-1]
         final_link_norm = normalize_m3u8_url(final_link)
-
-        # Debug log
-        print(f"   🔍 previous_url_norm: {previous_url_norm}")
-        print(f"   🔍 final_link_norm  : {final_link_norm}")
 
         if previous_url_norm == final_link_norm:
             print("   ⚠️ URL sama dengan sebelumnya, aktifkan placeholder")
