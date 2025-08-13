@@ -11,7 +11,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 10  # Tambahan: batasi waktu job
+    timeout-minutes: 10
 
     steps:
       - name: 🔄 Checkout repo utama (isi script)
@@ -21,6 +21,13 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
+
+      - name: 🛠️ Fix dpkg lock and update package lists
+        run: |
+          sudo rm /var/lib/dpkg/lock-frontend || true
+          sudo rm /var/lib/apt/lists/lock || true
+          sudo dpkg --configure -a || true
+          sudo apt-get update -y
 
       - name: 📦 Install dependencies
         shell: bash
@@ -34,12 +41,12 @@ jobs:
           git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} configrepo
           cp configrepo/mediasdata_file.txt $HOME/mediasdata_file.txt
 
-      - name: ▶️ Jalankan script Python
+      - name: ▶️ Jalankan script Python dan simpan output M3U
         shell: bash
         run: |
           python mediasinna.py > mediasinna.m3u
 
-      - name: 📤 Push output ke repo privat
+      - name: 📤 Push output ke repo privat jika ada perubahan
         shell: bash
         run: |
           git config --global user.name "github-actions"
@@ -52,7 +59,7 @@ jobs:
           git add mediasinna.m3u
 
           if git diff --cached --quiet; then
-            echo "✅ Tidak ada perubahan pada mediasinna.m3u"
+            echo "✅ Tidak ada perubahan pada mediasinna.m3u, skip push."
           else
             git commit -m "🔄 auto: update mediasinna.m3u"
             git push
