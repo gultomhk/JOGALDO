@@ -8,36 +8,52 @@ from bs4 import BeautifulSoup
 import time
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 import json
+import sys
 
 CONFIG_FILE = Path.home() / "926data_file.txt"
 
 def load_config(filepath):
     config = {}
-    with open(filepath, encoding="utf-8") as f:
-        for line in f:
-            if "=" in line:
-                key, val = line.strip().split("=", 1)
-                config[key.strip()] = val.strip().strip('"')
+    try:
+        with open(filepath, encoding="utf-8") as f:
+            for line in f:
+                if "=" in line:
+                    key, val = line.strip().split("=", 1)
+                    config[key.strip()] = val.strip().strip('"')
+    except FileNotFoundError:
+        print(f"❌ Error: Config file not found at {filepath}")
+        sys.exit(1)
     return config
 
 config = load_config(CONFIG_FILE)
 
 BASE_URL = config.get("BASE_URL")
+if not BASE_URL:
+    print("❌ Error: BASE_URL not found in config")
+    sys.exit(1)
 
 INPUT_FILE = "926page_source.html"
 OUTPUT_FILE = "map4.json"
 
 def normalize_m3u8_url(url):
-    parsed = urlparse(url.lower())
-    qs = parse_qs(parsed.query)
-    for param in ['txsecret', 'txtime', '_']:
-        qs.pop(param, None)
-    new_query = urlencode(qs, doseq=True)
-    path = parsed.path.rstrip('/')
-    return urlunparse(parsed._replace(path=path, query=new_query)).strip()
+    try:
+        parsed = urlparse(url.lower())
+        qs = parse_qs(parsed.query)
+        for param in ['txsecret', 'txtime', '_']:
+            qs.pop(param, None)
+        new_query = urlencode(qs, doseq=True)
+        path = parsed.path.rstrip('/')
+        return urlunparse(parsed._replace(path=path, query=new_query)).strip()
+    except Exception as e:
+        print(f"⚠️ Error normalizing URL {url}: {str(e)}")
+        return url
 
-with open(INPUT_FILE, encoding="utf-8") as f:
-    html = f.read()
+try:
+    with open(INPUT_FILE, encoding="utf-8") as f:
+        html = f.read()
+except FileNotFoundError:
+    print(f"❌ Error: Input file {INPUT_FILE} not found")
+    sys.exit(1)
 
 soup = BeautifulSoup(html, "html.parser")
 
@@ -48,11 +64,26 @@ print(f"Found {len(live_ids)} live IDs:", live_ids)
 options = Options()
 options.add_argument("--headless")
 options.add_argument("--disable-gpu")
+options.add_argument("--no-sandbox")  # Needed for Linux
+options.add_argument("--disable-dev-shm-usage")  # Needed for Linux
 options.add_argument("--mute-audio")
 if config.get("USER_AGENT"):
     options.add_argument(f'user-agent={config["USER_AGENT"]}')
 
-driver = webdriver.Chrome(options=options)
+# Configure Selenium Wire options
+seleniumwire_options = {
+    'disable_capture': True,  # Disable request capture if not needed
+    'disable_encoding': True,  # Disable response encoding
+}
+
+try:
+    driver = webdriver.Chrome(
+        options=options,
+        seleniumwire_options=seleniumwire_options
+    )
+except Exception as e:
+    print(f"❌ Failed to initialize WebDriver: {str(e)}")
+    sys.exit(1)
 
 previous_url_norm = None
 placeholder_active = False
@@ -67,23 +98,33 @@ try:
             print(f"   ⚠️ Placeholder aktif, ID {lid} di-skip")
             continue
 
+        # Clear previous requests and interceptor
         driver.request_interceptor = None
         driver.get("about:blank")
-        driver.requests.clear()
-
-        driver.get(url)
+        time.sleep(1)  # Small delay to ensure clean state
+        del driver.requests
 
         try:
-            # Tunggu elemen player muncul (ganti selector sesuai kebutuhan)
-            WebDriverWait(driver, 10).until(
+            driver.get(url)
+        except Exception as e:
+            print(f"   ❌ Failed to load URL: {str(e)}")
+            continue
+
+        try:
+            # Wait for player element
+            WebDriverWait(driver, 15).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "video, .player, .live-container"))
             )
-        except:
-            print("   ⚠️ Timeout tunggu elemen player")
+        except Exception as e:
+            print(f"   ⚠️ Timeout waiting for player element: {str(e)}")
 
-        time.sleep(3)  # tambahan tunggu stabil
+        time.sleep(3)  # Additional wait for stability
 
-        m3u8_links = [req.url for req in driver.requests if req.response and ".m3u8" in req.url]
+        try:
+            m3u8_links = [req.url for req in driver.requests if req.response and ".m3u8" in req.url]
+        except Exception as e:
+            print(f"   ⚠️ Error accessing requests: {str(e)}")
+            m3u8_links = []
 
         if not m3u8_links:
             print("   ❌ Tidak ditemukan .m3u8")
@@ -101,14 +142,21 @@ try:
         results[lid] = final_link.strip()
         previous_url_norm = final_link_norm
 
+except Exception as e:
+    print(f"❌ Unexpected error: {str(e)}")
 finally:
-    driver.quit()
+    try:
+        driver.quit()
+    except:
+        pass
 
 print("\n📦 Ringkasan hasil:")
 for lid, link in results.items():
     print(f"{lid}: {link}")
 
-with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-    json.dump(results, f, indent=2)
-
-print(f"\n✅ Hasil disimpan ke {OUTPUT_FILE}")
+try:
+    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+        json.dump(results, f, indent=2, ensure_ascii=False)
+    print(f"\n✅ Hasil disimpan ke {OUTPUT_FILE}")
+except Exception as e:
+    print(f"❌ Failed to save results: {str(e)}")
