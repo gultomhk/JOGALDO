@@ -80,6 +80,5 @@ async def fetch_dynamic_html_playwright():
         await browser.close()
 
 if __name__ == "__main__":
-    # Pilih mau jalanin yang mana:
-    # download_static_html()
+    download_static_html()
     asyncio.run(fetch_dynamic_html_playwright())
