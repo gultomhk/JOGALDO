@@ -13,7 +13,6 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 # --- Config ---
 CONFIG_FILE = Path.home() / "926data_file.txt"
-INPUT_FILE = "926page_source.html"
 OUTPUT_FILE = "map4.json"
 
 def load_config(filepath):
@@ -36,7 +35,7 @@ if not BASE_URL:
     print("❌ BASE_URL not found in config")
     sys.exit(1)
 
-# --- Normalizer (hanya untuk deteksi duplikat, URL asli tetap disimpan) ---
+# --- Normalizer (untuk deteksi duplikat) ---
 def normalize_m3u8_url(url):
     try:
         parsed = urlparse(url.lower())
@@ -48,17 +47,6 @@ def normalize_m3u8_url(url):
     except Exception as e:
         print(f"⚠️ Error normalizing URL {url}: {e}")
         return url
-
-# --- Ambil daftar live IDs ---
-try:
-    with open(INPUT_FILE, encoding="utf-8") as f:
-        soup = BeautifulSoup(f.read(), "html.parser")
-except FileNotFoundError:
-    print(f"❌ Input file {INPUT_FILE} not found")
-    sys.exit(1)
-
-live_ids = [a["href"].split("/")[-1] for a in soup.find_all("a", href=True) if a["href"].startswith("/bofang/")]
-print(f"Found {len(live_ids)} live IDs:", live_ids)
 
 # --- Setup Chrome ---
 options = Options()
@@ -78,6 +66,14 @@ try:
 except Exception as e:
     print(f"❌ Failed to initialize Chrome WebDriver: {e}")
     sys.exit(1)
+
+# --- Ambil daftar live IDs langsung dari BASE_URL ---
+print(f"🔍 Mengambil daftar live dari {BASE_URL} ...")
+driver.get(BASE_URL)
+time.sleep(3)  # tunggu render awal
+soup = BeautifulSoup(driver.page_source, "html.parser")
+live_ids = [a["href"].split("/")[-1] for a in soup.find_all("a", href=True) if a["href"].startswith("/bofang/")]
+print(f"Found {len(live_ids)} live IDs:", live_ids)
 
 previous_url_norm = None
 placeholder_active = False
@@ -108,6 +104,7 @@ try:
             WebDriverWait(driver, 15).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "video, iframe, .player, .live-container"))
             )
+            print("   ℹ️ Player terdeteksi")
         except:
             print("   ⚠️ Player tidak ditemukan dalam 15 detik")
             placeholder_active = True
