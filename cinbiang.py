@@ -11,6 +11,7 @@ from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 import json
 import sys
 import os
+import shutil
 
 CONFIG_FILE = Path.home() / "926data_file.txt"
 
@@ -63,7 +64,7 @@ live_ids = [a["href"].split("/")[-1] for a in soup.find_all("a", href=True) if a
 print(f"Found {len(live_ids)} live IDs:", live_ids)
 
 options = Options()
-options.add_argument("--headless=new")  # new headless mode
+options.add_argument("--headless=new")  # mode headless modern
 options.add_argument("--disable-gpu")
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
@@ -72,10 +73,14 @@ options.add_argument("--mute-audio")
 if config.get("USER_AGENT"):
     options.add_argument(f'user-agent={config["USER_AGENT"]}')
 
-# Ambil lokasi Chrome & driver dari environment
-chrome_path = os.getenv("CHROME_BIN", "/usr/bin/chromium")
-driver_path = os.getenv("CHROMEDRIVER_PATH", "/usr/bin/chromedriver")
-options.binary_location = chrome_path
+# Deteksi binary Chrome otomatis
+chrome_bin = os.getenv("CHROME_BIN") or shutil.which("google-chrome") or shutil.which("chromium-browser") or shutil.which("chromium")
+if not chrome_bin:
+    print("❌ Tidak menemukan Chrome/Chromium di sistem.")
+    sys.exit(1)
+
+options.binary_location = chrome_bin
+print(f"ℹ️ Using Chrome binary at: {options.binary_location}")
 
 # Selenium Wire options
 seleniumwire_options = {
@@ -85,9 +90,8 @@ seleniumwire_options = {
 
 try:
     driver = webdriver.Chrome(
-        service=Service(driver_path),
         options=options,
-        seleniumwire_options=seleniumwire_options
+        seleniumwire_options=seleniumwire_options  # chromedriver otomatis oleh Selenium >=4.6
     )
 except Exception as e:
     print(f"❌ Failed to initialize WebDriver: {str(e)}")
