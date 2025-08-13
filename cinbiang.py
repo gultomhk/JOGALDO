@@ -1,13 +1,20 @@
 from pathlib import Path
-from seleniumwire import webdriver
+from seleniumwire.webdriver import Chrome
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
 import time, re
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 import json, sys
 from webdriver_manager.chrome import ChromeDriverManager
 
+# --- Config ---
 CONFIG_FILE = Path.home() / "926data_file.txt"
+INPUT_FILE = "926page_source.html"
+OUTPUT_FILE = "map4.json"
 
 def load_config(filepath):
     config = {}
@@ -29,9 +36,7 @@ if not BASE_URL:
     print("❌ BASE_URL not found in config")
     sys.exit(1)
 
-INPUT_FILE = "926page_source.html"
-OUTPUT_FILE = "map4.json"
-
+# --- Normalizer (hanya untuk deteksi duplikat, URL asli tetap disimpan) ---
 def normalize_m3u8_url(url):
     try:
         parsed = urlparse(url.lower())
@@ -39,8 +44,7 @@ def normalize_m3u8_url(url):
         for param in ['txsecret', 'txtime', '_']:
             qs.pop(param, None)
         new_query = urlencode(qs, doseq=True)
-        path = parsed.path.rstrip('/')
-        return urlunparse(parsed._replace(path=path, query=new_query)).strip()
+        return urlunparse(parsed._replace(path=parsed.path.rstrip('/'), query=new_query)).strip()
     except Exception as e:
         print(f"⚠️ Error normalizing URL {url}: {e}")
         return url
@@ -69,11 +73,8 @@ if config.get("USER_AGENT"):
 seleniumwire_options = {'disable_encoding': True}
 
 try:
-    driver = webdriver.Chrome(
-        service=webdriver.chrome.service.Service(ChromeDriverManager().install()),
-        options=options,
-        seleniumwire_options=seleniumwire_options
-    )
+    service = Service(ChromeDriverManager().install())
+    driver = Chrome(service=service, options=options, seleniumwire_options=seleniumwire_options)
 except Exception as e:
     print(f"❌ Failed to initialize Chrome WebDriver: {e}")
     sys.exit(1)
@@ -89,18 +90,39 @@ try:
 
         if placeholder_active:
             print(f"   ⚠️ Placeholder aktif, ID {lid} di-skip")
-            continue  # beda sama versi lo yg break
+            continue
 
         driver.get("about:blank")
+        time.sleep(0.5)
         driver.requests.clear()
-        driver.get(url)
 
-        time.sleep(8)  # sama kayak contoh asli
+        try:
+            driver.get(url)
+        except Exception as e:
+            print(f"   ❌ Gagal load halaman: {e}")
+            placeholder_active = True
+            continue
 
-        # Cari m3u8 dari network
-        m3u8_links = [req.url for req in driver.requests if req.response and ".m3u8" in req.url]
+        # Tunggu elemen player
+        try:
+            WebDriverWait(driver, 15).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "video, iframe, .player, .live-container"))
+            )
+        except:
+            print("   ⚠️ Player tidak ditemukan dalam 15 detik")
+            placeholder_active = True
+            continue
 
-        # Fallback regex di HTML
+        # Ambil m3u8 dari request network
+        m3u8_links = []
+        start = time.time()
+        while time.time() - start < 15:
+            m3u8_links = [req.url for req in driver.requests if req.response and ".m3u8" in req.url]
+            if m3u8_links:
+                break
+            time.sleep(1)
+
+        # Fallback regex
         if not m3u8_links:
             found = re.findall(r"https?://[^\s'\"]+\.m3u8[^\s'\"]*", driver.page_source)
             if found:
@@ -108,13 +130,14 @@ try:
 
         if not m3u8_links:
             print("   ❌ Tidak ditemukan .m3u8")
+            placeholder_active = True
             continue
 
         final_link = m3u8_links[-1]
         final_link_norm = normalize_m3u8_url(final_link)
 
         if previous_url_norm == final_link_norm:
-            print(f"   ⚠️ URL sama dengan sebelumnya, aktifkan placeholder dan skip ID ini")
+            print("   ⚠️ URL sama dengan sebelumnya, aktifkan placeholder")
             placeholder_active = True
             continue
 
@@ -125,6 +148,7 @@ try:
 finally:
     driver.quit()
 
+# --- Save hasil ---
 print("\n📦 Ringkasan hasil:")
 for lid, link in results.items():
     print(f"{lid}: {link}")
@@ -132,6 +156,6 @@ for lid, link in results.items():
 try:
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
-    print(f"\n✅ Hasil disimpan ke {OUTPUT_FILE}")
+    print(f"\n✅ Disimpan ke {OUTPUT_FILE}")
 except Exception as e:
-    print(f"❌ Gagal simpan: {e}")
+    print(f"❌ Gagal simpan hasil: {e}")
