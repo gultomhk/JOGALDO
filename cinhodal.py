@@ -17,7 +17,7 @@ def load_config(filepath):
 
 config = load_config(CONFIG_FILE)
 
-BASE_URL = config.get("BASE_URL")
+BASE_URL = config.get("BASE_URL", "")
 LOGO_URL = config.get("LOGO_URL", "")
 WORKER_URL = config.get("WORKER_URL", "")
 USER_AGENT = config.get("USER_AGENT", "Mozilla/5.0")
@@ -32,6 +32,8 @@ soup = BeautifulSoup(html, "html.parser")
 translator = Translator()
 
 def translate_zh_to_en(text):
+    if not text:
+        return ""
     try:
         result = translator.translate(text, src='zh-cn', dest='en')
         return result.text
@@ -60,20 +62,24 @@ for a in soup.find_all("a", href=True):
         away_team_en = translate_zh_to_en(away_team)
         event_name_en = translate_zh_to_en(event_name)
 
-        date_attr = a.get("nzw-o-t", "")
-        datetime_str = f"{date_attr} {event_time}"
+        date_attr = a.get("nzw-o-t", "").strip()
+        datetime_str = f"{date_attr} {event_time}" if date_attr else ""
 
         try:
-            dt_obj = datetime.strptime(datetime_str, "%Y-%m-%d %H:%M")
-            # Asumsi waktu di web adalah CST (UTC+8)
-            # Konversi ke WIB (UTC+7) = kurangi 1 jam
-            dt_obj_wib = dt_obj - timedelta(hours=1)
-            date_str = dt_obj_wib.strftime("%d/%m-%H.%M")
+            if datetime_str:
+                dt_obj = datetime.strptime(datetime_str, "%Y-%m-%d %H:%M")
+                # Asumsi waktu di web adalah CST (UTC+8)
+                # Konversi ke WIB (UTC+7) = kurangi 1 jam
+                dt_obj_wib = dt_obj - timedelta(hours=1)
+                date_str = dt_obj_wib.strftime("%d/%m-%H.%M")
+            else:
+                date_str = "??/??-??.??"
         except Exception as e:
             print("Error parsing date:", e)
-            date_str = datetime_str
+            date_str = datetime_str or "??/??-??.??"
 
         title = f"{date_str}  {home_team_en} vs {away_team_en} - {event_name_en}"
+
         lines.append(f'#EXTINF:-1 tvg-logo="{LOGO_URL}" group-title="⚽️| LIVE EVENT",{title}')
         lines.append(f'#EXTVLCOPT:http-user-agent={USER_AGENT}')
         lines.append(f'#EXTVLCOPT:http-referrer={REFERRER}')
@@ -82,8 +88,9 @@ for a in soup.find_all("a", href=True):
         lines.append(f"{WORKER_URL}{id_only}")
         lines.append("")
 
-with open("live_events.m3u", "w", encoding="utf-8") as f:
+OUTPUT_FILE = "926events.m3u"
+with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
     f.write("#EXTM3U\n")
     f.write("\n".join(lines))
 
-print(f"✅ Playlist berhasil dibuat: 926events.m3u (total {len(lines)//5} event)")
+print(f"✅ Playlist berhasil dibuat: {OUTPUT_FILE} (total {len(lines)//5} event)")
