@@ -1,6 +1,7 @@
 from pathlib import Path
-from seleniumwire import webdriver 
+from seleniumwire import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
@@ -9,6 +10,7 @@ import time
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 import json
 import sys
+import os
 
 CONFIG_FILE = Path.home() / "926data_file.txt"
 
@@ -56,28 +58,34 @@ except FileNotFoundError:
     sys.exit(1)
 
 soup = BeautifulSoup(html, "html.parser")
-
 live_ids = [a["href"].split("/")[-1] for a in soup.find_all("a", href=True) if a["href"].startswith("/bofang/")]
 
 print(f"Found {len(live_ids)} live IDs:", live_ids)
 
 options = Options()
-options.add_argument("--headless")
+options.add_argument("--headless=new")  # new headless mode
 options.add_argument("--disable-gpu")
-options.add_argument("--no-sandbox")  # Needed for Linux
-options.add_argument("--disable-dev-shm-usage")  # Needed for Linux
+options.add_argument("--no-sandbox")
+options.add_argument("--disable-dev-shm-usage")
 options.add_argument("--mute-audio")
+
 if config.get("USER_AGENT"):
     options.add_argument(f'user-agent={config["USER_AGENT"]}')
 
-# Configure Selenium Wire options
+# Ambil lokasi Chrome & driver dari environment
+chrome_path = os.getenv("CHROME_BIN", "/usr/bin/chromium")
+driver_path = os.getenv("CHROMEDRIVER_PATH", "/usr/bin/chromedriver")
+options.binary_location = chrome_path
+
+# Selenium Wire options
 seleniumwire_options = {
-    'disable_capture': True,  # Disable request capture if not needed
-    'disable_encoding': True,  # Disable response encoding
+    'disable_capture': True,
+    'disable_encoding': True,
 }
 
 try:
     driver = webdriver.Chrome(
+        service=Service(driver_path),
         options=options,
         seleniumwire_options=seleniumwire_options
     )
@@ -98,10 +106,9 @@ try:
             print(f"   ⚠️ Placeholder aktif, ID {lid} di-skip")
             continue
 
-        # Clear previous requests and interceptor
         driver.request_interceptor = None
         driver.get("about:blank")
-        time.sleep(1)  # Small delay to ensure clean state
+        time.sleep(1)
         del driver.requests
 
         try:
@@ -111,14 +118,13 @@ try:
             continue
 
         try:
-            # Wait for player element
             WebDriverWait(driver, 15).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "video, .player, .live-container"))
             )
         except Exception as e:
             print(f"   ⚠️ Timeout waiting for player element: {str(e)}")
 
-        time.sleep(3)  # Additional wait for stability
+        time.sleep(3)
 
         try:
             m3u8_links = [req.url for req in driver.requests if req.response and ".m3u8" in req.url]
