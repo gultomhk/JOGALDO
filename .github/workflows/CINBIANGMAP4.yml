@@ -1,0 +1,54 @@
+name: MAP4.JASON Fetch M3U8 Links
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 * * * *'  # setiap 1 jam
+
+permissions:
+  contents: write
+
+jobs:
+  fetch_m3u8:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repo publik
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Clone repo privat config
+        run: |
+          git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} configrepo
+          cp configrepo/926data_file.txt $HOME/926data_file.txt
+
+      - name: Install dependencies
+        run: |
+          pip install selenium selenium-wire beautifulsoup4
+
+      - name: Run cinbiang.py script
+        run: python cinbiang.py
+
+      - name: Commit & Push changes if any
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+
+          git add map4.json
+
+          if git diff --cached --quiet; then
+            echo "✅ Tidak ada perubahan, skip push."
+          else
+            git commit -m "🔄 Update map4.json [bot]"
+            git pull --rebase origin master
+            git push origin master
+          fi
