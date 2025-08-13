@@ -5,14 +5,11 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
-import time
+import time, re
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
-import json
-import sys
-import os
-import shutil
+import json, sys, os, shutil
 
-# Optional: Gunakan webdriver-manager agar selalu cocok versi
+# Gunakan webdriver-manager agar driver selalu match Chrome
 from webdriver_manager.chrome import ChromeDriverManager
 
 CONFIG_FILE = Path.home() / "926data_file.txt"
@@ -53,6 +50,7 @@ def normalize_m3u8_url(url):
         print(f"⚠️ Error normalizing URL {url}: {str(e)}")
         return url
 
+# Load HTML berisi daftar live
 try:
     with open(INPUT_FILE, encoding="utf-8") as f:
         html = f.read()
@@ -65,8 +63,9 @@ live_ids = [a["href"].split("/")[-1] for a in soup.find_all("a", href=True) if a
 
 print(f"Found {len(live_ids)} live IDs:", live_ids)
 
+# Setup Chrome options
 options = Options()
-options.add_argument("--headless=new")  
+options.add_argument("--headless=new")
 options.add_argument("--disable-gpu")
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
@@ -84,14 +83,14 @@ if not chrome_bin:
 options.binary_location = chrome_bin
 print(f"ℹ️ Using Chrome binary at: {options.binary_location}")
 
-# Selenium Wire options
+# Selenium Wire config
 seleniumwire_options = {
     'disable_capture': True,
     'disable_encoding': True,
 }
 
+# Inisialisasi driver dengan driver manager (hindari mismatch)
 try:
-    # Gunakan webdriver-manager agar selalu match versi
     driver = webdriver.Chrome(
         ChromeDriverManager().install(),
         options=options,
@@ -114,10 +113,12 @@ try:
             print(f"   ⚠️ Placeholder aktif, ID {lid} di-skip")
             continue
 
-        driver.request_interceptor = None
         driver.get("about:blank")
         time.sleep(1)
-        del driver.requests
+        try:
+            del driver.requests
+        except:
+            pass
 
         try:
             driver.get(url)
@@ -125,20 +126,29 @@ try:
             print(f"   ❌ Failed to load URL: {str(e)}")
             continue
 
+        # Coba tunggu player element
         try:
-            WebDriverWait(driver, 15).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, "video, .player, .live-container"))
+            WebDriverWait(driver, 20).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "video, iframe, .player, .live-container"))
             )
         except Exception as e:
             print(f"   ⚠️ Timeout waiting for player element: {str(e)}")
 
         time.sleep(3)
 
+        # Ambil m3u8 dari network request
         try:
             m3u8_links = [req.url for req in driver.requests if req.response and ".m3u8" in req.url]
         except Exception as e:
             print(f"   ⚠️ Error accessing requests: {str(e)}")
             m3u8_links = []
+
+        # Jika tidak ada di request, coba regex dari page source
+        if not m3u8_links:
+            page_html = driver.page_source
+            found = re.findall(r"https?://[^\s'\"]+\.m3u8[^\s'\"]*", page_html)
+            if found:
+                m3u8_links = found
 
         if not m3u8_links:
             print("   ❌ Tidak ditemukan .m3u8")
