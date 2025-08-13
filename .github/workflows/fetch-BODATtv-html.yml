@@ -1,22 +1,23 @@
 name: Fetch BODATTV HTML
 
 on:
-  workflow_dispatch:  # Bisa dijalankan manual dari GitHub UI
+  workflow_dispatch:
   schedule:
-    - cron: '0 * * * *'  # Setiap 1 jam
+    - cron: '0 * * * *'  # setiap 1 jam
 
 permissions:
-  contents: write  # ⬅️ Wajib agar bisa push ke repo
+  contents: write
 
 jobs:
   fetch_bodattv:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Wajib untuk pull --rebase
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -25,7 +26,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install requests playwright 
+          pip install requests playwright
           playwright install --with-deps
 
       - name: Ambil config bodattvdata dari repo privat
@@ -33,25 +34,29 @@ jobs:
           git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} configrepo
           cp configrepo/bodattvdata_file.txt $HOME/bodattvdata_file.txt
 
-      - name: Jalankan fetch_bodattv_html.py
-        run: python fetch_bodattv_html.py
+      - name: Generate 926page_source.html (static)
+        run: python fetch_bodattv_html.py --mode static
 
-      - name: Commit & Push
+      - name: Generate BODATTV_PAGE_SOURCE.html (dynamic)
+        run: python fetch_bodattv_html.py --mode dynamic
+
+      - name: Commit & Push if changed
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
 
-          if ! git diff --quiet BODATTV_PAGE_SOURCE.html; then
-            git add BODATTV_PAGE_SOURCE.html
-            git commit -m "🔄 Update BODATTV_PAGE_SOURCE.html [bot]"
+          git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} repo-output
+          cp 926page_source.html BODATTV_PAGE_SOURCE.html repo-output/ || echo "Files not found, skipping copy"
 
-            echo "📥 Pull rebase dulu sebelum push"
-            git pull --rebase origin master
+          cd repo-output
+          git add 926page_source.html BODATTV_PAGE_SOURCE.html
 
-            echo "🚀 Push ke origin..."
-            git push origin master
+          if git diff --cached --quiet; then
+            echo "✅ Tidak ada perubahan pada file HTML, skip push."
           else
-            echo "✅ Tidak ada perubahan, skip push."
+            git commit -m "🔄 Update page source HTML files [bot]"
+            git pull --rebase origin master
+            git push origin master
           fi
