@@ -110,7 +110,7 @@ try:
 
         # Kalau placeholder aktif, hentikan pencarian
         if placeholder_active:
-            print(f"   ⚠️ Placeholder aktif, hentikan pencarian ID berikutnya")
+            print("   ⚠️ Placeholder aktif, hentikan pencarian ID berikutnya")
             break
 
         driver.get("about:blank")
@@ -123,30 +123,33 @@ try:
         try:
             driver.get(url)
         except Exception as e:
-            print(f"   ❌ Failed to load URL: {str(e)}")
+            print(f"   ❌ Failed to load URL: {e}")
             placeholder_active = True
-            break
+            break  # langsung keluar
 
-        # Coba tunggu player element
+        # Tunggu player element
         try:
             WebDriverWait(driver, 20).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "video, iframe, .player, .live-container"))
             )
         except Exception as e:
-            print(f"   ⚠️ Timeout waiting for player element: {str(e)}")
+            print(f"   ⚠️ Timeout waiting for player element: {e}")
             placeholder_active = True
-            break
+            break  # langsung keluar
 
         time.sleep(3)
 
         # Ambil m3u8 dari network request
         try:
-            m3u8_links = [req.url for req in driver.requests if req.response and ".m3u8" in req.url]
+            m3u8_links = [
+                req.url for req in driver.requests
+                if req.response and ".m3u8" in req.url
+            ]
         except Exception as e:
-            print(f"   ⚠️ Error accessing requests: {str(e)}")
+            print(f"   ⚠️ Error accessing requests: {e}")
             m3u8_links = []
 
-        # Jika tidak ada di request, coba regex dari page source
+        # Jika tidak ada, coba regex dari page source
         if not m3u8_links:
             page_html = driver.page_source
             found = re.findall(r"https?://[^\s'\"]+\.m3u8[^\s'\"]*", page_html)
@@ -156,22 +159,22 @@ try:
         if not m3u8_links:
             print("   ❌ Tidak ditemukan .m3u8")
             placeholder_active = True
-            break
+            break  # langsung keluar
 
         final_link = m3u8_links[-1]
         final_link_norm = normalize_m3u8_url(final_link)
 
         if previous_url_norm == final_link_norm:
-            print(f"   ⚠️ URL sama dengan sebelumnya, aktifkan placeholder dan hentikan pencarian")
+            print("   ⚠️ URL sama dengan sebelumnya, aktifkan placeholder dan hentikan pencarian")
             placeholder_active = True
-            break
+            break  # langsung keluar
 
         print(f"   ✅ Found .m3u8: {final_link}")
         results[lid] = final_link.strip()
         previous_url_norm = final_link_norm
 
 except Exception as e:
-    print(f"❌ Unexpected error: {str(e)}")
+    print(f"❌ Unexpected error: {e}")
 finally:
     try:
         driver.quit()
