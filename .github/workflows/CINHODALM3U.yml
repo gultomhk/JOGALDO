@@ -1,0 +1,56 @@
+name: Update 926data Playlist
+
+on:
+  schedule:
+    - cron: '0 * * * *'   # Setiap 1 jam
+  workflow_dispatch:       # Bisa juga dijalankan manual
+
+permissions:
+  contents: write  # Agar bisa push perubahan
+
+jobs:
+  update_playlist:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repo utama (script)
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install requests beautifulsoup4 googletrans==4.0.0-rc1
+
+      - name: Clone repo privat config
+        run: |
+          git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} configrepo
+          cp configrepo/926data_file.txt $HOME/926data_file.txt
+
+      - name: Jalankan script Python untuk generate playlist
+        run: |
+          python cinhodal.py
+
+      - name: Push hasil ke repo privat jika berubah
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+
+          git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} repo-output
+          cp 926events.m3u repo-output/
+
+          cd repo-output
+          git add 926events.m3u
+
+          if git diff --cached --quiet; then
+            echo "✅ Tidak ada perubahan pada 926events.m3u, skip push."
+          else
+            git commit -m "🔄 Update 926events.m3u [bot]"
+            git push
+          fi
