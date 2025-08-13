@@ -2,13 +2,9 @@ from pathlib import Path
 from seleniumwire.webdriver import Chrome
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
-import time, re
+import time, re, json, sys
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
-import json, sys
 from webdriver_manager.chrome import ChromeDriverManager
 
 # --- Config ---
@@ -87,7 +83,7 @@ try:
             print(f"   ⚠️ Placeholder aktif, ID {lid} di-skip")
             continue
 
-        # Reset halaman dan cache
+        # Reset state browser & cache
         driver.get("about:blank")
         time.sleep(0.5)
         driver.requests.clear()
@@ -101,26 +97,16 @@ try:
             placeholder_active = True
             continue
 
-        # Tunggu player
-        try:
-            WebDriverWait(driver, 15).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, "video, iframe, .player, .live-container"))
-            )
-        except:
-            print("   ⚠️ Player tidak ditemukan dalam 15 detik")
-            placeholder_active = True
-            continue
-
-        # Ambil m3u8 dari request network
+        # Langsung cek network untuk m3u8
         m3u8_links = []
         start = time.time()
         while time.time() - start < 15:
             m3u8_links = [req.url for req in driver.requests if req.response and ".m3u8" in req.url]
             if m3u8_links:
                 break
-            time.sleep(1)
+            time.sleep(0.5)
 
-        # Fallback regex
+        # Fallback regex scan di HTML kalau network gagal
         if not m3u8_links:
             found = re.findall(r"https?://[^\s'\"]+\.m3u8[^\s'\"]*", driver.page_source)
             if found:
