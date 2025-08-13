@@ -1,4 +1,4 @@
-name: MAP4.JASON Fetch M3U8 Links
+name: UPDATE MAP4.JASON
 
 on:
   workflow_dispatch:
@@ -31,9 +31,14 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install selenium selenium-wire beautifulsoup4
+          pip install --upgrade pip
+          pip install selenium selenium-wire beautifulsoup4 blinker
+          sudo apt-get update
+          sudo apt-get install -y chromium-browser chromium-chromedriver
 
       - name: Run cinbiang.py script
+        env:
+          PATH: /usr/lib/chromium-browser/:$PATH
         run: python cinbiang.py
 
       - name: Commit & Push changes if any
@@ -49,6 +54,6 @@ jobs:
             echo "✅ Tidak ada perubahan, skip push."
           else
             git commit -m "🔄 Update map4.json [bot]"
-            git pull --rebase origin master
-            git push origin master
+            git pull --rebase origin main || git pull --rebase origin master
+            git push origin HEAD
           fi
