@@ -1,6 +1,7 @@
 from pathlib import Path
 from seleniumwire import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
@@ -8,8 +9,6 @@ from bs4 import BeautifulSoup
 import time, re
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 import json, sys, os, shutil
-
-# Gunakan webdriver-manager agar driver selalu match Chrome
 from webdriver_manager.chrome import ChromeDriverManager
 
 CONFIG_FILE = Path.home() / "926data_file.txt"
@@ -85,14 +84,14 @@ print(f"ℹ️ Using Chrome binary at: {options.binary_location}")
 
 # Selenium Wire config
 seleniumwire_options = {
-    'disable_capture': True,
-    'disable_encoding': True,
+    'disable_encoding': True,  # biar tetap bisa capture
 }
 
-# Inisialisasi driver dengan driver manager (hindari mismatch)
+# Inisialisasi driver dengan cara yang benar (Selenium 4+)
 try:
+    service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(
-        ChromeDriverManager().install(),
+        service=service,
         options=options,
         seleniumwire_options=seleniumwire_options
     )
