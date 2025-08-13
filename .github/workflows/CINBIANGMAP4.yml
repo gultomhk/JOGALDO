@@ -3,7 +3,7 @@ name: UPDATE MAP4.JSON
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 * * * *'  # setiap 1 jam
+    - cron: '0 * * * *' # setiap 1 jam
 
 permissions:
   contents: write
@@ -32,12 +32,11 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install --force-reinstall blinker==1.4
-          pip install selenium selenium-wire beautifulsoup4
+          pip install blinker==1.4 selenium selenium-wire beautifulsoup4 webdriver-manager
           sudo apt-get update
           sudo apt-get install -y wget gnupg
           wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
-          sudo sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list'
+          echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
           sudo apt-get update
           sudo apt-get install -y google-chrome-stable
 
@@ -52,7 +51,6 @@ jobs:
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-
           git add map4.json
 
           if git diff --cached --quiet; then
