@@ -1,16 +1,15 @@
-from pathlib import Path
-from seleniumwire.webdriver import Chrome
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
+import asyncio
+from playwright.async_api import async_playwright
 from bs4 import BeautifulSoup
-import time, re, json, sys
-from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
-from webdriver_manager.chrome import ChromeDriverManager
+import re
+import json
+from pathlib import Path
+import sys
 
-# --- Config ---
 CONFIG_FILE = Path.home() / "926data_file.txt"
 OUTPUT_FILE = "map4.json"
 
+# --- Load config ---
 def load_config(filepath):
     config = {}
     try:
@@ -25,124 +24,83 @@ def load_config(filepath):
     return config
 
 config = load_config(CONFIG_FILE)
-
 BASE_URL = config.get("BASE_URL")
 if not BASE_URL:
     print("❌ BASE_URL not found in config")
     sys.exit(1)
 
-# --- Normalizer ---
-def normalize_m3u8_url(url):
-    try:
-        parsed = urlparse(url.lower())
-        qs = parse_qs(parsed.query)
-        for param in ['txsecret', 'txtime', '_']:
-            qs.pop(param, None)
-        new_query = urlencode(qs, doseq=True)
-        return urlunparse(parsed._replace(path=parsed.path.rstrip('/'), query=new_query)).strip()
-    except:
-        return url
-
-# --- Setup Chrome ---
-options = Options()
-options.add_argument("--headless=new")
-options.add_argument("--disable-gpu")
-options.add_argument("--no-sandbox")
-options.add_argument("--disable-dev-shm-usage")
-options.add_argument("--mute-audio")
-if config.get("USER_AGENT"):
-    options.add_argument(f'user-agent={config["USER_AGENT"]}')
-
-seleniumwire_options = {'disable_encoding': True}
-
-try:
-    service = Service(ChromeDriverManager().install())
-    driver = Chrome(service=service, options=options, seleniumwire_options=seleniumwire_options)
-except Exception as e:
-    print(f"❌ Failed to initialize Chrome WebDriver: {e}")
-    sys.exit(1)
-
 # --- Ambil daftar live IDs ---
-print(f"🔍 Mengambil daftar live dari {BASE_URL} ...")
-driver.get(BASE_URL)
-time.sleep(3)
-soup = BeautifulSoup(driver.page_source, "html.parser")
-live_ids = [a["href"].split("/")[-1] for a in soup.find_all("a", href=True) if a["href"].startswith("/bofang/")]
-print(f"Found {len(live_ids)} live IDs:", live_ids)
+async def get_live_ids(page):
+    await page.goto(BASE_URL)
+    await page.wait_for_timeout(3000)
+    soup = BeautifulSoup(await page.content(), "html.parser")
+    live_ids = [a["href"].split("/")[-1] for a in soup.find_all("a", href=True) if a["href"].startswith("/bofang/")]
+    print(f"Found {len(live_ids)} live IDs:", live_ids)
+    return live_ids
 
-previous_url_norm = None
-placeholder_active = False
-results = {}
+# --- Ambil m3u8 untuk 1 ID ---
+async def fetch_m3u8(context, lid):
+    page = await context.new_page()
+    m3u8_url = None
 
-try:
-    for lid in live_ids:
+    async def on_request(request):
+        nonlocal m3u8_url
+        if ".m3u8" in request.url:
+            m3u8_url = request.url
+
+    page.on("request", on_request)
+
+    try:
         url = f"{BASE_URL}/live/{lid}"
-        print(f"\n🎯 Live URL: {url}")
-
-        if placeholder_active:
-            print(f"   ⚠️ Placeholder aktif, ID {lid} di-skip")
-            continue
-
-        # Reset state browser & cache
-        driver.get("about:blank")
-        time.sleep(0.5)
-        driver.requests.clear()
-        driver.execute_cdp_cmd('Network.clearBrowserCache', {})
-        driver.execute_cdp_cmd('Network.clearBrowserCookies', {})
-
-        try:
-            driver.get(url)
-        except Exception as e:
-            print(f"   ❌ Gagal load halaman: {e}")
-            placeholder_active = True
-            continue
-
-        # Langsung cek network untuk m3u8
-        m3u8_links = []
-        start = time.time()
-        while time.time() - start < 15:
-            m3u8_links = [req.url for req in driver.requests if req.response and ".m3u8" in req.url]
-            if m3u8_links:
-                break
-            time.sleep(0.5)
-
-        # Fallback regex scan di HTML kalau network gagal
-        if not m3u8_links:
-            found = re.findall(r"https?://[^\s'\"]+\.m3u8[^\s'\"]*", driver.page_source)
-            if found:
-                m3u8_links = found
-
-        if not m3u8_links:
-            print("   ❌ Tidak ditemukan .m3u8")
-            placeholder_active = True
-            continue
-
-        final_link = m3u8_links[-1]
-        final_link_norm = normalize_m3u8_url(final_link)
-
-        print(f"   🔍 previous_url_norm: {previous_url_norm}")
-        print(f"   🔍 final_link_norm  : {final_link_norm}")
+        print(f"🎯 Live URL: {url}")
         
-        if previous_url_norm == final_link_norm:
-            print("   ⚠️ URL sama dengan sebelumnya, aktifkan placeholder")
-            placeholder_active = True
-            continue
+        await page.goto(url, wait_until="commit", timeout=15000)
 
-        print(f"   ✅ Found .m3u8: {final_link}")
-        results[lid] = final_link.strip()
-        previous_url_norm = final_link_norm
+        # Tunggu network traffic muncul (max 10 detik)
+        for _ in range(20):
+            if m3u8_url:
+                break
+            await asyncio.sleep(0.5)
 
-finally:
-    driver.quit()
+        if m3u8_url:
+            print(f"   ✅ Found .m3u8: {m3u8_url}")
+            return lid, m3u8_url.strip()
+        else:
+            print(f"   ❌ Tidak ditemukan .m3u8 untuk {lid}")
+            return lid, None
 
-# --- Save hasil ---
-print("\n📦 Ringkasan hasil:")
-for lid, link in results.items():
-    print(f"{lid}: {link}")
+    except Exception as e:
+        print(f"   ❌ Error {lid}: {e}")
+        return lid, None
+    finally:
+        await page.close()
 
-try:
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        json.dump(results, f, indent=2, ensure_ascii=False)
-    print(f"\n✅ Disimpan ke {OUTPUT_FILE}")
-except Exception as e:
-    print(f"❌ Gagal simpan hasil: {e}")
+# --- Main ---
+async def main():
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        context = await browser.new_context(user_agent=config.get("USER_AGENT") or None)
+
+        # Ambil daftar ID
+        page = await context.new_page()
+        live_ids = await get_live_ids(page)
+        await page.close()
+
+        # Ambil semua m3u8 paralel
+        tasks = [fetch_m3u8(context, lid) for lid in live_ids]
+        results_data = await asyncio.gather(*tasks)
+
+        # Simpan hasil
+        results = {lid: link for lid, link in results_data if link}
+        print("\n📦 Ringkasan hasil:")
+        for lid, link in results.items():
+            print(f"{lid}: {link}")
+
+        with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+            json.dump(results, f, indent=2, ensure_ascii=False)
+        print(f"\n✅ Disimpan ke {OUTPUT_FILE}")
+
+        await browser.close()
+
+if __name__ == "__main__":
+    asyncio.run(main())
