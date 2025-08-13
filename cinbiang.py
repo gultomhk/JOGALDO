@@ -8,7 +8,7 @@ from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
 import time, re
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
-import json, sys, os, shutil
+import json, sys
 from webdriver_manager.chrome import ChromeDriverManager
 
 CONFIG_FILE = Path.home() / "926data_file.txt"
@@ -22,7 +22,7 @@ def load_config(filepath):
                     key, val = line.strip().split("=", 1)
                     config[key.strip()] = val.strip().strip('"')
     except FileNotFoundError:
-        print(f"❌ Error: Config file not found at {filepath}")
+        print(f"❌ Config file not found at {filepath}")
         sys.exit(1)
     return config
 
@@ -30,7 +30,7 @@ config = load_config(CONFIG_FILE)
 
 BASE_URL = config.get("BASE_URL")
 if not BASE_URL:
-    print("❌ Error: BASE_URL not found in config")
+    print("❌ BASE_URL not found in config")
     sys.exit(1)
 
 INPUT_FILE = "926page_source.html"
@@ -43,60 +43,39 @@ def normalize_m3u8_url(url):
         for param in ['txsecret', 'txtime', '_']:
             qs.pop(param, None)
         new_query = urlencode(qs, doseq=True)
-        path = parsed.path.rstrip('/')
-        return urlunparse(parsed._replace(path=path, query=new_query)).strip()
+        return urlunparse(parsed._replace(path=parsed.path.rstrip('/'), query=new_query)).strip()
     except Exception as e:
-        print(f"⚠️ Error normalizing URL {url}: {str(e)}")
+        print(f"⚠️ Error normalizing URL {url}: {e}")
         return url
 
-# Load HTML berisi daftar live
+# --- Ambil daftar live IDs dari HTML ---
 try:
     with open(INPUT_FILE, encoding="utf-8") as f:
-        html = f.read()
+        soup = BeautifulSoup(f.read(), "html.parser")
 except FileNotFoundError:
-    print(f"❌ Error: Input file {INPUT_FILE} not found")
+    print(f"❌ Input file {INPUT_FILE} not found")
     sys.exit(1)
 
-soup = BeautifulSoup(html, "html.parser")
 live_ids = [a["href"].split("/")[-1] for a in soup.find_all("a", href=True) if a["href"].startswith("/bofang/")]
-
 print(f"Found {len(live_ids)} live IDs:", live_ids)
 
-# Setup Chrome options
+# --- Setup Chrome ---
 options = Options()
 options.add_argument("--headless=new")
 options.add_argument("--disable-gpu")
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
 options.add_argument("--mute-audio")
-
 if config.get("USER_AGENT"):
     options.add_argument(f'user-agent={config["USER_AGENT"]}')
 
-# Deteksi binary Chrome
-chrome_bin = os.getenv("CHROME_BIN") or shutil.which("google-chrome") or shutil.which("chromium-browser") or shutil.which("chromium")
-if not chrome_bin:
-    print("❌ Tidak menemukan Chrome/Chromium di sistem.")
-    sys.exit(1)
+seleniumwire_options = {'disable_encoding': True}
 
-options.binary_location = chrome_bin
-print(f"ℹ️ Using Chrome binary at: {options.binary_location}")
-
-# Selenium Wire config
-seleniumwire_options = {
-    'disable_encoding': True,  # biar tetap bisa capture
-}
-
-# Inisialisasi driver dengan cara yang benar (Selenium 4+)
 try:
     service = Service(ChromeDriverManager().install())
-    driver = webdriver.Chrome(
-        service=service,
-        options=options,
-        seleniumwire_options=seleniumwire_options
-    )
+    driver = webdriver.Chrome(service=service, options=options, seleniumwire_options=seleniumwire_options)
 except Exception as e:
-    print(f"❌ Failed to initialize WebDriver: {str(e)}")
+    print(f"❌ Failed to initialize Chrome WebDriver: {e}")
     sys.exit(1)
 
 previous_url_norm = None
@@ -106,88 +85,77 @@ results = {}
 try:
     for lid in live_ids:
         url = f"{BASE_URL}/live/{lid}"
-        print(f"🎯 Live URL: {url}")
+        print(f"\n🎯 Checking: {url}")
 
-        # Kalau placeholder aktif, hentikan pencarian
         if placeholder_active:
-            print("   ⚠️ Placeholder aktif, hentikan pencarian ID berikutnya")
+            print("   ⚠️ Placeholder active, stopping further checks")
             break
 
         driver.get("about:blank")
-        time.sleep(1)
-        try:
-            del driver.requests
-        except:
-            pass
+        time.sleep(0.5)
+        driver.requests.clear()
 
         try:
             driver.get(url)
         except Exception as e:
-            print(f"   ❌ Failed to load URL: {e}")
+            print(f"   ❌ Page load failed: {e}")
             placeholder_active = True
-            break  # langsung keluar
+            break
 
-        # Tunggu player element
+        # Step 1: Wait for player element
         try:
-            WebDriverWait(driver, 20).until(
+            WebDriverWait(driver, 15).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "video, iframe, .player, .live-container"))
             )
-        except Exception as e:
-            print(f"   ⚠️ Timeout waiting for player element: {e}")
+            print("   ℹ️ Player element detected")
+        except:
+            print("   ⚠️ Player not found in 15s")
             placeholder_active = True
-            break  # langsung keluar
+            break
 
-        time.sleep(3)
+        # Step 2: Poll network requests for m3u8
+        m3u8_links = []
+        start = time.time()
+        while time.time() - start < 15:
+            m3u8_links = [req.url for req in driver.requests if req.response and ".m3u8" in req.url]
+            if m3u8_links:
+                break
+            time.sleep(1)
 
-        # Ambil m3u8 dari network request
-        try:
-            m3u8_links = [
-                req.url for req in driver.requests
-                if req.response and ".m3u8" in req.url
-            ]
-        except Exception as e:
-            print(f"   ⚠️ Error accessing requests: {e}")
-            m3u8_links = []
-
-        # Jika tidak ada, coba regex dari page source
+        # Step 3: Fallback regex search
         if not m3u8_links:
-            page_html = driver.page_source
-            found = re.findall(r"https?://[^\s'\"]+\.m3u8[^\s'\"]*", page_html)
+            found = re.findall(r"https?://[^\s'\"]+\.m3u8[^\s'\"]*", driver.page_source)
             if found:
                 m3u8_links = found
 
         if not m3u8_links:
-            print("   ❌ Tidak ditemukan .m3u8")
+            print("   ❌ No m3u8 link found")
             placeholder_active = True
-            break  # langsung keluar
+            break
 
         final_link = m3u8_links[-1]
         final_link_norm = normalize_m3u8_url(final_link)
 
         if previous_url_norm == final_link_norm:
-            print("   ⚠️ URL sama dengan sebelumnya, aktifkan placeholder dan hentikan pencarian")
+            print("   ⚠️ Same as previous stream, stopping")
             placeholder_active = True
-            break  # langsung keluar
+            break
 
-        print(f"   ✅ Found .m3u8: {final_link}")
+        print(f"   ✅ Found m3u8: {final_link}")
         results[lid] = final_link.strip()
         previous_url_norm = final_link_norm
 
-except Exception as e:
-    print(f"❌ Unexpected error: {e}")
 finally:
-    try:
-        driver.quit()
-    except:
-        pass
-        
-print("\n📦 Ringkasan hasil:")
+    driver.quit()
+
+# --- Save results ---
+print("\n📦 Results:")
 for lid, link in results.items():
     print(f"{lid}: {link}")
 
 try:
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
-    print(f"\n✅ Hasil disimpan ke {OUTPUT_FILE}")
+    print(f"\n✅ Saved to {OUTPUT_FILE}")
 except Exception as e:
-    print(f"❌ Failed to save results: {str(e)}")
+    print(f"❌ Failed to save: {e}")
