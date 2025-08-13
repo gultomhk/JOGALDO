@@ -1,4 +1,5 @@
 import os
+import argparse
 import asyncio
 from pathlib import Path
 from playwright.async_api import async_playwright
@@ -80,5 +81,12 @@ async def fetch_dynamic_html_playwright():
         await browser.close()
 
 if __name__ == "__main__":
-    download_static_html()
-    asyncio.run(fetch_dynamic_html_playwright())
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--mode', choices=['static', 'dynamic'], default='dynamic',
+                        help="Pilih mode: 'static' untuk requests, 'dynamic' untuk playwright")
+    args = parser.parse_args()
+
+    if args.mode == 'static':
+        download_static_html()
+    else:
+        asyncio.run(fetch_dynamic_html_playwright())
