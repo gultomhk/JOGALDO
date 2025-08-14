@@ -1,6 +1,7 @@
 {
-  "1206": "https://pl10.chinefore.com/live/ea5f800598c5606a.m3u8?txSecret=0fe9dc89d33a23d8aebe7d3d7f5cc3a2&txTime=689DCF0D&_=1755178728141",
-  "1205": "https://pl10.chinefore.com/live/25654d014e7c4d94.m3u8?txSecret=6ba44508400fe7b6af1f40c0513ccf14&txTime=689DCF0D&_=1755178728143",
-  "1166": "https://pl20.chinefore.com/live/1d6966f70453857c.m3u8?txSecret=14d9d6512426db62a08272b183980931&txTime=689DE49D&_=1755178728176",
-  "1210": "https://pl10.chinefore.com/live/230a6a26cb2db84e.m3u8?txSecret=1803d22b22d89df005fc0eed4274e1ff&txTime=689DD741&_=1755178728153"
+  "1166": "https://pl20.chinefore.com/live/1d6966f70453857c.m3u8?txSecret=14d9d6512426db62a08272b183980931&txTime=689DE49D&_=1755181461942",
+  "1207": "https://pl10.chinefore.com/live/55530cc1c59d8ebf.m3u8?txSecret=d4be90cbc069109f1646300a92ea342b&txTime=689DEB2D&_=1755181461946",
+  "1210": "https://pl10.chinefore.com/live/230a6a26cb2db84e.m3u8?txSecret=1803d22b22d89df005fc0eed4274e1ff&txTime=689DD741&_=1755181461918",
+  "1212": "https://pl10.chinefore.com/live/e830b98bc4710bb2.m3u8?txSecret=ad349521f944e4378f90e79b3d97240a&txTime=689DEC59&_=1755181461907",
+  "1211": "https://pl10.chinefore.com/live/0351af71d519979b.m3u8?txSecret=844ae988e1cccabbed27b15d84884d2b&txTime=689DEB2D&_=1755181461917"
 }
