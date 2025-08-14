@@ -1,11 +1,13 @@
 {
-  "1166": "https://pl20.chinefore.com/live/1d6966f70453857c.m3u8?txSecret=14d9d6512426db62a08272b183980931&txTime=689DE49D&_=1755185209811",
-  "1207": "https://pl10.chinefore.com/live/55530cc1c59d8ebf.m3u8?txSecret=d4be90cbc069109f1646300a92ea342b&txTime=689DEB2D&_=1755185209879",
-  "1210": "https://pl10.chinefore.com/live/230a6a26cb2db84e.m3u8?txSecret=1803d22b22d89df005fc0eed4274e1ff&txTime=689DD741&_=1755185209833",
-  "1212": "https://pl10.chinefore.com/live/e830b98bc4710bb2.m3u8?txSecret=ad349521f944e4378f90e79b3d97240a&txTime=689DEC59&_=1755185209831",
-  "1211": "https://pl10.chinefore.com/live/0351af71d519979b.m3u8?txSecret=844ae988e1cccabbed27b15d84884d2b&txTime=689DEB2D&_=1755185209985",
-  "1167": "https://pl20.chinefore.com/live/1ed6d81665884e0e.m3u8?txSecret=34b3eb94f3e462516569189cee66a288&txTime=689DF9B5&_=1755185209833",
-  "1214": "https://pl10.chinefore.com/live/9b1166597a505687.m3u8?txSecret=56233bd2eb1b41e94acade981bddb1fd&txTime=689DFAE1&_=1755185209853",
-  "1215": "https://pl10.chinefore.com/live/8e795bf32f84c198.m3u8?txSecret=b4c4cc230dde1b0b3dc49c27228bdc4a&txTime=689DF9B5&_=1755185209832",
-  "1213": "https://pl10.chinefore.com/live/f41584abf773ac8a.m3u8?txSecret=3ef511eb3b76c758bc2c8f51c5eb9fd7&txTime=689DF93D&_=1755185209920"
+  "1167": "https://pl20.chinefore.com/live/1ed6d81665884e0e.m3u8?txSecret=34b3eb94f3e462516569189cee66a288&txTime=689DF9B5&_=1755189123462",
+  "1214": "https://pl10.chinefore.com/live/9b1166597a505687.m3u8?txSecret=56233bd2eb1b41e94acade981bddb1fd&txTime=689DFAE1&_=1755189123423",
+  "1215": "https://pl10.chinefore.com/live/8e795bf32f84c198.m3u8?txSecret=b4c4cc230dde1b0b3dc49c27228bdc4a&txTime=689DF9B5&_=1755189123475",
+  "1213": "https://pl10.chinefore.com/live/f41584abf773ac8a.m3u8?txSecret=3ef511eb3b76c758bc2c8f51c5eb9fd7&txTime=689DF93D&_=1755189123449",
+  "1216": "https://pl10.chinefore.com/live/87d95528c9658aab.m3u8?txSecret=cdbd1029eba6d0ad7ec1e6333075527b&txTime=689E0045&_=1755189123454",
+  "1243": "https://pl10.chinefore.com/live/c8f73f7a225d575c.m3u8?txSecret=d1fda6097cb947351f471b83ce08678d&txTime=689E07C5&_=1755189123467",
+  "1244": "https://pl10.chinefore.com/live/746c97c2e91acec3.m3u8?txSecret=bf4f34283f8ab4a8704493e8610f2b10&txTime=689E0879&_=1755189123507",
+  "1245": "https://pl10.chinefore.com/live/ba8d3bd54528dc50.m3u8?txSecret=40522a7dcb454dc22da39b9cf0520882&txTime=689E0789&_=1755189123459",
+  "1233": "https://pl20.chinefore.com/live/4c8a8c95879d3fc3.m3u8?txSecret=b75fbfaf971726a3e4a4ccc728b2764a&txTime=689E0F09&_=1755189123410",
+  "1247": "https://pl10.chinefore.com/live/6734b406ed12b98b.m3u8?txSecret=1458d07573a82c2f96bace2b2bf9599d&txTime=689E0E55&_=1755189123459",
+  "1246": "https://pl10.chinefore.com/live/1c67c62dfbab9be2.m3u8?txSecret=bf9cdac8a02c23edd3749caa368bf40e&txTime=689E0F09&_=1755189123504"
 }
