@@ -1,7 +1,7 @@
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 from pathlib import Path
-from googletrans import Translator
+from deep_translator import GoogleTranslator
 
 # Load konfigurasi dari file
 CONFIG_FILE = Path.home() / "926data_file.txt"
@@ -35,8 +35,7 @@ def translate_zh_to_en(text):
     if not text:
         return ""
     try:
-        result = translator.translate(text, src='zh-cn', dest='en')
-        return result.text
+        return GoogleTranslator(source='zh-CN', target='en').translate(text)
     except Exception as e:
         print("Translate error:", e)
         return text
