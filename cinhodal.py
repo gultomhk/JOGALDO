@@ -29,7 +29,6 @@ with open(INPUT_FILE, encoding="utf-8") as f:
     html = f.read()
 
 soup = BeautifulSoup(html, "html.parser")
-translator = Translator()
 
 def translate_zh_to_en(text):
     if not text:
