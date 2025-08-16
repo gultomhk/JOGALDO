@@ -1,10 +1,10 @@
 import asyncio
 from playwright.async_api import async_playwright
 from bs4 import BeautifulSoup
-import re
 import json
 from pathlib import Path
 import sys
+import random
 
 CONFIG_FILE = Path.home() / "926data_file.txt"
 OUTPUT_FILE = "map4.json"
@@ -24,22 +24,36 @@ def load_config(filepath):
     return config
 
 config = load_config(CONFIG_FILE)
-BASE_URL = config.get("BASE_URL")
-if not BASE_URL:
-    print("❌ BASE_URL not found in config")
+
+# Ambil semua kemungkinan BASE_URL dari config
+base_urls = [
+    config.get("BASE_URL"),
+    config.get("BASE_URL1"),
+    config.get("BASE_URL2"),
+    config.get("BASE_URL3"),
+]
+# Hapus None dan duplikat
+base_urls = [u for u in base_urls if u]
+
+if not base_urls:
+    print("❌ Tidak ada BASE_URL ditemukan di config")
     sys.exit(1)
 
 # --- Ambil daftar live IDs ---
-async def get_live_ids(page):
-    await page.goto(BASE_URL)
-    await page.wait_for_timeout(3000)
-    soup = BeautifulSoup(await page.content(), "html.parser")
-    live_ids = [a["href"].split("/")[-1] for a in soup.find_all("a", href=True) if a["href"].startswith("/bofang/")]
-    print(f"Found {len(live_ids)} live IDs:", live_ids)
-    return live_ids
+async def get_live_ids(page, base_url):
+    try:
+        await page.goto(base_url, timeout=15000)
+        await page.wait_for_timeout(3000)
+        soup = BeautifulSoup(await page.content(), "html.parser")
+        live_ids = [a["href"].split("/")[-1] for a in soup.find_all("a", href=True) if a["href"].startswith("/bofang/")]
+        print(f"🔎 Found {len(live_ids)} live IDs from {base_url}")
+        return live_ids
+    except Exception as e:
+        print(f"❌ Gagal ambil live IDs dari {base_url}: {e}")
+        return []
 
 # --- Ambil m3u8 untuk 1 ID ---
-async def fetch_m3u8(context, lid):
+async def fetch_m3u8(context, lid, base_url):
     page = await context.new_page()
     m3u8_url = None
 
@@ -51,9 +65,9 @@ async def fetch_m3u8(context, lid):
     page.on("request", on_request)
 
     try:
-        url = f"{BASE_URL}/live/{lid}"
+        url = f"{base_url}/live/{lid}"
         print(f"🎯 Live URL: {url}")
-        
+
         await page.goto(url, wait_until="commit", timeout=15000)
 
         # Tunggu network traffic muncul (max 10 detik)
@@ -81,13 +95,27 @@ async def main():
         browser = await p.chromium.launch(headless=True)
         context = await browser.new_context(user_agent=config.get("USER_AGENT") or None)
 
-        # Ambil daftar ID
-        page = await context.new_page()
-        live_ids = await get_live_ids(page)
-        await page.close()
+        live_ids = []
+        working_base = None
+
+        # Coba setiap BASE_URL sampai ada yang bisa diakses
+        for url in base_urls:
+            page = await context.new_page()
+            live_ids = await get_live_ids(page, url)
+            await page.close()
+            if live_ids:
+                working_base = url
+                break
+
+        if not live_ids:
+            print("❌ Semua BASE_URL gagal diakses. Simpan file kosong.")
+            with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+                json.dump({}, f, indent=2, ensure_ascii=False)
+            await browser.close()
+            return
 
         # Ambil semua m3u8 paralel
-        tasks = [fetch_m3u8(context, lid) for lid in live_ids]
+        tasks = [fetch_m3u8(context, lid, working_base) for lid in live_ids]
         results_data = await asyncio.gather(*tasks)
 
         # Simpan hasil
