@@ -2,31 +2,51 @@ from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 from pathlib import Path
 from deep_translator import GoogleTranslator
+import sys
 
-# Load konfigurasi dari file
+# --- Load konfigurasi dari file ---
 CONFIG_FILE = Path.home() / "926data_file.txt"
 
 def load_config(filepath):
     config = {}
-    with open(filepath, encoding="utf-8") as f:
-        for line in f:
-            if "=" in line:
-                key, val = line.strip().split("=", 1)
-                config[key.strip()] = val.strip().strip('"')
+    try:
+        with open(filepath, encoding="utf-8") as f:
+            for line in f:
+                if "=" in line:
+                    key, val = line.strip().split("=", 1)
+                    config[key.strip()] = val.strip().strip('"')
+    except FileNotFoundError:
+        print(f"❌ Config file not found at {filepath}")
+        sys.exit(1)
     return config
 
 config = load_config(CONFIG_FILE)
 
-BASE_URL = config.get("BASE_URL", "")
+# Ambil beberapa kemungkinan BASE_URL dari config
+base_urls = [
+    config.get("BASE_URL"),
+    config.get("BASE_URL1"),
+    config.get("BASE_URL2"),
+    config.get("BASE_URL3"),
+]
+base_urls = [u for u in base_urls if u]
+
 LOGO_URL = config.get("LOGO_URL", "")
 WORKER_URL = config.get("WORKER_URL", "")
 USER_AGENT = config.get("USER_AGENT", "Mozilla/5.0")
 REFERRER = config.get("REFERRER", "")
 
 INPUT_FILE = "926page_source.html"
+OUTPUT_FILE = "926events.m3u"
 
-with open(INPUT_FILE, encoding="utf-8") as f:
-    html = f.read()
+try:
+    with open(INPUT_FILE, encoding="utf-8") as f:
+        html = f.read()
+except FileNotFoundError:
+    print(f"❌ File {INPUT_FILE} tidak ditemukan. Buat playlist kosong.")
+    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+        f.write("#EXTM3U\n")
+    sys.exit(0)
 
 soup = BeautifulSoup(html, "html.parser")
 
@@ -34,16 +54,24 @@ def translate_zh_to_en(text):
     if not text:
         return ""
     try:
-        return GoogleTranslator(source='zh-CN', target='en').translate(text)
+        return GoogleTranslator(source="zh-CN", target="en").translate(text)
     except Exception as e:
-        print("Translate error:", e)
+        print("⚠️ Translate error:", e)
         return text
 
 lines = []
 
 for a in soup.find_all("a", href=True):
     if a["href"].startswith("/bofang/"):
-        slug_url = BASE_URL + a["href"]
+        # --- Fallback BASE_URL ---
+        slug_url = None
+        for url in base_urls:
+            if url:
+                slug_url = url.rstrip("/") + a["href"]
+                break
+        if not slug_url:
+            print("⚠️ Tidak ada BASE_URL yang valid. Skip entry.")
+            continue
 
         home_team_tag = a.select_one(".team.zhudui p")
         away_team_tag = a.select_one(".team.kedui p")
@@ -66,14 +94,13 @@ for a in soup.find_all("a", href=True):
         try:
             if datetime_str:
                 dt_obj = datetime.strptime(datetime_str, "%Y-%m-%d %H:%M")
-                # Asumsi waktu di web adalah CST (UTC+8)
-                # Konversi ke WIB (UTC+7) = kurangi 1 jam
+                # Asumsi waktu web = CST (UTC+8) → Konversi ke WIB (UTC+7)
                 dt_obj_wib = dt_obj - timedelta(hours=1)
                 date_str = dt_obj_wib.strftime("%d/%m-%H.%M")
             else:
                 date_str = "??/??-??.??"
         except Exception as e:
-            print("Error parsing date:", e)
+            print("⚠️ Error parsing date:", e)
             date_str = datetime_str or "??/??-??.??"
 
         title = f"{date_str}  {home_team_en} vs {away_team_en} - {event_name_en}"
@@ -86,7 +113,7 @@ for a in soup.find_all("a", href=True):
         lines.append(f"{WORKER_URL}{id_only}")
         lines.append("")
 
-OUTPUT_FILE = "926events.m3u"
+# --- Simpan hasil ---
 with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
     f.write("#EXTM3U\n")
     f.write("\n".join(lines))
