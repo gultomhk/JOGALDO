@@ -87,6 +87,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.mode == 'static':
-        download_static_html()
+        try:
+            download_static_html()
+        except Exception as e:
+            print(f"❌ Static fetch gagal: {e}")
+            print("➡️ Lanjut ke dynamic fetch...")
+            asyncio.run(fetch_dynamic_html_playwright())
     else:
         asyncio.run(fetch_dynamic_html_playwright())
