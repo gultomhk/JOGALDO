@@ -1,1 +1,22 @@
-
+{
+  "motogp-round-13-austria-motogp-1 server1": "https://5nhp186eg31fofnc.chinese-restaurant-api.site/v3/director/VE1NGY2YTlkMjFlMzNiLTNlN2ItZTQ4NC1jMWVjLWY5ZjU0Mzg5/master.m3u8",
+  "motogp-round-13-austria-motogp-1 server2": "https://5nhp186eg31fofnc.chinese-restaurant-api.site/v3/variant/VE1AO1NTbu8mbv12LxEWM21ycrNWYyR3LjFWMmBTOlVjZ4YDOtcTZlJWLxUzN00yY2IjYtEzN1ATNwYGM/master.m3u8",
+  "pdc-nz-darts-masters-day-two-darts-1 server1": "https://5nhp186eg31fofnc.chinese-restaurant-api.site/v3/variant/VE1AO1NTbu8mbv12LxEWM21ycrNWYyR3LzQ2NmR2NjVDNjNGZtYTYhhTLiNWY00SNmV2YtkTM5AjM0UmZ/master.m3u8",
+  "pdc-nz-darts-masters-day-two-darts-1 server2": "https://5nhp186eg31fofnc.chinese-restaurant-api.site/v3/director/VE1NDZkMzVlOGUwMzVmLThhN2EtMjEwNC1kNGQ3LTFlYjc2MjBh/master.m3u8",
+  "hawthorn-hawks-vs-melbourne-demons-australian-football-3323 server1": "https://5nhp186eg31fofnc.chinese-restaurant-api.site/v3/director/VE1NTE5MmVjYzhmYTE3LWZkMDgtZDQ2NC0xMzU3LWE5MmE0Mzk3/master.m3u8",
+  "hawthorn-hawks-vs-melbourne-demons-australian-football-3323 server2": "https://5nhp186eg31fofnc.chinese-restaurant-api.site/v3/director/VE1YTY5MDFkNTVlYjFmLTEwMGItOWQ2NC0yYWE2LWVkYWYwMGYy/master.m3u8",
+  "adelaide-crows-vs-collingwood-magpies-australian-football-3324": "https://5nhp186eg31fofnc.chinese-restaurant-api.site/v3/director/VE1ZmI4NzhmOGI3ZGUwLTU4Y2ItNjJhNC1iYjlmLTYyNGM4ZGZm/master.m3u8",
+  "australia-south-africa-3rd-t20-cricket-1": "https://5nhp186eg31fofnc.chinese-restaurant-api.site/v3/director/VE1MzMyYzk1MGY3ZWIyLWM3NzgtNjNkNC1jODNhLWZmYjRjYzg1/master.m3u8",
+  "saudi-arabia-snooker-masters-final-pick3 server1": "https://5nhp186eg31fofnc.chinese-restaurant-api.site/v3/director/VE1ZDU3NjA3NzY4OTFjLWRkNzktMjE4NC1lN2E1LTkwNWRmY2Fm/master.m3u8",
+  "saudi-arabia-snooker-masters-final-pick3 server2": "https://5nhp186eg31fofnc.chinese-restaurant-api.site/v3/variant/VE1AO1NTbu8mbv12LxEWM21ycrNWYyR3LlFmZ0QzMyImM3cTZtUzMjhTL0MDO00CMkRGOtMDM4kDNlhDM/master.m3u8",
+  "cincinnati-open-tennis-001 server1": "https://5nhp186eg31fofnc.chinese-restaurant-api.site/v3/director/VE1N2RiNWY4OGU0MWUwLTk5MmEtZDk2NC1jZDM3LTE0Yzg5ZDUz/master.m3u8",
+  "cincinnati-open-tennis-001 server2": "https://5nhp186eg31fofnc.chinese-restaurant-api.site/v3/director/VE1ZmNhYTQ1ODQ5MGE2LTljYTktZGY1NC01NDRlLWMyZTQ3NjBm/master.m3u8",
+  "saudi-arabia-snooker-masters-final-pool-2025 server1": "https://5nhp186eg31fofnc.chinese-restaurant-api.site/v3/director/VE1ZDU3NjA3NzY4OTFjLWRkNzktMjE4NC1lN2E1LTkwNWRmY2Fm/master.m3u8",
+  "saudi-arabia-snooker-masters-final-pool-2025 server2": "https://5nhp186eg31fofnc.chinese-restaurant-api.site/v3/variant/VE1AO1NTbu8mbv12LxEWM21ycrNWYyR3LlFmZ0QzMyImM3cTZtUzMjhTL0MDO00CMkRGOtMDM4kDNlhDM/master.m3u8",
+  "brisbane-broncos-vs-dolphins-rugby-7 server1": "https://5nhp186eg31fofnc.chinese-restaurant-api.site/v3/director/VE1MjVhMzNjZTkxZTdkLWRmZGItMWM4NC03Y2Q3LWU2NjQyMWU5/master.m3u8",
+  "brisbane-broncos-vs-dolphins-rugby-7 server2": "https://5nhp186eg31fofnc.chinese-restaurant-api.site/v3/director/VE1NzhjYzNjYTZjODJjLTYzZGItNDM3NC00YjFmLTQyYjZjYWM3/master.m3u8",
+  "castleford-tigers-vs-leeds-rhinos-betfred-008": "https://5nhp186eg31fofnc.chinese-restaurant-api.site/v3/director/VE1MjVhMzNjZTkxZTdkLWRmZGItMWM4NC03Y2Q3LWU2NjQyMWU5/master.m3u8",
+  "south-africa-vs-australia-rugby-49519": "https://5nhp186eg31fofnc.chinese-restaurant-api.site/v3/director/VE1NzhjYzNjYTZjODJjLTYzZGItNDM3NC00YjFmLTQyYjZjYWM3/master.m3u8",
+  "hull-fc-vs-leigh-leopards-bet-11-04": "https://5nhp186eg31fofnc.chinese-restaurant-api.site/v3/director/VE1MjVhMzNjZTkxZTdkLWRmZGItMWM4NC03Y2Q3LWU2NjQyMWU5/master.m3u8",
+  "argentina-vs-new-zealand-rugby-49520": "https://5nhp186eg31fofnc.chinese-restaurant-api.site/v3/director/VE1NzhjYzNjYTZjODJjLTYzZGItNDM3NC00YjFmLTQyYjZjYWM3/master.m3u8"
+}
