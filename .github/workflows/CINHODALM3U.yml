@@ -24,7 +24,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install requests beautifulsoup4 googletrans==4.0.0-rc1
+          pip install requests beautifulsoup4 googletrans==4.0.0-rc1 deep-translator
 
       - name: Clone repo privat config
         run: |
