@@ -106,6 +106,7 @@ for a in soup.find_all("a", href=True):
                 dt_obj = datetime.strptime(datetime_str, "%Y-%m-%d %H:%M")
                 # Asumsi waktu web = CST (UTC+8) → Konversi ke WIB (UTC+7)
                 dt_obj_wib = dt_obj - timedelta(hours=1)
+                # ✅ Gunakan format seragam: dd/mm-HH.MM
                 date_str = dt_obj_wib.strftime("%d/%m-%H.%M")
             else:
                 date_str = "??/??-??.??"
