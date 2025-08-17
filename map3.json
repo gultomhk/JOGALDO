@@ -1,7 +1,5 @@
 {
-  "stade-brestois-29-lille-29627": "https://liveua.cdnfly.click/pt_sporttv2/index.m3u8",
-  "nottingham-forest-brentford-28885": "https://liveua.cdnfly.click/uk_ssepl/index.m3u8",
-  "chelsea-crystal-palace-28891": "https://liveua.cdnfly.click/uk_ssmain/index.m3u8",
+  "stade-brestois-29-lille-29627": "https://liveua.score806.cc/pt_sporttv2/index.m3u8",
   "jahn-regensburg-fc-koln-28819": "https://liveua.cdnfly.click/espn1/index.m3u8",
   "atlas-delmenhorst-borussia-monchengladbach-28855": "https://liveua.cdnfly.click/espn2/index.m3u8",
   "lokomotive-leipzig-fc-schalke-04-28859": "https://liveua.cdnfly.click/espn3/index.m3u8",
@@ -9,5 +7,6 @@
   "rsv-eintracht-fc-kaiserslautern-28873": "https://liveua.score806.cc/de_skybundes2/index.m3u8",
   "hull-city-oxford-united-29579": "https://liveua.score806.cc/efl_7/index.m3u8",
   "rio-ave-nacional-30249": "https://liveua.cdnfly.click/pt_sporttv1/index.m3u8",
-  "celta-vigo-getafe-29931": "https://liveua.cdnfly.click/uk_premiersports1/index.m3u8"
+  "celta-vigo-getafe-29931": "https://liveua.cdnfly.click/uk_premiersports1/index.m3u8",
+  "angers-paris-fc-29617": "https://liveua.cdnfly.click/pt_sporttv3/index.m3u8"
 }
