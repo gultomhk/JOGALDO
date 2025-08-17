@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from deep_translator import GoogleTranslator
 import sys
+import requests
 
 # --- Load konfigurasi dari file ---
 CONFIG_FILE = Path.home() / "926data_file.txt"
@@ -36,14 +37,23 @@ WORKER_URL = config.get("WORKER_URL", "")
 USER_AGENT = config.get("USER_AGENT", "Mozilla/5.0")
 REFERRER = config.get("REFERRER", "")
 
-INPUT_FILE = "926page_source.html"
 OUTPUT_FILE = "926events.m3u"
 
-try:
-    with open(INPUT_FILE, encoding="utf-8") as f:
-        html = f.read()
-except FileNotFoundError:
-    print(f"❌ File {INPUT_FILE} tidak ditemukan. Buat playlist kosong.")
+# --- Ambil HTML langsung dari BASE_URL ---
+html = None
+for url in base_urls:
+    try:
+        headers = {"User-Agent": USER_AGENT, "Referer": REFERRER}
+        resp = requests.get(url, headers=headers, timeout=15)
+        resp.raise_for_status()
+        html = resp.text
+        print(f"✅ Berhasil ambil HTML dari {url}")
+        break
+    except Exception as e:
+        print(f"⚠️ Gagal ambil dari {url} -> {e}")
+
+if not html:
+    print("❌ Semua BASE_URL gagal diakses. Buat playlist kosong.")
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         f.write("#EXTM3U\n")
     sys.exit(0)
@@ -63,7 +73,7 @@ lines = []
 
 for a in soup.find_all("a", href=True):
     if a["href"].startswith("/bofang/"):
-        # --- Fallback BASE_URL ---
+        # --- Fallback BASE_URL untuk slug ---
         slug_url = None
         for url in base_urls:
             if url:
