@@ -1,9 +1,6 @@
-import os
-import argparse
 import asyncio
 from pathlib import Path
 from playwright.async_api import async_playwright
-import requests
 
 BODATTVDATA_FILE = Path.home() / "bodattvdata_file.txt"
 
@@ -19,26 +16,8 @@ def load_config(filepath):
 config = load_config(BODATTVDATA_FILE)
 
 DEFAULT_URL = config.get("DEFAULT_URL")
-BASE_URL = config.get("BASE_URL1")  # ambil BASE_URL1 sebagai BASE_URL
+USER_AGENT = config.get("USER_AGENT", "Mozilla/5.0")
 
-# Fungsi 1: download dengan requests
-def download_static_html():
-    OUTPUT_FILE = "926page_source.html"
-
-    headers = {
-        "User-Agent": config.get("USER_AGENT", "Mozilla/5.0")
-    }
-
-    print(f"🔄 Downloading HTML from {BASE_URL} ...")
-    response = requests.get(BASE_URL, headers=headers)
-    response.raise_for_status()
-
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        f.write(response.text)
-
-    print(f"✅ HTML saved to {OUTPUT_FILE}")
-
-# Fungsi 2: fetch pakai Playwright
 async def scroll_page(page):
     previous_height = None
     while True:
@@ -52,7 +31,7 @@ async def scroll_page(page):
 async def fetch_dynamic_html_playwright():
     async with async_playwright() as p:
         browser = await p.firefox.launch(headless=True)
-        context = await browser.new_context(user_agent=config.get("USER_AGENT"))
+        context = await browser.new_context(user_agent=USER_AGENT)
         page = await context.new_page()
 
         print(f"🌐 Visiting FSTV: {DEFAULT_URL}")
@@ -81,17 +60,4 @@ async def fetch_dynamic_html_playwright():
         await browser.close()
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--mode', choices=['static', 'dynamic'], default='dynamic',
-                        help="Pilih mode: 'static' untuk requests, 'dynamic' untuk playwright")
-    args = parser.parse_args()
-
-    if args.mode == 'static':
-        try:
-            download_static_html()
-        except Exception as e:
-            print(f"❌ Static fetch gagal: {e}")
-            print("➡️ Lanjut ke dynamic fetch...")
-            asyncio.run(fetch_dynamic_html_playwright())
-    else:
-        asyncio.run(fetch_dynamic_html_playwright())
+    asyncio.run(fetch_dynamic_html_playwright())
