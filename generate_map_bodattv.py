@@ -73,6 +73,7 @@ def extract_slug(row):
     
     return None
 
+
 def extract_slugs_from_html(html, hours_threshold=2):
     soup = BeautifulSoup(html, "html.parser")
     matches = soup.select("div.common-table-row.table-row")
@@ -88,15 +89,33 @@ def extract_slugs_from_html(html, hours_threshold=2):
             if not slug or slug in seen:
                 continue
 
-            # Ambil timestamp dan filter jika lebih dari threshold jam yang lalu
+            # ⏰ Ambil timestamp pertandingan
             waktu_tag = row.select_one(".match-time")
             if waktu_tag and waktu_tag.get("data-timestamp"):
                 timestamp = int(waktu_tag["data-timestamp"])
                 event_time_utc = datetime.fromtimestamp(timestamp, tz=timezone.utc)
                 event_time_local = event_time_utc.astimezone(tz.gettz("Asia/Jakarta"))
+                waktu = event_time_local.strftime("%d/%m-%H.%M")
+            else:
+                waktu = "00/00-00.00"
+                event_time_local = now
 
-                if event_time_local < (now - timedelta(hours=hours_threshold)):
-                    continue
+            # 🔴 Cek apakah sedang live
+            is_live = row.select_one(".live-text") is not None
+
+            # ⏩ Skip jika lewat waktu threshold & bukan live
+            if not is_live and event_time_local < (now - timedelta(hours=hours_threshold)):
+                print(f"⏩ Lewat waktu & bukan live, skip: {slug}")
+                continue
+
+            # 🚫 Skip keyword pengecualian
+            slug_lower = slug.lower()
+            is_exception = any(
+                keyword in slug_lower
+                for keyword in ["tennis", "billiards", "snooker", "worldssp", "superbike"]
+            )
+            if not is_live and not is_exception and event_time_local < (now - timedelta(hours=hours_threshold)):
+                continue
 
             seen.add(slug)
             slugs.append(slug)
