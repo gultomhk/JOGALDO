@@ -83,6 +83,7 @@ for a in soup.find_all("a", href=True):
             print("⚠️ Tidak ada BASE_URL yang valid. Skip entry.")
             continue
 
+        # Ambil data tim & liga
         home_team_tag = a.select_one(".team.zhudui p")
         away_team_tag = a.select_one(".team.kedui p")
         event_name_tag = a.select_one(".eventtime em")
@@ -98,6 +99,7 @@ for a in soup.find_all("a", href=True):
         away_team_en = translate_zh_to_en(away_team)
         event_name_en = translate_zh_to_en(event_name)
 
+        # Ambil tanggal dari atribut
         date_attr = a.get("nzw-o-t", "").strip()
         datetime_str = f"{date_attr} {event_time}" if date_attr else ""
 
@@ -114,7 +116,8 @@ for a in soup.find_all("a", href=True):
             print("⚠️ Error parsing date:", e)
             date_str = datetime_str or "??/??-??.??"
 
-        title = f"{date_str}  {home_team_en} vs {away_team_en} - {event_name_en}"
+        # 🟢 Pastikan hanya 1 waktu yang dicetak (tidak ada event_time lagi)
+        title = f"{date_str} {home_team_en} vs {away_team_en} - {event_name_en}"
 
         lines.append(f'#EXTINF:-1 tvg-logo="{LOGO_URL}" group-title="⚽️| LIVE EVENT",{title}')
         lines.append(f'#EXTVLCOPT:http-user-agent={USER_AGENT}')
