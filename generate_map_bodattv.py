@@ -110,7 +110,7 @@ def extract_slugs_from_html(html, hours_threshold=2):
 
 # ========= Simpan ke MAP =========
 def save_to_map(slugs):
-    """Simpan hanya slug yang berhasil diekstrak menjadi .m3u8"""
+
     new_data = {}
 
     for idx, slug in enumerate(slugs, 1):
@@ -135,12 +135,22 @@ def save_to_map(slugs):
                     if ".m3u8" in m3u8_url:
                         m3u8_urls.append(m3u8_url)
 
-            # Simpan hanya slug yang berhasil menemukan URL m3u8
+            # Simpan hasil
             if m3u8_urls:
-                for i, url in enumerate(m3u8_urls, 1):
-                    key = f"{slug} server{i}" if len(m3u8_urls) > 1 else slug
-                    new_data[key] = url
-                    print(f"   ✅ M3U8 ditemukan ({i}): {url}", flush=True)
+                if len(m3u8_urls) == 1:
+                    # hanya 1 server → slug polos
+                    new_data[slug] = m3u8_urls[0]
+                    print(f"   ✅ M3U8 ditemukan: {m3u8_urls[0]}", flush=True)
+                else:
+                    # server1 → slug polos
+                    new_data[slug] = m3u8_urls[0]
+                    print(f"   ✅ M3U8 ditemukan (server1): {m3u8_urls[0]}", flush=True)
+
+                    # server2,3,... → slugserver2, slugserver3, dst.
+                    for i, url in enumerate(m3u8_urls[1:], start=2):
+                        key = f"{slug}server{i}"
+                        new_data[key] = url
+                        print(f"   ✅ M3U8 ditemukan (server{i}): {url}", flush=True)
             else:
                 print(f"   ⚠️ Tidak ditemukan .m3u8 pada slug: {slug}", flush=True)
 
