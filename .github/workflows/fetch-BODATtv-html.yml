@@ -26,7 +26,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install requests playwright
+          pip install playwright
           playwright install --with-deps
 
       - name: Ambil config bodattvdata dari repo privat
@@ -34,14 +34,8 @@ jobs:
           git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} configrepo
           cp configrepo/bodattvdata_file.txt $HOME/bodattvdata_file.txt
 
-      # Step static tetap dicoba, tapi kalau gagal tidak hentikan workflow
-      - name: Generate 926page_source.html (static)
-        run: python fetch_bodattv_html.py --mode static
-        continue-on-error: true
-
-      # Step dynamic selalu jalan
       - name: Generate BODATTV_PAGE_SOURCE.html (dynamic)
-        run: python fetch_bodattv_html.py --mode dynamic
+        run: python fetch_bodattv_html.py
 
       - name: Commit & Push if changed (ke repo publik)
         env:
@@ -50,12 +44,12 @@ jobs:
           git config user.name "github-actions"
           git config user.email "actions@github.com"
 
-          git add 926page_source.html BODATTV_PAGE_SOURCE.html
+          git add BODATTV_PAGE_SOURCE.html
 
           if git diff --cached --quiet; then
             echo "✅ Tidak ada perubahan pada file HTML, skip push."
           else
-            git commit -m "🔄 Update page source HTML files [bot]"
+            git commit -m "🔄 Update page source HTML file [bot]"
             git pull --rebase origin master
             git push origin master
           fi
