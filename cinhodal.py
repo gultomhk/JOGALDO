@@ -4,6 +4,7 @@ from pathlib import Path
 from deep_translator import GoogleTranslator
 import sys
 import requests
+import re
 
 # --- Load konfigurasi dari file ---
 CONFIG_FILE = Path.home() / "926data_file.txt"
@@ -103,9 +104,15 @@ for a in soup.find_all("a", href=True):
         date_attr = a.get("nzw-o-t", "").strip()
         datetime_str = f"{date_attr} {event_time}" if date_attr else ""
 
+        # --- Bersihkan jika ada double time (pakai regex ambil hanya YYYY-MM-DD HH:MM) ---
+        clean_dt = None
+        match = re.search(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}", datetime_str)
+        if match:
+            clean_dt = match.group(0)
+
         try:
-            if datetime_str:
-                dt_obj = datetime.strptime(datetime_str, "%Y-%m-%d %H:%M")
+            if clean_dt:
+                dt_obj = datetime.strptime(clean_dt, "%Y-%m-%d %H:%M")
                 # Asumsi waktu web = CST (UTC+8) → Konversi ke WIB (UTC+7)
                 dt_obj_wib = dt_obj - timedelta(hours=1)
                 # ✅ Gunakan format seragam: dd/mm-HH.MM
@@ -116,7 +123,7 @@ for a in soup.find_all("a", href=True):
             print("⚠️ Error parsing date:", e)
             date_str = datetime_str or "??/??-??.??"
 
-        # 🟢 Pastikan hanya 1 waktu yang dicetak (tidak ada event_time lagi)
+        # 🟢 Pastikan hanya 1 waktu yang dicetak
         title = f"{date_str} {home_team_en} vs {away_team_en} - {event_name_en}"
 
         lines.append(f'#EXTINF:-1 tvg-logo="{LOGO_URL}" group-title="⚽️| LIVE EVENT",{title}')
