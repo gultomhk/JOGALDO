@@ -1,6 +1,4 @@
 {
-  "rio-ave-nacional-30249": "https://liveua.cdnfly.click/pt_sporttv1/index.m3u8",
-  "celta-vigo-getafe-29931": "https://liveua.cdnfly.click/uk_premiersports1/index.m3u8",
   "angers-paris-fc-29617": "https://liveua.cdnfly.click/pt_sporttv3/index.m3u8",
   "metz-strasbourg-29631": "https://liveua.score806.cc/live05/index.m3u8",
   "manchester-united-arsenal-28893": "https://liveua.cdnfly.click/uk_ssepl/index.m3u8",
@@ -8,5 +6,8 @@
   "hallescher-fc-fc-augsburg-28829": "https://liveua.cdnfly.click/espn4/index.m3u8",
   "fc-08-homburg-holstein-kiel-28847": "https://liveua.score806.cc/de_skybundes3/index.m3u8",
   "ssv-ulm-1846-sv-elversberg-28875": "https://liveua.cdnfly.click/espn5/index.m3u8",
-  "parma-pescara-33577": "https://liveua.cdnfly.click/paramount2/index.m3u8"
+  "parma-pescara-33577": "https://liveua.cdnfly.click/paramount2/index.m3u8",
+  "santa-clara-moreirense-30251": "https://liveua.cdnfly.click/pt_sporttv4/index.m3u8",
+  "alverca-sc-braga-30257": "https://liveua.cdnfly.click/pt_sporttv2/index.m3u8",
+  "connecticut-sun-w-indiana-fever-w-28315": "https://liveua.score806.cc/wnba_3/index.m3u8"
 }
