@@ -1,19 +1,11 @@
 {
-  "2009": "https://pl10.chinefore.com/live/3f9c0226b149bb38.m3u8?txSecret=23727291b6b88d2424f1a94636d9e5eb&txTime=68A35B5D&_=1755542151790",
-  "2010": "https://pl10.chinefore.com/live/356b79e87be00809.m3u8?txSecret=c3fdfd7092168fdfc9924ca8d00e2e8c&txTime=68A35B5D&_=1755542151738",
-  "2011": "https://pl10.chinefore.com/live/05160f9a2162e211.m3u8?txSecret=7002e402203a5c5b104adc1fd283c19e&txTime=68A35BD5&_=1755542151712",
-  "2012": "https://pl10.chinefore.com/live/01f33cd6765eaa82.m3u8?txSecret=78130e1019d52342b8023ee890f057eb&txTime=68A35BD5&_=1755542151824",
-  "2013": "https://pl10.chinefore.com/live/f6806d98b86ebeaf.m3u8?txSecret=3a7d682fc8a2caf26bcdecf6f122294f&txTime=68A35BD5&_=1755542151752",
-  "2014": "https://pl10.chinefore.com/live/9faab66b24eb9024.m3u8?txSecret=57b2103eadf336e02874fd5f76811dfd&txTime=68A35D3D&_=1755542151626",
-  "2006": "https://pl10.chinefore.com/live/0a2417e7abe4d651.m3u8?txSecret=21073ef03a9132f98daeb9cc6e9d3062&txTime=68A35D3D&_=1755542151777",
-  "2015": "https://pl10.chinefore.com/live/961f5198ffa6bfe0.m3u8?txSecret=35eb3eea928eb47804082ec0479bc120&txTime=68A35B5D&_=1755542151767",
-  "2007": "https://pl10.chinefore.com/live/04b7a809f195e8d1.m3u8?txSecret=4ebf4d683786a152815ed6e9815f10d0&txTime=68A35B5D&_=1755542151741",
-  "2008": "https://pl10.chinefore.com/live/f097de38a6d875c5.m3u8?txSecret=d647937c1819a64c4bd6d0223690bbcc&txTime=68A35B5D&_=1755542151750",
-  "2016": "https://pl10.chinefore.com/live/6766a47136545a52.m3u8?txSecret=15c606dec40127bab6d27220b8dff83d&txTime=68A35B5D&_=1755542151702",
-  "2017": "https://pl10.chinefore.com/live/cd978bcf06c4d9bd.m3u8?txSecret=42cb857740f89185fb46b47132955929&txTime=68A36661&_=1755542151640",
-  "2018": "https://pl10.chinefore.com/live/d62cb9b76d7a5807.m3u8?txSecret=deb0b72dbda9970cb477065ccff8daf4&txTime=68A369E5&_=1755542151795",
-  "2019": "https://pl10.chinefore.com/live/2da36a236b3e74ee.m3u8?txSecret=96a113ccb453e290482cc3923d09c1bc&txTime=68A369E5&_=1755542151649",
-  "2021": "https://pl10.chinefore.com/live/b428bfda36fee901.m3u8?txSecret=b59d167cd6f148c47e6d0abe5a511695&txTime=68A370ED&_=1755542151774",
-  "2022": "https://pl10.chinefore.com/live/b0ce5c7d921e6a7b.m3u8?txSecret=bc7bd01b1b78c2ee884a589eead9e49f&txTime=68A370ED&_=1755542151775",
-  "2023": "https://pl10.chinefore.com/live/91583bd9104caadc.m3u8?txSecret=59fb604b3babad562d5c6fbdb896468c&txTime=68A371DD&_=1755542151786"
+  "2017": "https://pl10.chinefore.com/live/cd978bcf06c4d9bd.m3u8?txSecret=42cb857740f89185fb46b47132955929&txTime=68A36661&_=1755544815218",
+  "2018": "https://pl10.chinefore.com/live/d62cb9b76d7a5807.m3u8?txSecret=deb0b72dbda9970cb477065ccff8daf4&txTime=68A369E5&_=1755544815263",
+  "2019": "https://pl10.chinefore.com/live/2da36a236b3e74ee.m3u8?txSecret=96a113ccb453e290482cc3923d09c1bc&txTime=68A369E5&_=1755544815261",
+  "2021": "https://pl10.chinefore.com/live/b428bfda36fee901.m3u8?txSecret=b59d167cd6f148c47e6d0abe5a511695&txTime=68A370ED&_=1755544815265",
+  "2022": "https://pl10.chinefore.com/live/b0ce5c7d921e6a7b.m3u8?txSecret=bc7bd01b1b78c2ee884a589eead9e49f&txTime=68A370ED&_=1755544815374",
+  "2023": "https://pl10.chinefore.com/live/91583bd9104caadc.m3u8?txSecret=59fb604b3babad562d5c6fbdb896468c&txTime=68A371DD&_=1755544815368",
+  "2024": "https://pl10.chinefore.com/live/327f70fa3eb45dd5.m3u8?txSecret=0aa13bddc650dabf16408d9654310074&txTime=68A373F9&_=1755544815215",
+  "1991": "https://pl10.chinefore.com/live/57f21336837f4ee2.m3u8?txSecret=5722106c175c25c6410882146890721d&txTime=68A373F9&_=1755544815318",
+  "2025": "https://pl10.chinefore.com/live/961987160d2e4133.m3u8?txSecret=2c1b68d39fe52f57c83db93bb259e341&txTime=68A37B01&_=1755544815301"
 }
