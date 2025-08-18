@@ -1,7 +1,14 @@
 {
-  "1975": "https://pl10.chinefore.com/live/c36b9fddab626025.m3u8?txSecret=32548006b9a965274234957bc3555ba6&txTime=68A3312D&_=1755530882779",
-  "1976": "https://pl10.chinefore.com/live/e9ccedbc648a788d.m3u8?txSecret=e66bcea5e43228b49bfa9406bb070a47&txTime=68A333C1&_=1755530882780",
-  "1979": "https://pl10.chinefore.com/live/6206c38dc44a2a22.m3u8?txSecret=58bc8e796db51d57cb9b1783222b26e3&txTime=68A33FB5&_=1755530882780",
-  "1980": "https://pl10.chinefore.com/live/c803f40e90b71ba4.m3u8?txSecret=d7a392b2901cd2b193a049bfdd76bb28&txTime=68A340A5&_=1755530882794",
-  "1981": "https://pl10.chinefore.com/live/f96883b47a7d6fdc.m3u8?txSecret=5332af8572327c02967174c50f750d65&txTime=68A34645&_=1755530882790"
+  "1979": "https://pl10.chinefore.com/live/6206c38dc44a2a22.m3u8?txSecret=58bc8e796db51d57cb9b1783222b26e3&txTime=68A33FB5&_=1755534707069",
+  "1980": "https://pl10.chinefore.com/live/c803f40e90b71ba4.m3u8?txSecret=d7a392b2901cd2b193a049bfdd76bb28&txTime=68A340A5&_=1755534707199",
+  "1981": "https://pl10.chinefore.com/live/f96883b47a7d6fdc.m3u8?txSecret=5332af8572327c02967174c50f750d65&txTime=68A34645&_=1755534707194",
+  "1989": "https://pl10.chinefore.com/live/131554943467c71b.m3u8?txSecret=344ce1521dba41f5ef18f5113ae1289f&txTime=68A34D4D&_=1755534707120",
+  "1998": "https://pl10.chinefore.com/live/09eface346896fa8.m3u8?txSecret=658e2192e1874015cd43caa0e3e97b8d&txTime=68A34D4D&_=1755534707094",
+  "1999": "https://pl10.chinefore.com/live/9eaddc7aa8c8ff87.m3u8?txSecret=f9c0b69c89cb750ffdc3d52eb6a11422&txTime=68A34D4D&_=1755534707178",
+  "2000": "https://pl10.chinefore.com/live/067f7a51646dc00e.m3u8?txSecret=d1eaff78985e1b40008efb4a6d0b1f4a&txTime=68A34D4D&_=1755534707095",
+  "2001": "https://pl10.chinefore.com/live/99d79a369e1d83d3.m3u8?txSecret=7e2394dfb059a22a70194498e8ac6251&txTime=68A34E01&_=1755534707124",
+  "2002": "https://pl10.chinefore.com/live/1218a3d5395723d7.m3u8?txSecret=f8b043ec06a28797fdcefd0116a67cd8&txTime=68A34E3D&_=1755534707115",
+  "1988": "https://pl10.chinefore.com/live/a3c144371a365bb6.m3u8?txSecret=fb0d23c539559ced4106b1bdab56e474&txTime=68A34D4D&_=1755534707101",
+  "2004": "https://pl10.chinefore.com/live/a24ecf7249366210.m3u8?txSecret=d67011e657b78ef894d4b1d87b35db0f&txTime=68A354CD&_=1755534707193",
+  "2005": "https://pl10.chinefore.com/live/c7ebde6ba840dda8.m3u8?txSecret=bfcbe4cba000c1e4dfaac3081f8226ba&txTime=68A35509&_=1755534707213"
 }
