@@ -6,58 +6,33 @@ on:
     - cron: '*/30 * * * *'  # Setiap 30 menit
 
 permissions:
-  contents: write  # Diperlukan agar bisa push map.json
+  contents: write  # Diperlukan agar bisa push
 
 jobs:
   scrape_axlive:
     runs-on: ubuntu-latest
 
-    env:
-      AXLIVE_LIVESTREAM_URL: ${{ secrets.AXLIVE_LIVESTREAM_URL }}
-      AXLIVE_FEATURED_URL: ${{ secrets.AXLIVE_FEATURED_URL }}
-      AXLIVE_LIVESTREAM_SPORT3_URL: ${{ secrets.AXLIVE_LIVESTREAM_SPORT3_URL }}
-      AXLIVE_LIVESTREAM_SPORT4_URL: ${{ secrets.AXLIVE_LIVESTREAM_SPORT4_URL }}
-      AXLIVE_LIVESTREAM_SPORT5_URL: ${{ secrets.AXLIVE_LIVESTREAM_SPORT5_URL }}
-      AXLIVE_LIVESTREAM_SPORT6_URL: ${{ secrets.AXLIVE_LIVESTREAM_SPORT6_URL }}
-      AXLIVE_LIVESTREAM_SPORT7_URL: ${{ secrets.AXLIVE_LIVESTREAM_SPORT7_URL }}
-      AXLIVE_LIVESTREAM_SPORT8_URL: ${{ secrets.AXLIVE_LIVESTREAM_SPORT8_URL }}
-      AXLIVE_LIVESTREAM_SPORT9_URL: ${{ secrets.AXLIVE_LIVESTREAM_SPORT9_URL }}
-      AXLIVE_MATCH_BASE_URL: ${{ secrets.AXLIVE_MATCH_BASE_URL }}
-      PROXY_BASE_URL: ${{ secrets.PROXY_BASE_URL }}
-
     steps:
       - name: 📦 Checkout repository
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # penting untuk git pull / rebase
+          fetch-depth: 0  # penting untuk bisa git pull / rebase
 
       - name: 🐍 Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
+      - name: 🔑 Clone repo privat config
+        run: |
+          git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} configrepo
+          cp configrepo/axlive_file.txt $HOME/axlive_file.txt
+
       - name: 🔧 Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install requests python-dotenv playwright
           playwright install chromium
-
-      - name: 🔍 Debug environment variables (lengkap)
-        run: |
-          echo "🔎 Menampilkan URL AxLive lengkap:"
-          for key in AXLIVE_LIVESTREAM_URL AXLIVE_FEATURED_URL AXLIVE_LIVESTREAM_SPORT3_URL \
-                     AXLIVE_LIVESTREAM_SPORT4_URL AXLIVE_LIVESTREAM_SPORT5_URL \
-                     AXLIVE_LIVESTREAM_SPORT6_URL AXLIVE_LIVESTREAM_SPORT7_URL \
-                     AXLIVE_LIVESTREAM_SPORT8_URL AXLIVE_LIVESTREAM_SPORT9_URL \
-                     AXLIVE_MATCH_BASE_URL PROXY_BASE_URL
-          do
-            url="${!key}"
-            if [ -n "$url" ]; then
-              echo "  $key -> $url"
-            else
-              echo "  $key -> Tidak diset"
-            fi
-          done
 
       - name: ▶️ Jalankan skrip scraping
         run: python lubangnite.py
@@ -84,3 +59,4 @@ jobs:
             git pull --rebase origin master
             git push origin master
             echo "🚀 Berhasil push ke repository."
+          fi
