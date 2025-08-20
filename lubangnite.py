@@ -11,20 +11,51 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+# File map
 MAP_FILE = Path("map.json")
-AXLIVE_LIVESTREAM_URL = os.getenv("AXLIVE_LIVESTREAM_URL")
-AXLIVE_FEATURED_URL = os.getenv("AXLIVE_FEATURED_URL")
-AXLIVE_LIVESTREAM_SPORT3_URL = os.getenv("AXLIVE_LIVESTREAM_SPORT3_URL")
-AXLIVE_LIVESTREAM_SPORT4_URL = os.getenv("AXLIVE_LIVESTREAM_SPORT4_URL")
-AXLIVE_LIVESTREAM_SPORT5_URL = os.getenv("AXLIVE_LIVESTREAM_SPORT5_URL")
-AXLIVE_LIVESTREAM_SPORT6_URL = os.getenv("AXLIVE_LIVESTREAM_SPORT6_URL")
-AXLIVE_LIVESTREAM_SPORT7_URL = os.getenv("AXLIVE_LIVESTREAM_SPORT7_URL")
-AXLIVE_LIVESTREAM_SPORT8_URL = os.getenv("AXLIVE_LIVESTREAM_SPORT8_URL")
-AXLIVE_LIVESTREAM_SPORT9_URL = os.getenv("AXLIVE_LIVESTREAM_SPORT9_URL")
-AXLIVE_MATCH_BASE_URL = os.getenv("AXLIVE_MATCH_BASE_URL")
-PROXY_BASE_URL = os.getenv("PROXY_BASE_URL")
 
+# Ambil semua environment variable AXLive
+AXLIVE_KEYS = [
+    "AXLIVE_LIVESTREAM_URL",
+    "AXLIVE_FEATURED_URL",
+    "AXLIVE_LIVESTREAM_SPORT3_URL",
+    "AXLIVE_LIVESTREAM_SPORT4_URL",
+    "AXLIVE_LIVESTREAM_SPORT5_URL",
+    "AXLIVE_LIVESTREAM_SPORT6_URL",
+    "AXLIVE_LIVESTREAM_SPORT7_URL",
+    "AXLIVE_LIVESTREAM_SPORT8_URL",
+    "AXLIVE_LIVESTREAM_SPORT9_URL",
+    "AXLIVE_MATCH_BASE_URL",
+    "PROXY_BASE_URL"
+]
 
+# Load config ke variabel
+CONFIG = {key: os.getenv(key) for key in AXLIVE_KEYS}
+
+# Log semua URL (hanya scheme+host+path supaya aman)
+print("🔎 Debug AXLive URLs:")
+for k, v in CONFIG.items():
+    if v:
+        parsed = urlparse(v)
+        safe_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+        print(f"  {k}: {safe_url}")
+    else:
+        print(f"  {k}: Tidak diset")
+
+# Assign ke variabel individual
+AXLIVE_LIVESTREAM_URL = CONFIG["AXLIVE_LIVESTREAM_URL"]
+AXLIVE_FEATURED_URL = CONFIG["AXLIVE_FEATURED_URL"]
+AXLIVE_LIVESTREAM_SPORT3_URL = CONFIG["AXLIVE_LIVESTREAM_SPORT3_URL"]
+AXLIVE_LIVESTREAM_SPORT4_URL = CONFIG["AXLIVE_LIVESTREAM_SPORT4_URL"]
+AXLIVE_LIVESTREAM_SPORT5_URL = CONFIG["AXLIVE_LIVESTREAM_SPORT5_URL"]
+AXLIVE_LIVESTREAM_SPORT6_URL = CONFIG["AXLIVE_LIVESTREAM_SPORT6_URL"]
+AXLIVE_LIVESTREAM_SPORT7_URL = CONFIG["AXLIVE_LIVESTREAM_SPORT7_URL"]
+AXLIVE_LIVESTREAM_SPORT8_URL = CONFIG["AXLIVE_LIVESTREAM_SPORT8_URL"]
+AXLIVE_LIVESTREAM_SPORT9_URL = CONFIG["AXLIVE_LIVESTREAM_SPORT9_URL"]
+AXLIVE_MATCH_BASE_URL = CONFIG["AXLIVE_MATCH_BASE_URL"]
+PROXY_BASE_URL = CONFIG["PROXY_BASE_URL"]
+
+# ===== Fungsi mengambil ID live match =====
 def get_live_match_ids():
     urls = {
         "main": (AXLIVE_LIVESTREAM_URL, True),
@@ -39,14 +70,18 @@ def get_live_match_ids():
     }
 
     headers = {"User-Agent": "Mozilla/5.0"}
-    print("🔎 Mengambil ID dari API jadwal...")
+    print("\n🔎 Mengambil ID dari API jadwal...")
 
     combined_dict = {}
     seen_ids = set()
     now = datetime.now(ZoneInfo("Asia/Jakarta"))
 
     for label, (url, apply_time_filter) in urls.items():
+        if not url:
+            print(f"⚠️ URL {label} tidak diset, dilewati")
+            continue
         try:
+            print(f"➡️ Fetching {label}...")
             res = requests.get(url, headers=headers, timeout=15)
             res.raise_for_status()
             matches = res.json().get("data", [])
@@ -88,7 +123,7 @@ def get_live_match_ids():
     print(f"🎯 Total ID gabungan: {list(final_sorted.keys())}")
     return final_sorted
 
-
+# ===== Fungsi extract tokenized m3u8 =====
 def extract_tokenized_m3u8(match_id):
     page_url = f"{AXLIVE_MATCH_BASE_URL}/{match_id}?t=suggest"
     final_url = None
@@ -98,7 +133,7 @@ def extract_tokenized_m3u8(match_id):
         context = browser.new_context(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
         page = context.new_page()
 
-        print(f"🔍 Membuka {page_url}")
+        print(f"\n🔍 Membuka {page_url}")
         page.goto(page_url, timeout=60000)
 
         def handle_response(response):
@@ -140,6 +175,7 @@ def extract_tokenized_m3u8(match_id):
 
     return final_url
 
+# ===== Fungsi simpan ke map.json =====
 def save_to_map(match_dict):
     if not match_dict:
         print("⚠️ Tidak ada data pertandingan.")
@@ -165,13 +201,9 @@ def save_to_map(match_dict):
         except Exception as e:
             print(f"❌ Error ID {match_id}: {e}")
 
-    # Gabungkan hasil baru dan lama, hanya update jika baru ada
     combined = {**old_data, **new_data}
-
-    # Ambil urutan sesuai urutan input (match_dict)
     ordered = {k: combined[k] for k, _ in sorted(match_dict.items(), key=lambda x: x[1]) if k in combined}
 
-    # Perbandingan isi menggunakan json.dumps agar akurat
     if not MAP_FILE.exists() or json.dumps(ordered, sort_keys=True) != json.dumps(old_data, sort_keys=True):
         with open(MAP_FILE, "w", encoding="utf-8") as f:
             json.dump(ordered, f, indent=2)
@@ -179,16 +211,17 @@ def save_to_map(match_dict):
     else:
         print("ℹ️ Tidak ada perubahan pada map.json.")
 
+# ===== Main =====
 if __name__ == "__main__":
     try:
         match_dict = get_live_match_ids()
 
-        # Selalu proses semua ID tanpa filter
+        # Proses maksimal 15 ID
         limited = dict(list(match_dict.items())[:15])
 
         save_to_map(limited)
 
-        # Fallback terakhir
+        # Fallback
         if not MAP_FILE.exists():
             with open(MAP_FILE, "w") as f:
                 json.dump({}, f)
