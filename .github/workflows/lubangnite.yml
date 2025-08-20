@@ -6,7 +6,7 @@ on:
     - cron: '*/30 * * * *'  # Setiap 30 menit
 
 permissions:
-  contents: write  # Diperlukan agar bisa push
+  contents: write  # Diperlukan agar bisa push map.json
 
 jobs:
   scrape_axlive:
@@ -29,7 +29,7 @@ jobs:
       - name: 📦 Checkout repository
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # penting untuk bisa git pull / rebase
+          fetch-depth: 0  # penting untuk git pull / rebase
 
       - name: 🐍 Setup Python
         uses: actions/setup-python@v5
@@ -41,6 +41,24 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests python-dotenv playwright
           playwright install chromium
+
+      - name: 🔍 Debug environment variables
+        run: |
+          echo "🔎 Menampilkan URL AxLive (aman):"
+          for key in AXLIVE_LIVESTREAM_URL AXLIVE_FEATURED_URL AXLIVE_LIVESTREAM_SPORT3_URL \
+                     AXLIVE_LIVESTREAM_SPORT4_URL AXLIVE_LIVESTREAM_SPORT5_URL \
+                     AXLIVE_LIVESTREAM_SPORT6_URL AXLIVE_LIVESTREAM_SPORT7_URL \
+                     AXLIVE_LIVESTREAM_SPORT8_URL AXLIVE_LIVESTREAM_SPORT9_URL \
+                     AXLIVE_MATCH_BASE_URL PROXY_BASE_URL
+          do
+            url="${!key}"
+            if [ -n "$url" ]; then
+              safe_url=$(echo "$url" | awk -F[/?] '{print $1 "//" $3 $4}')
+              echo "  $key -> $safe_url"
+            else
+              echo "  $key -> Tidak diset"
+            fi
+          done
 
       - name: ▶️ Jalankan skrip scraping
         run: python lubangnite.py
@@ -67,4 +85,3 @@ jobs:
             git pull --rebase origin master
             git push origin master
             echo "🚀 Berhasil push ke repository."
-          fi
