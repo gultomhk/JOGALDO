@@ -37,6 +37,11 @@ AXLIVE_LIVESTREAM_SPORT9_URL = CONFIG.get("AXLIVE_LIVESTREAM_SPORT9_URL")
 AXLIVE_MATCH_BASE_URL = CONFIG.get("AXLIVE_MATCH_BASE_URL")
 PROXY_BASE_URL = CONFIG.get("PROXY_BASE_URL")
 
+# Fungsi untuk print URL dengan base disembunyikan
+def masked_url(url, base_url=AXLIVE_MATCH_BASE_URL):
+    if url.startswith(base_url):
+        return url.replace(base_url, "***")
+    return url
 
 def get_live_match_ids():
     urls = {
@@ -111,7 +116,7 @@ def extract_tokenized_m3u8(match_id):
         context = browser.new_context(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
         page = context.new_page()
 
-        print(f"🔍 Membuka {page_url}")
+        print(f"🔍 Membuka {masked_url(page_url)}")  # masking base URL
         page.goto(page_url, timeout=60000)
 
         def handle_response(response):
@@ -119,7 +124,7 @@ def extract_tokenized_m3u8(match_id):
             url = response.url
 
             if "wowhaha.php" in url and "m3u8=" in url:
-                print(f"✅ Ditemukan iframe:\n{url}")
+                print(f"✅ Ditemukan iframe:\n{masked_url(url)}")
                 parsed = urlparse(url)
                 qs = parse_qs(parsed.query)
 
@@ -145,7 +150,7 @@ def extract_tokenized_m3u8(match_id):
                         f"&is_vip=false"
                         f"&verify={encoded_verify}"
                     )
-                    print(f"🌟 URL final m3u8:\n{final_url}")
+                    print(f"🌟 URL final m3u8:\n{masked_url(final_url, 'https://cdn-rum.n2olabs.pro')}")
 
         page.on("response", handle_response)
         page.wait_for_timeout(30000)
@@ -172,7 +177,7 @@ def save_to_map(match_dict):
             m3u8_url = extract_tokenized_m3u8(match_id)
             if m3u8_url:
                 new_data[match_id] = m3u8_url
-                print(f"✅ {match_id} berhasil: {m3u8_url}")
+                print(f"✅ {match_id} berhasil: {masked_url(m3u8_url, 'https://cdn-rum.n2olabs.pro')}")
             else:
                 print(f"❌ {match_id} gagal ambil m3u8")
         except Exception as e:
@@ -195,13 +200,9 @@ def save_to_map(match_dict):
 if __name__ == "__main__":
     try:
         match_dict = get_live_match_ids()
-
-        # Selalu proses semua ID tanpa filter
         limited = dict(list(match_dict.items())[:15])
-
         save_to_map(limited)
 
-        # Fallback terakhir
         if not MAP_FILE.exists():
             with open(MAP_FILE, "w") as f:
                 json.dump({}, f)
