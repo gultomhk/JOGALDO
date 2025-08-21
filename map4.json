@@ -1,8 +1,12 @@
 {
-  "160": "https://pl20.chinefore.com/live/dd77a9cc8063618d.m3u8?txSecret=0337715b73ef093e3b45ed6caf2434e2&txTime=68A73471&_=1755794018942",
-  "2186": "https://pl10.chinefore.com/live/11ea925caeacf914.m3u8?txSecret=bcd318471af976b42b70ddf5a5f6e773&txTime=68A73AC5&_=1755794019643",
-  "2195": "https://pl10.chinefore.com/live/e647dd07e5b13075.m3u8?txSecret=054bac0b57967eece78692760eb778d7&txTime=68A74245&_=1755794019523",
-  "2194": "https://pl10.chinefore.com/live/8c7a44e3b87007e7.m3u8?txSecret=6d6ddaa288d2b2204a5245e5b6a2d81e&txTime=68A741CD&_=1755794019935",
-  "2197": "https://pl10.chinefore.com/live/532ed44064ad2c62.m3u8?txSecret=177cff6aad43f0f348915828407fcb15&txTime=68A745C9&_=1755794019903",
-  "2198": "https://pl10.chinefore.com/live/5e0e3395a42e6882.m3u8?txSecret=1a84cbc137a0267e8a28bc971ebe49be&txTime=68A748D5&_=1755794019882"
+  "2186": "https://pl10.chinefore.com/live/11ea925caeacf914.m3u8?txSecret=bcd318471af976b42b70ddf5a5f6e773&txTime=68A73AC5&_=1755796824125",
+  "2195": "https://pl10.chinefore.com/live/e647dd07e5b13075.m3u8?txSecret=054bac0b57967eece78692760eb778d7&txTime=68A74245&_=1755796823924",
+  "2194": "https://pl10.chinefore.com/live/8c7a44e3b87007e7.m3u8?txSecret=6d6ddaa288d2b2204a5245e5b6a2d81e&txTime=68A741CD&_=1755796823671",
+  "2197": "https://pl10.chinefore.com/live/532ed44064ad2c62.m3u8?txSecret=177cff6aad43f0f348915828407fcb15&txTime=68A745C9&_=1755796823969",
+  "2198": "https://pl10.chinefore.com/live/5e0e3395a42e6882.m3u8?txSecret=1a84cbc137a0267e8a28bc971ebe49be&txTime=68A748D5&_=1755796824054",
+  "2205": "https://pl10.chinefore.com/live/7a4834fcc323d1d7.m3u8?txSecret=e83be9be1dd9a69c8db951714dfc5509&txTime=68A75055&_=1755796823157",
+  "2206": "https://pl10.chinefore.com/live/f778726b3c8edcc2.m3u8?txSecret=0f5171e2ab9f5c6a65353816e181533b&txTime=68A74FDD&_=1755796824199",
+  "2204": "https://pl10.chinefore.com/live/cbc28db197512b0a.m3u8?txSecret=2281f6a7b567ac8a8782832d11cc4ae3&txTime=68A75055&_=1755796824127",
+  "2201": "https://pl10.chinefore.com/live/40dc11b63429d9b3.m3u8?txSecret=acf270709efc22a518ca1999dadb923d&txTime=68A74FDD&_=1755796823743",
+  "2202": "https://pl10.chinefore.com/live/7f5b75a994c539cb.m3u8?txSecret=8a0dee230cf4230ef73e196703c57705&txTime=68A74FDD&_=1755796824248"
 }
