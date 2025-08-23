@@ -1,1 +1,13 @@
-{}
+{
+  "hannover-96-fc-magdeburg-29707": "https://liveua.cdnfly.click/de_skybundes3/index.m3u8",
+  "sc-paderborn-07-fortuna-dusseldorf-29715": "https://liveua.cdnfly.click/de_skybundes4/index.m3u8",
+  "karlsruher-sc-eintracht-braunschweig-29719": "https://liveua.cdnfly.click/de_skybundes5/index.m3u8",
+  "manchester-city-tottenham-28935": "https://liveua.cdnfly.click/uk_bts1/index.m3u8",
+  "rotherham-wigan-29525": "https://liveua.score806.cc/league1_18/index.m3u8",
+  "luton-cardiff-29539": "https://liveua.score806.cc/league1_8/index.m3u8",
+  "hull-city-blackburn-29603": "https://liveua.score806.cc/efl_7/index.m3u8",
+  "swansea-watford-29609": "https://liveua.score806.cc/efl_22/index.m3u8",
+  "charlton-leicester-29611": "https://liveua.score806.cc/uk_ssfb/index.m3u8",
+  "walsall-salford-city-29399": "https://liveua.score806.cc/league2_24/index.m3u8",
+  "newport-county-milton-keynes-dons-29411": "https://liveua.score806.cc/league2_18/index.m3u8"
+}
