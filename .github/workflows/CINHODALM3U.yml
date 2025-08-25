@@ -1,8 +1,6 @@
 name: Update 926data Playlist
 
 on:
-  schedule:
-    - cron: '0 * * * *'   # Setiap 1 jam
   workflow_dispatch:       # Bisa juga dijalankan manual
 
 permissions:
