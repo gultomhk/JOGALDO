@@ -1,134 +1,143 @@
 import asyncio
-from playwright.async_api import async_playwright
-from bs4 import BeautifulSoup
 import json
+import html
 from pathlib import Path
-import sys
-import random
+from datetime import datetime
 
-CONFIG_FILE = Path.home() / "926data_file.txt"
+import requests
+from bs4 import BeautifulSoup
+from playwright.async_api import async_playwright, Request
+
+# =======================
+CONFIG_FILE = Path.home() / "steramest2data_file.txt"
 OUTPUT_FILE = "map4.json"
+LIMIT_MATCHES = 5  # 🔹 ambil 5 pertandingan terdekat
+# =======================
 
-# --- Load config ---
-def load_config(filepath):
-    config = {}
-    try:
-        with open(filepath, encoding="utf-8") as f:
-            for line in f:
-                if "=" in line:
-                    key, val = line.strip().split("=", 1)
-                    config[key.strip()] = val.strip().strip('"')
-    except FileNotFoundError:
-        print(f"❌ Config file not found at {filepath}")
-        sys.exit(1)
-    return config
+# --- load config dari file ---
+config = {}
+with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+    for line in f:
+        line = line.strip()
+        if line and not line.startswith("#") and "=" in line:
+            key, val = line.split("=", 1)
+            config[key.strip()] = val.strip().strip('"').strip("'")
 
-config = load_config(CONFIG_FILE)
+# wajib ada BASE_URL dan USER_AGENT
+if "BASE_URL" not in config or "USER_AGENT" not in config:
+    raise ValueError("⚠️ steramest2data_file.txt harus berisi BASE_URL dan USER_AGENT")
 
-# Ambil semua kemungkinan BASE_URL dari config
-base_urls = [
-    config.get("BASE_URL"),
-    config.get("BASE_URL1"),
-    config.get("BASE_URL2"),
-    config.get("BASE_URL3"),
-]
-# Hapus None dan duplikat
-base_urls = [u for u in base_urls if u]
+BASE_URL = config["BASE_URL"]
+UA = config["USER_AGENT"]
+INDEX_URL = f"{BASE_URL}/index/"
 
-if not base_urls:
-    print("❌ Tidak ada BASE_URL ditemukan di config")
-    sys.exit(1)
+# --- helper ambil daftar pertandingan ---
+def fetch_matches():
+    headers = {"User-Agent": UA}
+    res = requests.get(INDEX_URL, headers=headers, timeout=20)
+    res.raise_for_status()
+    soup = BeautifulSoup(res.text, "html.parser")
 
-# --- Ambil daftar live IDs ---
-async def get_live_ids(page, base_url):
-    try:
-        await page.goto(base_url, timeout=15000)
-        await page.wait_for_timeout(3000)
-        soup = BeautifulSoup(await page.content(), "html.parser")
-        live_ids = [a["href"].split("/")[-1] for a in soup.find_all("a", href=True) if a["href"].startswith("/bofang/")]
-        print(f"🔎 Found {len(live_ids)} live IDs from {base_url}")
-        return live_ids
-    except Exception as e:
-        print(f"❌ Gagal ambil live IDs dari {base_url}: {e}")
-        return []
+    matches = []
+    for li in soup.select("li.f1-podium--item"):
+        a = li.find("a")
+        if not a:
+            continue
+        slug = a.get("href", "")
+        time_el = li.select_one(".SaatZamanBilgisi")
+        if not time_el:
+            continue
 
-# --- Ambil m3u8 untuk 1 ID ---
-async def fetch_m3u8(context, lid, base_url):
+        ts = time_el.get("data-zaman")
+        if ts and ts.isdigit():
+            dt = datetime.fromtimestamp(int(ts))
+        else:
+            try:
+                dt = datetime.strptime(time_el.get_text(strip=True), "%d.%m.%Y %I:%M %p")
+            except:
+                dt = None
+
+        matches.append({"slug": slug, "datetime": dt})
+    return matches
+
+# --- helper safe_goto ---
+async def safe_goto(page, url, tries=2, timeout=20000):
+    for attempt in range(tries):
+        try:
+            await page.goto(url, timeout=timeout, wait_until="domcontentloaded")
+            html_content = await page.content()
+            if any(x in html_content.lower() for x in ["cloudflare", "just a moment", "attention required"]):
+                await asyncio.sleep(2)
+                continue
+            return True
+        except Exception as e:
+            print(f"⚠️ Error loading {url}: {e}")
+            await asyncio.sleep(2)
+    return False
+
+# --- scrape m3u8 ---
+async def scrape_stream_url(context, url):
+    m3u8_links = set()
     page = await context.new_page()
-    m3u8_url = None
 
-    async def on_request(request):
-        nonlocal m3u8_url
-        if ".m3u8" in request.url:
-            m3u8_url = request.url
+    def capture_request(request: Request):
+        if ".m3u8" in request.url.lower() and not m3u8_links:
+            print(f"🎯 Found stream: {request.url}")
+            m3u8_links.add(request.url)
 
-    page.on("request", on_request)
+    page.on("request", capture_request)
 
     try:
-        url = f"{base_url}/live/{lid}"
-        print(f"🎯 Live URL: {url}")
-
-        await page.goto(url, wait_until="commit", timeout=15000)
-
-        # Tunggu network traffic muncul (max 10 detik)
+        if not await safe_goto(page, url):
+            return []
+        await asyncio.sleep(1)
+        await page.mouse.click(500, 500)
         for _ in range(20):
-            if m3u8_url:
+            if m3u8_links:
                 break
             await asyncio.sleep(0.5)
-
-        if m3u8_url:
-            print(f"   ✅ Found .m3u8: {m3u8_url}")
-            return lid, m3u8_url.strip()
-        else:
-            print(f"   ❌ Tidak ditemukan .m3u8 untuk {lid}")
-            return lid, None
-
     except Exception as e:
-        print(f"   ❌ Error {lid}: {e}")
-        return lid, None
+        print(f"⚠️ Error scraping {url}: {e}")
     finally:
         await page.close()
 
-# --- Main ---
+    # bersihkan HTML entities di URL
+    return [html.unescape(u) for u in m3u8_links]
+
+# --- main ---
 async def main():
+    matches = fetch_matches()
+    print(f"📊 Total matches ditemukan: {len(matches)}")
+
+    matches = [m for m in matches if m["datetime"]]
+    matches.sort(key=lambda m: m["datetime"])
+    matches = matches[:LIMIT_MATCHES]
+
+    print(f"🗓️ Akan di-scrape {len(matches)} pertandingan terdekat:")
+    for m in matches:
+        print(f" - {m['slug']} ({m['datetime']})")
+
+    results = {}
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
-        context = await browser.new_context(user_agent=config.get("USER_AGENT") or None)
+        context = await browser.new_context()
 
-        live_ids = []
-        working_base = None
-
-        # Coba setiap BASE_URL sampai ada yang bisa diakses
-        for url in base_urls:
-            page = await context.new_page()
-            live_ids = await get_live_ids(page, url)
-            await page.close()
-            if live_ids:
-                working_base = url
-                break
-
-        if not live_ids:
-            print("❌ Semua BASE_URL gagal diakses. Simpan file kosong.")
-            with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-                json.dump({}, f, indent=2, ensure_ascii=False)
-            await browser.close()
-            return
-
-        # Ambil semua m3u8 paralel
-        tasks = [fetch_m3u8(context, lid, working_base) for lid in live_ids]
-        results_data = await asyncio.gather(*tasks)
-
-        # Simpan hasil
-        results = {lid: link for lid, link in results_data if link}
-        print("\n📦 Ringkasan hasil:")
-        for lid, link in results.items():
-            print(f"{lid}: {link}")
-
-        with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-            json.dump(results, f, indent=2, ensure_ascii=False)
-        print(f"\n✅ Disimpan ke {OUTPUT_FILE}")
+        for m in matches:
+            slug = m["slug"].lstrip("/")
+            url = f"{BASE_URL}/{slug}"
+            print(f"\n🔍 Scraping {url}")
+            links = await scrape_stream_url(context, url)
+            if links:
+                results[m["slug"]] = links[0]
+            else:
+                print(f"❌ Tidak ada stream ketemu di {slug}")
 
         await browser.close()
+
+    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+        json.dump(results, f, ensure_ascii=False, indent=2)
+    print(f"\n✅ Saved results to {OUTPUT_FILE}")
+
 
 if __name__ == "__main__":
     asyncio.run(main())
