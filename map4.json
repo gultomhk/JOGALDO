@@ -1,12 +1,17 @@
 {
-  "cfb/ohio-bobcats-rutgers-scarlet-knights/": "https://edgestreams.pro/hls/sfjnzabacah31.m3u8?st=H1Wf6cO0BebxFGCgZ_A0BnXebhGuJCQYItvHW7XFW2g&e=1756426272",
-  "cfb/lafayette-leopards-bowling-green-falcons/": "https://mainstreams.pro/hls/qsdnajbq32.m3u8?st=ARt42pdcQnSZMRoY9JnrEqf07c247ddHxlgSKbVDdt4&e=1756426275",
-  "mlb/atlanta-braves-philadelphia-phillies-38/": "https://mainstreams.pro/hls/jkzahzadach20.m3u8?st=OkRE9P7yiqzMTr2G9xyA-CEiXoHIUDcT0SjbA76uL0c&e=1756426277",
-  "cfb/east-carolina-pirates-nc-state-wolfpack/": "https://mainstreams.pro/hls/oipozuezeji33.m3u8?st=Mb1v5uK7f9WAvAaAiVTBtajA_n_8ewJGivTkeQZ5Nik&e=1756426280",
-  "cfb/jacksonville-state-gamecocks-ucf-knights/": "https://edgestreams.pro/hls/uheyztezgj34.m3u8?st=DryJ9pw4VUm87J6NlYNr1AQf7BenHT-127MrdN7NBVM&e=1756426283",
-  "cfb/delaware-state-hornets-delaware-blue-hens/": "https://mainstreams.pro/hls/jnknjfzbk35.m3u8?st=3Z97X05UPel22x5W9H_WRmSqGZXbqAPs72Xlm3mXoBE&e=1756426285",
-  "cfb/saint-francis-red-flash-ul-monroe-warhawks/": "https://edgestreams.pro/hls/jkhazabcka36.m3u8?st=covM1Vp-sJFhM0MKhfNgZ0P9uaKYQ1GhGanGxc3Y6hg&e=1756426287",
-  "cfb/wyoming-cowboys-akron-zips/": "https://edgestreams.pro/hls/yetehznecs37.m3u8?st=OQkg8vxdliMTFp5TrpTWHiDiN7MYJBOCyzNxpXklngA&e=1756426289",
-  "mlb/miami-marlins-new-york-mets-37/": "https://mainstreams.pro/hls/ojzkajnach21.m3u8?st=c7NgkYDjocbC5B2XnQ8GY6A59LsJ2m4xiopmm1fxWjA&e=1756426292",
-  "mlb/new-york-yankees-chicago-white-sox-13/": "https://edgestreams.pro/hls/jnzkdzjfanch23.m3u8?st=Dyoe9Gc7d5ssobzNeEZb7YVoMAwOUBpJ93Gq5nQ-BcE&e=1756426328"
+  "mlb/atlanta-braves-philadelphia-phillies-38/": "https://edgestreams.pro/hls/jkzahzadach20.m3u8?st=yE54ODmhuNG9qd07TuQNTwSdjZKd1oXZ0-5OueFl4ME&e=1756429903",
+  "cfb/east-carolina-pirates-nc-state-wolfpack/": "https://edgestreams.pro/hls/oipozuezeji33.m3u8?st=TM_n2CqJiyvlAi6OR62YezlygSN2yh8x4D0m8VY7Z0w&e=1756429907",
+  "cfb/jacksonville-state-gamecocks-ucf-knights/": "https://mainstreams.pro/hls/uheyztezgj34.m3u8?st=199RORy1bWScw68fo3J9h0VAyWlqGd0uF4uVbAasFek&e=1756429910",
+  "cfb/delaware-state-hornets-delaware-blue-hens/": "https://edgestreams.pro/hls/jnknjfzbk35.m3u8?st=-lek6l-zxPnIxQou8cXsIkY6Xhbxx2UKJa7t0uYXqvM&e=1756429913",
+  "cfb/saint-francis-red-flash-ul-monroe-warhawks/": "https://mainstreams.pro/hls/jkhazabcka36.m3u8?st=uq_nectiIUeQ6i1wp4Zm3c7Fx0VdqTEWSBP0WL4mZT4&e=1756429916",
+  "cfb/wyoming-cowboys-akron-zips/": "https://mainstreams.pro/hls/yetehznecs37.m3u8?st=25IeLwxB3vPozx4ZvDV0zihUZ2LX7N7KEahXx2k_BsE&e=1756429919",
+  "mlb/miami-marlins-new-york-mets-37/": "https://mainstreams.pro/hls/ojzkajnach21.m3u8?st=Y9VRjfkqWnkDlvpYsQ0o0A2uUrZXWxDOxSwg_zDlJ_M&e=1756429921",
+  "cfb/central-arkansas-bears-missouri-tigers/": "https://edgestreams.pro/hls/ysvbxwnbc38.m3u8?st=71wNvZCXTmJrmD8cXbf53rN6tkV3oGM0_h0idSBovjo&e=1756429924",
+  "cfb/elon-phoenix-duke-blue-devils-1/": "https://mainstreams.pro/hls/cwxcnbscbsq39.m3u8?st=j3ERWEkch0OfnZUh5kXoIJWZ-9YN3cKUnJdrxvB8CWM&e=1756429927",
+  "cfb/ut-martin-skyhawks-oklahoma-state-cowboys/": "https://edgestreams.pro/hls/poertjnvnev40.m3u8?st=tX4Bh-9K74y4FG9yGvVKsf4B5yfZ7P8-GtWh0Kssq3s&e=1756429930",
+  "mlb/new-york-yankees-chicago-white-sox-13/": "https://edgestreams.pro/hls/ijfnakfidch22.m3u8?st=bAYLRD620YlFu1ERCMEBsppNqoNGdhNANSrAJLPugiw&e=1756429934",
+  "cfb/buffalo-bulls-minnesota-golden-gophers/": "https://edgestreams.pro/hls/ijzriafaq41.m3u8?st=1S2VHRvCjmO8oai5P1A8LZf5Iv_hSbzi_CWlAibHlJY&e=1756429936",
+  "cfb/stephen-f-austin-lumberjacks-houston-cougars/": "https://mainstreams.pro/hls/wnbcnxbcs42.m3u8?st=Ct8gPTDEGkWfSef3fi9h2EOX_S7zuTsBpLsAk2BKP98&e=1756429939",
+  "cfb/alabama-state-hornets-uab-blazers/": "https://mainstreams.pro/hls/jnfezkbfz43.m3u8?st=nOGaB25W8-qTvu9m7NmoFH2mrgAfaIhqteRzK9sSON4&e=1756429942",
+  "cfb/nebraska-cornhuskers-cincinnati-bearcats/": "https://mainstreams.pro/hls/JHDAJBDnjdna30.m3u8?st=8orOiwjBeW0OD8dciKbj-FRPj1XAZ_gBvzGgQSb3Yzc&e=1756429945"
 }
