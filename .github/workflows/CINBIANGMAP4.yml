@@ -50,8 +50,9 @@ jobs:
           git add map4.json
 
           if git diff --cached --quiet; then
-            echo "✅ Tidak ada perubahan, skip push."
+              echo "✅ Tidak ada perubahan, skip push."
           else
-            git commit -m "🔄 Update map4.json [bot]"
-            git pull --rebase origin main || git pull --rebase origin master
-            git push origin HEAD
+              git commit -m "🔄 Update map4.json [bot]"
+              git pull --rebase origin main || git pull --rebase origin master
+              git push origin HEAD
+          fi
