@@ -25,7 +25,7 @@ jobs:
       - name: Clone repo privat config
         run: |
           git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} configrepo
-          cp configrepo/926data_file.txt $HOME/926data_file.txt
+          cp configrepo/steramest2data_file.txt $HOME/steramest2data_file.txt
 
       - name: Install Python dependencies
         run: |
