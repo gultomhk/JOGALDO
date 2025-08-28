@@ -11,7 +11,7 @@ from playwright.async_api import async_playwright, Request
 # =======================
 CONFIG_FILE = Path.home() / "steramest2data_file.txt"
 OUTPUT_FILE = "map4.json"
-LIMIT_MATCHES = 5  # 🔹 ambil 5 pertandingan terdekat
+LIMIT_MATCHES = 15  # 🔹 ambil 5 pertandingan terdekat
 # =======================
 
 # --- load config dari file ---
