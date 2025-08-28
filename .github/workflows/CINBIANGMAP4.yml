@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '0 * * * *'  # ⏰ Jalankan setiap 1 jam
-    
+
 permissions:
   contents: write
 
@@ -31,12 +31,12 @@ jobs:
 
       - name: Install Python dependencies
         run: |
-          pip install --upgrade pip
-          pip install beautifulsoup4 playwright asyncio
+          python -m pip install --upgrade pip
+          pip install beautifulsoup4 playwright requests
 
-      - name: Install Playwright browser
+      - name: Install Playwright browsers
         run: |
-          playwright install chromium
+          python -m playwright install chromium
 
       - name: Run Playwright script
         run: python cinbiang.py
@@ -55,4 +55,3 @@ jobs:
             git commit -m "🔄 Update map4.json [bot]"
             git pull --rebase origin main || git pull --rebase origin master
             git push origin HEAD
-          fi
