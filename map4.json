@@ -1,16 +1,14 @@
 {
-  "mlb/colorado-rockies-houston-astros-6/": "https://edgestreams.pro/hls/ihfazugfyjcazich17.m3u8?st=cEi3mz5DTO21tEV46tPspAxYnQ5xhIugK2nCMEQs2hA&e=1756411834",
-  "mlb/arizona-diamondbacks-milwaukee-brewers-20/": "https://edgestreams.pro/hls/iueyzbvezch16.m3u8?st=VpDVBt_PYtaDuovmh1US3ockAF5vJB9ZeEbfIJ5rBMk&e=1756411838",
-  "mlb/pittsburgh-pirates-st-louis-cardinals-28/": "https://edgestreams.pro/hls/Czajafjihafch18.m3u8?st=7lO_ri2caySCIEl08N2vJhqioIKfC3JxP1-PV7L4B7o&e=1756411841",
-  "mlb/chicago-cubs-san-francisco-giants-13/": "https://edgestreams.pro/hls/bzagLHzach19.m3u8?st=rH724dxJsaGGrYHXSN9bHnDBmQPVQxHFfbhWwXd5fNo&e=1756411843",
-  "cfb/boise-state-broncos-south-florida-bulls/": "https://mainstreams.pro/hls/JHDAJBDnjdna30.m3u8?st=44xOeD6m7_AfS8Y6-3GutV-euTr4cj1Azy-ABdKj0A4&e=1756411845",
-  "cfb/ohio-bobcats-rutgers-scarlet-knights/": "https://edgestreams.pro/hls/sfjnzabacah31.m3u8?st=Lqa7u-Pd0HX3gYLbp3JweJjmRaXCfIzY0ORV4iMAEbw&e=1756411848",
-  "cfb/lafayette-leopards-bowling-green-falcons/": "https://mainstreams.pro/hls/qsdnajbq32.m3u8?st=povQPxy5SMXqn6Nl_mzZUphlEt4MKmm2xzSfp73lVhg&e=1756411850",
-  "mlb/atlanta-braves-philadelphia-phillies-38/": "https://edgestreams.pro/hls/jkzahzadach20.m3u8?st=w39sSMJegUsottt0RtLNQptrI8w4pyo4KWP0fYPXNw0&e=1756411852",
-  "cfb/east-carolina-pirates-nc-state-wolfpack/": "https://mainstreams.pro/hls/oipozuezeji33.m3u8?st=7zDQ4j1yFMnv0IrG1_OiJ8G5uE__ELhdrCabwU_mV28&e=1756411855",
-  "cfb/jacksonville-state-gamecocks-ucf-knights/": "https://edgestreams.pro/hls/uheyztezgj34.m3u8?st=ge6C7O1QhNUEoExuR-51Q-PKf-QwhB7iKUaAf-qtWVI&e=1756411858",
-  "cfb/delaware-state-hornets-delaware-blue-hens/": "https://mainstreams.pro/hls/jnknjfzbk35.m3u8?st=W1AzdsfLBgWeZq_yOERYyKLdWIWy6zdBGRgKXFaUxRU&e=1756411861",
-  "cfb/saint-francis-red-flash-ul-monroe-warhawks/": "https://mainstreams.pro/hls/jkhazabcka36.m3u8?st=72Tr_5v3EVW0vxID7IY3EtcruRzfOXyc-RNt7rkuS8g&e=1756411863",
-  "cfb/wyoming-cowboys-akron-zips/": "https://edgestreams.pro/hls/yetehznecs37.m3u8?st=KZwy7uVBpi1Ju_w_9p6t5WMojUu0X6fkGjDkuPlEcNw&e=1756411866",
-  "mlb/miami-marlins-new-york-mets-37/": "https://mainstreams.pro/hls/iueyzbvezch16.m3u8?st=AWR08vjMRdLZUkh0pSeVILAw4VgifyXUMbkxgU8h1Qc&e=1756411869"
+  "mlb/chicago-cubs-san-francisco-giants-13/": "https://mainstreams.pro/hls/bzagLHzach19.m3u8?st=eN1URNuH2W_v-0Sf7kiVoj6cI-0M08txedzC7qBAi6s&e=1756415832",
+  "cfb/boise-state-broncos-south-florida-bulls/": "https://edgestreams.pro/hls/JHDAJBDnjdna30.m3u8?st=R2V5BbqL_fZMWnzlH7ITfl6Gx_rW1so3_DnGo5uZDks&e=1756415835",
+  "cfb/ohio-bobcats-rutgers-scarlet-knights/": "https://mainstreams.pro/hls/sfjnzabacah31.m3u8?st=FO_BoYLe1yymTc5X1R22rlo21pPYvPeRr0u4To-9kJg&e=1756415839",
+  "cfb/lafayette-leopards-bowling-green-falcons/": "https://mainstreams.pro/hls/qsdnajbq32.m3u8?st=4dufvzXY0E18LO1ylvcSHhVH7_UJfNANJSWCh1ssDOs&e=1756415842",
+  "mlb/atlanta-braves-philadelphia-phillies-38/": "https://mainstreams.pro/hls/jkzahzadach20.m3u8?st=EpElzgWdQ22XZNwDVFmKZnXzllZZcbwk_0SNSgjfLVU&e=1756415846",
+  "cfb/east-carolina-pirates-nc-state-wolfpack/": "https://mainstreams.pro/hls/oipozuezeji33.m3u8?st=J2h7eN10-AaJsgyT-BQNVy_ify8AMWonEoIN4pYqzrI&e=1756415849",
+  "cfb/jacksonville-state-gamecocks-ucf-knights/": "https://edgestreams.pro/hls/uheyztezgj34.m3u8?st=sjuaalP0TNopSQ9hYpRJ3NMl8jhUPxtEbPb81zBPl7U&e=1756415852",
+  "cfb/delaware-state-hornets-delaware-blue-hens/": "https://edgestreams.pro/hls/jnknjfzbk35.m3u8?st=NbSTjm19vVEf5igKacWNeQX26HuTIiNVKyiO7B22beg&e=1756415855",
+  "cfb/saint-francis-red-flash-ul-monroe-warhawks/": "https://edgestreams.pro/hls/jkhazabcka36.m3u8?st=5kH-mAhv5RtpiQlJ4CX70RFbSqh_KeJARqKQ2y1zEkc&e=1756415858",
+  "cfb/wyoming-cowboys-akron-zips/": "https://mainstreams.pro/hls/yetehznecs37.m3u8?st=vgQ4Ft1A3prXx8iawMctAi-_ha8LQZMIOlgPvE3edtk&e=1756415861",
+  "mlb/miami-marlins-new-york-mets-37/": "https://edgestreams.pro/hls/ojzkajnach21.m3u8?st=3QfBG_P-son4Bl4W3p4mjnB48uBtlfhc9FowN__r3mM&e=1756415864",
+  "mlb/new-york-yankees-chicago-white-sox-13/": "https://mainstreams.pro/hls/jnzkdzjfanch23.m3u8?st=2bvAXCvmplL6qPgDWtvTIIcQGxTg9tewhNMAeLKyxPo&e=1756415902"
 }
