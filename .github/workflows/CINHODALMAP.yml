@@ -1,4 +1,4 @@
-name: ⏰ Update Streamnya Map
+name: ⏰ Update Streamnya Map 
 
 on:
   schedule:
@@ -8,6 +8,8 @@ on:
 jobs:
   update-map:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # 🚀 penting biar bisa push
 
     steps:
       - name: ⬇️ Checkout repo
@@ -26,14 +28,6 @@ jobs:
           pip install requests selenium webdriver-manager
 
       - name: 💾 Pre-cache ChromeDriver
-        uses: actions/cache@v4
-        with:
-          path: ~/.wdm
-          key: ${{ runner.os }}-chromedriver-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-chromedriver-
-
-      - name: 🔽 Download ChromeDriver (via webdriver-manager)
         run: |
           python - <<'EOF'
           from webdriver_manager.chrome import ChromeDriverManager
@@ -47,13 +41,13 @@ jobs:
           cp configrepo/sterame3data_file.txt $HOME/sterame3data_file.txt
 
       - name: ▶️ Jalankan script Python
-        run: python cinhodal1.py
+        run: |
+          python cinhodal1.py
 
       - name: Commit & Push changes if any
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
           git add map5.json
           if git diff --cached --quiet; then
             echo "✅ Tidak ada perubahan, skip push."
