@@ -7,6 +7,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service
+import shutil
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -42,17 +43,17 @@ def extract_m3u8(embed_url, wait_time=15):
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--headless=new")
+    chrome_options.add_argument("--headless")  # lebih stabil di GH Actions
 
-    # 🔒 disable WebRTC / STUN
-    chrome_options.add_argument("--disable-webrtc")
-    chrome_options.add_argument("--disable-features=WebRtcHideLocalIpsWithMdns")
+    # 🔒 disable WebRTC leaks
     chrome_options.add_argument("--force-webrtc-ip-handling-policy=disable_non_proxied_udp")
+    chrome_options.add_argument("--disable-features=WebRtcHideLocalIpsWithMdns")
 
-    # aktifkan logging network
-    chrome_options.set_capability("goog:loggingPrefs", {"performance": "ALL"})
+    # aktifkan logging network (W3C + legacy)
+    caps = webdriver.DesiredCapabilities.CHROME.copy()
+    caps["goog:loggingPrefs"] = {"performance": "ALL"}
 
-    # ✅ gunakan cache khusus biar gak corrupt tiap run
+    # ✅ gunakan cache biar chromedriver gak download ulang
     cache_path = os.path.join(os.getcwd(), ".wdm_cache")
     os.makedirs(cache_path, exist_ok=True)
 
@@ -65,7 +66,7 @@ def extract_m3u8(embed_url, wait_time=15):
         driver_path = ChromeDriverManager(path=cache_path).install()
 
     service = Service(driver_path)
-    driver = webdriver.Chrome(service=service, options=chrome_options)
+    driver = webdriver.Chrome(service=service, options=chrome_options, desired_capabilities=caps)
 
     m3u8_url = None
     try:
