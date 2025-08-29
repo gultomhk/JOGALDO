@@ -54,8 +54,7 @@ def extract_m3u8(embed_url, wait_time=15):
     chrome_options.add_argument("--remote-debugging-port=9222")
     chrome_options.add_argument("--window-size=1920,1080")
 
-    # 🔒 Disable WebRTC / STUN (biar ga leak IP asli)
-    chrome_options.add_argument("--disable-webrtc")
+    # 🔒 Disable WebRTC / STUN (aman, ganti versi stabil)
     chrome_options.add_argument("--disable-features=WebRtcHideLocalIpsWithMdns")
     chrome_options.add_argument("--force-webrtc-ip-handling-policy=disable_non_proxied_udp")
 
