@@ -68,7 +68,6 @@ def main(apply_time_filter=True):
             else:
                 raw_title = match.get("title", "Unknown Match")
                 if ":" in raw_title:
-                    # Pisahkan lokasi dan pertandingan
                     loc, contest = raw_title.split(":", 1)
                     display_title = f"{loc.strip()}  {contest.strip()}"
                 else:
@@ -80,20 +79,28 @@ def main(apply_time_filter=True):
                 fut = executor.submit(fetch_stream, source_type, source_id)
                 tasks[fut] = (match_time_str, display_title, source_type)
 
+        # proses hasil fetch
         for fut in as_completed(tasks):
             match_time_str, display_title, source_type = tasks[fut]
             streams = fut.result()
 
-            for stream in streams:
-                stream_no = stream.get("streamNo", 1)
-                server_name = f"{source_type} server {stream_no}"
-                slug = f"{source_type}/{stream['id']}/{stream_no}"
+            if not streams:
+                continue
 
-                playlist += (
-                    f'#EXTINF:-1 tvg-logo="{LOGO_URL}" group-title="⚽️| LIVE EVENT",{match_time_str}  {display_title} {server_name}\n'
-                    f"{VLC_OPTS}"
-                    f"{WORKER_URL.format(slug)}\n\n"
-                )
+            # Ambil hanya server 1
+            stream = streams[0]
+            stream_no = stream.get("streamNo", 1)
+            if stream_no != 1:
+                stream_no = 1  # pastikan server tetap 1
+
+            server_name = f"{source_type} server {stream_no}"
+            slug = f"{source_type}/{stream['id']}/{stream_no}"
+
+            playlist += (
+                f'#EXTINF:-1 tvg-logo="{LOGO_URL}" group-title="⚽️| LIVE EVENT",{match_time_str}  {display_title} {server_name}\n'
+                f"{VLC_OPTS}"
+                f"{WORKER_URL.format(slug)}\n\n"
+            )
 
     with open("schedule_today.m3u", "w", encoding="utf-8") as f:
         f.write(playlist)
