@@ -48,111 +48,42 @@ def fetch_stream(source_type, source_id):
         print(f"⚠️ gagal fetch stream {source_type}/{source_id}: {e}")
         return []
 
-def extract_m3u8(embed_url, wait_time=15):
+def extract_m3u8(embed_url, wait_time=10):
     chrome_options = Options()
-    chrome_options.add_argument("--headless=new")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--disable-software-rasterizer")
-    chrome_options.add_argument("--disable-extensions")
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-    chrome_options.add_argument("--window-size=1920,1080")
-    chrome_options.add_argument(
-        "--user-agent=Mozilla/5.0 (X11; Linux x86_64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/120.0.0.0 Safari/537.36"
-    )
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--headless=new")
+
+    # 🔒 disable WebRTC / STUN (biar gak spam error twilio stun)
+    chrome_options.add_argument("--disable-webrtc")
+    chrome_options.add_argument("--disable-features=WebRtcHideLocalIpsWithMdns")
+    chrome_options.add_argument("--force-webrtc-ip-handling-policy=disable_non_proxied_udp")
+
+    # cukup set capability logging
     chrome_options.set_capability("goog:loggingPrefs", {"performance": "ALL"})
 
-    driver = None
+    driver = webdriver.Chrome(options=chrome_options)
     m3u8_url = None
-
     try:
-        service = Service(ChromeDriverManager().install())
-        driver = webdriver.Chrome(service=service, options=chrome_options)
-
         print(f"\n🌐 buka {embed_url}")
         driver.get(embed_url)
+        time.sleep(wait_time)
 
-        try:
-            WebDriverWait(driver, wait_time).until(
-                lambda d: d.execute_script("return document.readyState") == "complete"
-            )
-        except TimeoutException:
-            print("⚠️ Timeout, halaman belum full load")
-
-        driver.execute_script("window.scrollTo(0, 500)")
-        time.sleep(5)  # kasih waktu lebih
-
-        # klik play kalau ada
-        try:
-            play_buttons = driver.find_elements(By.XPATH, "//button[contains(., 'Play') or contains(@class, 'play')]")
-            if play_buttons:
-                play_buttons[0].click()
-                print("▶️ Klik play button")
-                time.sleep(5)
-        except Exception:
-            pass
-
-        # --- Cara 1: log dari devtools
-        all_logs = []
-        for _ in range(5):
-            try:
-                all_logs.extend(driver.get_log("performance"))
-            except Exception:
-                break
-            time.sleep(2)
-
-        found_urls = []
-        for entry in all_logs:
+        logs = driver.get_log("performance")
+        for entry in logs:
             try:
                 msg = json.loads(entry["message"])
-                url = (
-                    msg.get("message", {})
-                    .get("params", {})
-                    .get("request", {})
-                    .get("url", "")
-                ) or (
-                    msg.get("message", {})
-                    .get("params", {})
-                    .get("response", {})
-                    .get("url", "")
-                )
-                if url and ".m3u8" in url:
-                    if not any(k in url.lower() for k in ["ad", "analytics", "track"]):
-                        found_urls.append(url)
+                params = msg.get("message", {}).get("params", {})
+                url = params.get("request", {}).get("url", "")
+                if ".m3u8" in url:
+                    print(f"🎯 ketemu m3u8: {url}")
+                    m3u8_url = url
+                    break
             except Exception:
                 continue
-
-        # --- Cara 2: cek via window.performance
-        if not found_urls:
-            perf_entries = driver.execute_script("return performance.getEntries();")
-            for e in perf_entries:
-                url = e.get("name", "")
-                if ".m3u8" in url and not any(k in url.lower() for k in ["ad", "analytics", "track"]):
-                    found_urls.append(url)
-
-        # simpan raw log buat debug
-        with open("raw_logs.json", "w", encoding="utf-8") as f:
-            json.dump(all_logs, f, indent=2)
-
-        if found_urls:
-            print("🎯 Ketemu kandidat stream:")
-            for u in found_urls:
-                print("   ", u)
-            m3u8_url = found_urls[0]
-        else:
-            print("❌ Tidak ketemu .m3u8 di log/performance")
-
-    except Exception as e:
-        print(f"❌ Error extract_m3u8: {e}")
     finally:
-        if driver:
-            try:
-                driver.quit()
-            except:
-                pass
+        driver.quit()
 
     return m3u8_url
 
