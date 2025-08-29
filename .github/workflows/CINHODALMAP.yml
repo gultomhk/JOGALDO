@@ -1,15 +1,15 @@
-name: ⏰ Update Streamnya Map 
+name: ⏰ Update Streamnya Map
 
 on:
   schedule:
     - cron: "0 * * * *"   # setiap jam
-  workflow_dispatch:       # bisa run manual
+  workflow_dispatch:
 
 jobs:
   update-map:
     runs-on: ubuntu-latest
     permissions:
-      contents: write   # 🚀 penting biar bisa push
+      contents: write
 
     steps:
       - name: ⬇️ Checkout repo
@@ -27,6 +27,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests selenium webdriver-manager
 
+      - name: 🖥️ Install Google Chrome
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable || true
+          # cek versi
+          google-chrome --version || true
+
       - name: 💾 Pre-cache ChromeDriver
         run: |
           python - <<'EOF'
@@ -35,13 +42,18 @@ jobs:
           EOF
 
       - name: 📁 Ambil file konfigurasi dari repo privat
-        shell: bash
         run: |
           git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} configrepo
           cp configrepo/sterame3data_file.txt $HOME/sterame3data_file.txt
 
       - name: ▶️ Jalankan script Python
+        env:
+          DISPLAY: :99
         run: |
+          # Xvfb untuk GUI virtual biar Chrome jalan di CI
+          sudo apt-get install -y xvfb
+          Xvfb :99 -ac &
+          sleep 3
           python cinhodal1.py
 
       - name: Commit & Push changes if any
