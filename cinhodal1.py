@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import time
+from pathlib import Path
 
 
 # Path ke file config
