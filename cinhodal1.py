@@ -6,7 +6,7 @@ import json
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 import shutil
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -38,18 +38,20 @@ def fetch_stream(source_type, source_id):
         return []
 
 def extract_m3u8(embed_url, wait_time=10):
-    # aktifkan logging untuk performance
-    caps = DesiredCapabilities.CHROME
-    caps["goog:loggingPrefs"] = {"performance": "ALL"}
-
     chrome_options = Options()
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--headless=new")
+
+    # 🔒 disable WebRTC / STUN
     chrome_options.add_argument("--disable-webrtc")
     chrome_options.add_argument("--disable-features=WebRtcHideLocalIpsWithMdns")
     chrome_options.add_argument("--force-webrtc-ip-handling-policy=disable_non_proxied_udp")
+
+    # aktifkan performance logging
+    caps = DesiredCapabilities.CHROME.copy()
+    caps["goog:loggingPrefs"] = {"performance": "ALL"}
 
     driver = webdriver.Chrome(options=chrome_options, desired_capabilities=caps)
 
@@ -57,22 +59,18 @@ def extract_m3u8(embed_url, wait_time=10):
     try:
         print(f"\n🌐 buka {embed_url}")
         driver.get(embed_url)
-
-        # kasih waktu biar request jalan
         time.sleep(wait_time)
 
-        # ambil semua log performance
         logs = driver.get_log("performance")
         for entry in logs:
             try:
                 msg = json.loads(entry["message"])
-                method = msg.get("message", {}).get("method")
-                if method == "Network.requestWillBeSent":
-                    url = msg["message"]["params"]["request"]["url"]
-                    if ".m3u8" in url:
-                        print(f"🎯 ketemu m3u8: {url}")
-                        m3u8_url = url
-                        break
+                params = msg.get("message", {}).get("params", {})
+                url = params.get("request", {}).get("url", "")
+                if ".m3u8" in url:
+                    print(f"🎯 ketemu m3u8: {url}")
+                    m3u8_url = url
+                    break
             except Exception:
                 continue
     finally:
