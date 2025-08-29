@@ -1,14 +1,15 @@
 import os
 import asyncio
 import requests
-import time
 import json
+import time
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 import shutil
 from concurrent.futures import ThreadPoolExecutor
@@ -41,9 +42,8 @@ def fetch_stream(source_type, source_id):
         return []
 
 def extract_m3u8(embed_url, wait_time=15):
-    # 🔧 Chrome Options
     chrome_options = Options()
-    chrome_options.add_argument("--headless=new")  # kalau error, ganti ke --headless=old
+    chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-gpu")
@@ -57,7 +57,7 @@ def extract_m3u8(embed_url, wait_time=15):
         "Chrome/120.0.0.0 Safari/537.36"
     )
 
-    # 📊 Enable Performance Logging (biar bisa tangkap request)
+    # aktifkan logging network
     caps = DesiredCapabilities.CHROME.copy()
     caps["goog:loggingPrefs"] = {"performance": "ALL"}
 
@@ -65,17 +65,13 @@ def extract_m3u8(embed_url, wait_time=15):
     m3u8_url = None
 
     try:
-        # 🚀 Pakai webdriver_manager supaya driver match dengan Chrome di runner
-        driver = webdriver.Chrome(
-            ChromeDriverManager().install(),
-            options=chrome_options,
-            desired_capabilities=caps,
-        )
+        # ✅ cara yang benar di Selenium 4
+        service = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=chrome_options, desired_capabilities=caps)
 
         print(f"\n🌐 buka {embed_url}")
         driver.get(embed_url)
 
-        # Tunggu page load
         try:
             WebDriverWait(driver, wait_time).until(
                 lambda d: d.execute_script("return document.readyState") == "complete"
@@ -83,11 +79,9 @@ def extract_m3u8(embed_url, wait_time=15):
         except TimeoutException:
             print("⚠️ Timeout, halaman belum full load")
 
-        # Scroll biar JS/iframe kebuka
         driver.execute_script("window.scrollTo(0, 500)")
         time.sleep(2)
 
-        # Klik tombol "Play" kalau ada
         try:
             play_buttons = driver.find_elements(
                 By.XPATH, "//button[contains(., 'Play') or contains(@class, 'play')]"
@@ -99,7 +93,7 @@ def extract_m3u8(embed_url, wait_time=15):
         except Exception:
             pass
 
-        # Ambil log beberapa kali (biar delay request bisa ketangkap)
+        # ambil log
         all_logs = []
         for _ in range(3):
             try:
@@ -108,9 +102,8 @@ def extract_m3u8(embed_url, wait_time=15):
                 break
             time.sleep(2)
 
-        all_logs = all_logs[-1000:]  # biar gak kebanyakan
+        all_logs = all_logs[-1000:]
 
-        # Cari link m3u8
         found_urls = []
         for entry in all_logs:
             try:
@@ -132,7 +125,6 @@ def extract_m3u8(embed_url, wait_time=15):
             except Exception:
                 continue
 
-        # Pilih stream utama
         if found_urls:
             m3u8_url = next(
                 (u for u in found_urls if any(k in u for k in ["stream", "live", "hls"])),
