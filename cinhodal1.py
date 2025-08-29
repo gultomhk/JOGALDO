@@ -37,45 +37,51 @@ def fetch_stream(source_type, source_id):
         print(f"⚠️ gagal fetch stream {source_type}/{source_id}: {e}")
         return []
 
-def extract_m3u8(embed_url, wait_time=15):
+def extract_m3u8(embed_url, wait_time=10):
     chrome_options = Options()
     chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
-
-    # aktifkan logging performance
     chrome_options.set_capability("goog:loggingPrefs", {"performance": "ALL"})
 
     driver = webdriver.Chrome(options=chrome_options)
-
     m3u8_url = None
     try:
         print(f"\n🌐 buka {embed_url}")
         driver.get(embed_url)
-
-        # kasih waktu supaya request keluar
         time.sleep(wait_time)
 
-        # ambil log network
-        logs = driver.get_log("performance")
-        for entry in logs:
+        # cek semua iframe
+        iframes = driver.find_elements("tag name", "iframe")
+        print(f"🔍 ketemu {len(iframes)} iframe")
+        for idx, iframe in enumerate(iframes):
             try:
-                msg = json.loads(entry["message"])
-                params = msg.get("message", {}).get("params", {})
-                request = params.get("request", {})
-                url = request.get("url", "")
-                if ".m3u8" in url:
-                    print(f"🎯 ketemu m3u8: {url}")
-                    m3u8_url = url
-                    break
-            except Exception:
-                continue
+                driver.switch_to.frame(iframe)
+                time.sleep(3)  # kasih waktu request jalan
+
+                logs = driver.get_log("performance")
+                for entry in logs:
+                    try:
+                        msg = json.loads(entry["message"])
+                        params = msg.get("message", {}).get("params", {})
+                        request = params.get("request", {})
+                        url = request.get("url", "")
+                        if ".m3u8" in url:
+                            print(f"🎯 iframe {idx} ketemu m3u8: {url}")
+                            m3u8_url = url
+                            return m3u8_url
+                    except:
+                        continue
+
+            except Exception as e:
+                print(f"⚠️ gagal akses iframe {idx}: {e}")
+            finally:
+                driver.switch_to.default_content()
 
     finally:
         driver.quit()
 
     return m3u8_url
-
 
 async def main(limit_matches=15):
     res = requests.get(MATCHES_URL, headers=HEADERS, timeout=15)
