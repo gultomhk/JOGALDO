@@ -43,6 +43,9 @@ def extract_m3u8(embed_url, wait_time=15):
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
 
+    # aktifkan logging performance
+    chrome_options.set_capability("goog:loggingPrefs", {"performance": "ALL"})
+
     driver = webdriver.Chrome(options=chrome_options)
 
     m3u8_url = None
@@ -50,19 +53,24 @@ def extract_m3u8(embed_url, wait_time=15):
         print(f"\n🌐 buka {embed_url}")
         driver.get(embed_url)
 
-        # aktifkan network log
-        driver.execute_cdp_cmd("Network.enable", {})
-
+        # kasih waktu supaya request keluar
         time.sleep(wait_time)
 
-        logs = driver.execute_cdp_cmd("Network.getResponseBody", {})
-        events = driver.get_log("performance")
+        # ambil log network
+        logs = driver.get_log("performance")
+        for entry in logs:
+            try:
+                msg = json.loads(entry["message"])
+                params = msg.get("message", {}).get("params", {})
+                request = params.get("request", {})
+                url = request.get("url", "")
+                if ".m3u8" in url:
+                    print(f"🎯 ketemu m3u8: {url}")
+                    m3u8_url = url
+                    break
+            except Exception:
+                continue
 
-        for entry in events:
-            msg = entry["message"]
-            if ".m3u8" in msg:
-                print(f"🎯 ketemu m3u8: {msg}")
-                return msg
     finally:
         driver.quit()
 
