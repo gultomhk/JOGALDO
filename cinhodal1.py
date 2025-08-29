@@ -56,8 +56,6 @@ def extract_m3u8(embed_url, wait_time=15):
         "AppleWebKit/537.36 (KHTML, like Gecko) "
         "Chrome/120.0.0.0 Safari/537.36"
     )
-
-    # ✅ cara baru untuk logging network di Selenium 4
     chrome_options.set_capability("goog:loggingPrefs", {"performance": "ALL"})
 
     driver = None
@@ -78,57 +76,67 @@ def extract_m3u8(embed_url, wait_time=15):
             print("⚠️ Timeout, halaman belum full load")
 
         driver.execute_script("window.scrollTo(0, 500)")
-        time.sleep(2)
+        time.sleep(5)  # kasih waktu lebih
 
-        # klik tombol play kalau ada
+        # klik play kalau ada
         try:
-            play_buttons = driver.find_elements(
-                By.XPATH, "//button[contains(., 'Play') or contains(@class, 'play')]"
-            )
+            play_buttons = driver.find_elements(By.XPATH, "//button[contains(., 'Play') or contains(@class, 'play')]")
             if play_buttons:
                 play_buttons[0].click()
                 print("▶️ Klik play button")
-                time.sleep(3)
+                time.sleep(5)
         except Exception:
             pass
 
-        # ambil log
+        # --- Cara 1: log dari devtools
         all_logs = []
-        for _ in range(3):
+        for _ in range(5):
             try:
                 all_logs.extend(driver.get_log("performance"))
             except Exception:
                 break
             time.sleep(2)
 
-        all_logs = all_logs[-1000:]  # batasi biar nggak kebanyakan
-
         found_urls = []
         for entry in all_logs:
             try:
                 msg = json.loads(entry["message"])
-                method = msg.get("message", {}).get("method", "")
-                if not method.startswith("Network."):
-                    continue
-
-                params = msg.get("message", {}).get("params", {})
-                request = params.get("request", {})
-                response = params.get("response", {})
-                url = request.get("url", "") or response.get("url", "")
-
+                url = (
+                    msg.get("message", {})
+                    .get("params", {})
+                    .get("request", {})
+                    .get("url", "")
+                ) or (
+                    msg.get("message", {})
+                    .get("params", {})
+                    .get("response", {})
+                    .get("url", "")
+                )
                 if url and ".m3u8" in url:
-                    bad_kw = ["ad", "analytics", "track", "pixel", "google", "doubleclick", "facebook"]
-                    if not any(k in url.lower() for k in bad_kw):
+                    if not any(k in url.lower() for k in ["ad", "analytics", "track"]):
                         found_urls.append(url)
-                        print(f"🎯 Potensial stream: {url}")
             except Exception:
                 continue
 
+        # --- Cara 2: cek via window.performance
+        if not found_urls:
+            perf_entries = driver.execute_script("return performance.getEntries();")
+            for e in perf_entries:
+                url = e.get("name", "")
+                if ".m3u8" in url and not any(k in url.lower() for k in ["ad", "analytics", "track"]):
+                    found_urls.append(url)
+
+        # simpan raw log buat debug
+        with open("raw_logs.json", "w", encoding="utf-8") as f:
+            json.dump(all_logs, f, indent=2)
+
         if found_urls:
-            m3u8_url = next(
-                (u for u in found_urls if any(k in u for k in ["stream", "live", "hls"])),
-                found_urls[0],
-            )
+            print("🎯 Ketemu kandidat stream:")
+            for u in found_urls:
+                print("   ", u)
+            m3u8_url = found_urls[0]
+        else:
+            print("❌ Tidak ketemu .m3u8 di log/performance")
 
     except Exception as e:
         print(f"❌ Error extract_m3u8: {e}")
