@@ -48,19 +48,18 @@ def extract_m3u8(embed_url, wait_time=15):
     chrome_options.add_argument("--disable-features=WebRtcHideLocalIpsWithMdns")
     chrome_options.add_argument("--force-webrtc-ip-handling-policy=disable_non_proxied_udp")
 
+    # aktifkan logging network
     chrome_options.set_capability("goog:loggingPrefs", {"performance": "ALL"})
 
-    # ✅ pakai Service + set path cache custom biar gak corrupt
-    driver_path = ChromeDriverManager(cache_valid_range=1, path="./.wdm_tmp").install()
-    service = Service(driver_path)
-
+    # ✅ pakai webdriver-manager (otomatis unduh + cache driver)
+    service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=chrome_options)
 
     m3u8_url = None
     try:
         print(f"\n🌐 buka {embed_url}")
         driver.get(embed_url)
-        import time; time.sleep(wait_time)
+        time.sleep(wait_time)
 
         logs = driver.get_log("performance")
         for entry in logs:
