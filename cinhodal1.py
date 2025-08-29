@@ -38,37 +38,41 @@ def fetch_stream(source_type, source_id):
         return []
 
 def extract_m3u8(embed_url, wait_time=10):
+    # aktifkan logging untuk performance
+    caps = DesiredCapabilities.CHROME
+    caps["goog:loggingPrefs"] = {"performance": "ALL"}
+
     chrome_options = Options()
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--headless=new")
-
-    # 🔒 disable WebRTC / STUN (biar gak spam error twilio stun)
     chrome_options.add_argument("--disable-webrtc")
     chrome_options.add_argument("--disable-features=WebRtcHideLocalIpsWithMdns")
     chrome_options.add_argument("--force-webrtc-ip-handling-policy=disable_non_proxied_udp")
 
-    # cukup set capability logging
-    chrome_options.set_capability("goog:loggingPrefs", {"performance": "ALL"})
+    driver = webdriver.Chrome(options=chrome_options, desired_capabilities=caps)
 
-    driver = webdriver.Chrome(options=chrome_options)
     m3u8_url = None
     try:
         print(f"\n🌐 buka {embed_url}")
         driver.get(embed_url)
+
+        # kasih waktu biar request jalan
         time.sleep(wait_time)
 
+        # ambil semua log performance
         logs = driver.get_log("performance")
         for entry in logs:
             try:
                 msg = json.loads(entry["message"])
-                params = msg.get("message", {}).get("params", {})
-                url = params.get("request", {}).get("url", "")
-                if ".m3u8" in url:
-                    print(f"🎯 ketemu m3u8: {url}")
-                    m3u8_url = url
-                    break
+                method = msg.get("message", {}).get("method")
+                if method == "Network.requestWillBeSent":
+                    url = msg["message"]["params"]["request"]["url"]
+                    if ".m3u8" in url:
+                        print(f"🎯 ketemu m3u8: {url}")
+                        m3u8_url = url
+                        break
             except Exception:
                 continue
     finally:
