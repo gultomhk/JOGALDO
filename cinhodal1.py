@@ -34,19 +34,22 @@ def fetch_stream(source_type, source_id):
         return []
 
 
-def extract_m3u8(embed_url, wait_time=10):
+def extract_m3u8(embed_url, wait_time=15):
     chrome_options = Options()
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--headless=new")
+    chrome_options.add_argument("--disable-dev-shm-usage")
 
-    # 🔒 disable WebRTC / STUN (biar gak spam error twilio stun)
+    # ⚠️ lebih stabil dibanding --headless=new
+    chrome_options.add_argument("--headless=chrome")
+
+    # 🔒 disable WebRTC / STUN
     chrome_options.add_argument("--disable-webrtc")
     chrome_options.add_argument("--disable-features=WebRtcHideLocalIpsWithMdns")
     chrome_options.add_argument("--force-webrtc-ip-handling-policy=disable_non_proxied_udp")
 
-    # cukup set capability logging
+    # aktifkan performance log
     chrome_options.set_capability("goog:loggingPrefs", {"performance": "ALL"})
 
     driver = webdriver.Chrome(options=chrome_options)
@@ -66,7 +69,7 @@ def extract_m3u8(embed_url, wait_time=10):
                     print(f"🎯 ketemu m3u8: {url}")
                     m3u8_url = url
                     break
-            except Exception:
+            except Exception as e:
                 continue
     finally:
         driver.quit()
