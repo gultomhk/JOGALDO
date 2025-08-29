@@ -25,6 +25,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests selenium webdriver-manager
 
+      - name: 💾 Pre-cache ChromeDriver
+        run: |
+          python - <<'EOF'
+          from webdriver_manager.chrome import ChromeDriverManager
+          ChromeDriverManager().install()
+          EOF
+
       - name: 📁 Ambil file konfigurasi dari repo privat
         shell: bash
         run: |
