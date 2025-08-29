@@ -4,12 +4,12 @@ import requests
 import json
 import time
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
-from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
-from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 import shutil
 from concurrent.futures import ThreadPoolExecutor
@@ -57,17 +57,15 @@ def extract_m3u8(embed_url, wait_time=15):
         "Chrome/120.0.0.0 Safari/537.36"
     )
 
-    # aktifkan logging network
-    caps = DesiredCapabilities.CHROME.copy()
-    caps["goog:loggingPrefs"] = {"performance": "ALL"}
+    # ✅ cara baru untuk logging network di Selenium 4
+    chrome_options.set_capability("goog:loggingPrefs", {"performance": "ALL"})
 
     driver = None
     m3u8_url = None
 
     try:
-        # ✅ cara yang benar di Selenium 4
         service = Service(ChromeDriverManager().install())
-        driver = webdriver.Chrome(service=service, options=chrome_options, desired_capabilities=caps)
+        driver = webdriver.Chrome(service=service, options=chrome_options)
 
         print(f"\n🌐 buka {embed_url}")
         driver.get(embed_url)
@@ -82,6 +80,7 @@ def extract_m3u8(embed_url, wait_time=15):
         driver.execute_script("window.scrollTo(0, 500)")
         time.sleep(2)
 
+        # klik tombol play kalau ada
         try:
             play_buttons = driver.find_elements(
                 By.XPATH, "//button[contains(., 'Play') or contains(@class, 'play')]"
@@ -102,7 +101,7 @@ def extract_m3u8(embed_url, wait_time=15):
                 break
             time.sleep(2)
 
-        all_logs = all_logs[-1000:]
+        all_logs = all_logs[-1000:]  # batasi biar nggak kebanyakan
 
         found_urls = []
         for entry in all_logs:
