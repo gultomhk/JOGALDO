@@ -1,59 +1,53 @@
-name: Update 926data Playlist
+name: ⏰ Generate Streamnyada Schedule
 
 on:
-  workflow_dispatch:       # Bisa juga dijalankan manual
-
-permissions:
-  contents: write  # Agar bisa push perubahan
+  schedule:
+    - cron: "0 * * * *"   # jalan setiap 1 jam
+  workflow_dispatch:       # bisa run manual juga
 
 jobs:
-  update_playlist:
+  build:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
 
     steps:
-      - name: Checkout repo utama (script)
+      - name: ⬇️ Checkout repo
         uses: actions/checkout@v4
 
-      - name: Setup Python 3.10
+      - name: 🐍 Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: "3.11"
 
-      - name: Install dependencies
+      - name: 📦 Install dependencies
         run: |
-          pip install requests beautifulsoup4 googletrans==4.0.0-rc1 deep-translator
+          python -m pip install --upgrade pip
+          pip install requests
 
-      - name: Clone repo privat config
+      - name: 📁 Ambil file konfigurasi dari repo privat
+        shell: bash
         run: |
           git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} configrepo
-          cp configrepo/926data_file.txt $HOME/926data_file.txt
+          cp configrepo/sterame3data_file.txt $HOME/sterame3data_file.txt
 
-      - name: Jalankan script Python untuk generate playlist
-        run: python cinhodal.py
+      - name: ▶️ Generate M3U
+        run: |
+          python cinhodal.py
 
-      - name: Setup Git config
+      - name: 📤 Push output ke repo privat jika ada perubahan
+        shell: bash
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
 
-      - name: Clone repo privat untuk output
-        run: git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} repo-output
+          git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} repo-output
+          cp schedule_today.m3u repo-output/
 
-      - name: Salin hasil generate ke repo privat
-        run: cp 926events.m3u repo-output/
-
-      - name: Commit & Push jika ada perubahan
-        working-directory: repo-output
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          git add 926events.m3u
+          cd repo-output
+          git add schedule_today.m3u
 
           if git diff --cached --quiet; then
-            echo "✅ Tidak ada perubahan pada 926events.m3u, skip push."
+            echo "✅ Tidak ada perubahan pada schedule_today.m3u, skip push."
           else
-            git commit -m "🔄 Update 926events.m3u [bot]"
-            git pull --rebase origin master
-            git push origin master
+            git commit -m "🔄 auto: update schedule_today.m3u"
+            git push
           fi
