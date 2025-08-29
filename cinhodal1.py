@@ -5,6 +5,7 @@ import json
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.service import Service
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -40,22 +41,26 @@ def extract_m3u8(embed_url, wait_time=15):
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
-
-    # ⚠️ Lebih stabil dibanding --headless=new
     chrome_options.add_argument("--headless=new")
 
-    # 🔒 Optimasi logging
-    chrome_options.add_argument("--remote-debugging-port=9222")
+    # 🔒 disable WebRTC / STUN
+    chrome_options.add_argument("--disable-webrtc")
+    chrome_options.add_argument("--disable-features=WebRtcHideLocalIpsWithMdns")
+    chrome_options.add_argument("--force-webrtc-ip-handling-policy=disable_non_proxied_udp")
+
     chrome_options.set_capability("goog:loggingPrefs", {"performance": "ALL"})
 
-    # Gunakan webdriver-manager (auto-download driver)
-    driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
+    # ✅ pakai Service + set path cache custom biar gak corrupt
+    driver_path = ChromeDriverManager(cache_valid_range=1, path="./.wdm_tmp").install()
+    service = Service(driver_path)
+
+    driver = webdriver.Chrome(service=service, options=chrome_options)
 
     m3u8_url = None
     try:
         print(f"\n🌐 buka {embed_url}")
         driver.get(embed_url)
-        time.sleep(wait_time)
+        import time; time.sleep(wait_time)
 
         logs = driver.get_log("performance")
         for entry in logs:
