@@ -66,16 +66,21 @@ def extract_m3u8(embed_url, wait_time=15):
     # 📊 Logging untuk tangkap request .m3u8
     chrome_options.set_capability("goog:loggingPrefs", {"performance": "ALL"})
 
-    driver = webdriver.Chrome(options=chrome_options)
+    driver = None
     m3u8_url = None
 
     try:
+        driver = webdriver.Chrome(options=chrome_options)
         print(f"\n🌐 buka {embed_url}")
         driver.get(embed_url)
 
-        # ⏳ Tunggu halaman benar-benar load
-        print("⏳ Menunggu page load...")
-        time.sleep(wait_time)
+        # ⏳ Tunggu halaman benar-benar load (maks 15 detik)
+        try:
+            WebDriverWait(driver, wait_time).until(
+                lambda d: d.execute_script("return document.readyState") == "complete"
+            )
+        except TimeoutException:
+            print("⚠️ Timeout, halaman belum full load")
 
         # 🔄 Scroll supaya iframe/JS ter-trigger
         driver.execute_script("window.scrollTo(0, 500)")
@@ -96,8 +101,14 @@ def extract_m3u8(embed_url, wait_time=15):
         # 📡 Ambil log beberapa kali (karena stream suka delay muncul)
         all_logs = []
         for _ in range(3):
-            all_logs.extend(driver.get_log("performance"))
+            try:
+                all_logs.extend(driver.get_log("performance"))
+            except Exception:
+                break
             time.sleep(2)
+
+        # Limit supaya log gak kebanyakan
+        all_logs = all_logs[-1000:]
 
         # 🔍 Cari link m3u8
         found_urls = []
@@ -130,9 +141,13 @@ def extract_m3u8(embed_url, wait_time=15):
             )
 
     except Exception as e:
-        print(f"❌ Error: {str(e)}")
+        print(f"❌ Error extract_m3u8: {e}")
     finally:
-        driver.quit()
+        if driver:
+            try:
+                driver.quit()
+            except:
+                pass
 
     return m3u8_url
 
