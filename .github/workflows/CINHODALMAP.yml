@@ -27,12 +27,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests selenium webdriver-manager
 
-      - name: 🖥️ Install Google Chrome
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y google-chrome-stable || true
-          # cek versi
-          google-chrome --version || true
+      - name: 🖥️ Install Chrome
+        uses: browser-actions/setup-chrome@latest
+        with:
+          chrome-version: stable
 
       - name: 💾 Pre-cache ChromeDriver
         run: |
@@ -47,13 +45,7 @@ jobs:
           cp configrepo/sterame3data_file.txt $HOME/sterame3data_file.txt
 
       - name: ▶️ Jalankan script Python
-        env:
-          DISPLAY: :99
         run: |
-          # Xvfb untuk GUI virtual biar Chrome jalan di CI
-          sudo apt-get install -y xvfb
-          Xvfb :99 -ac &
-          sleep 3
           python cinhodal1.py
 
       - name: Commit & Push changes if any
