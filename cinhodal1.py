@@ -166,29 +166,36 @@ async def main(limit_matches=15):
         ]
         streams_list = await asyncio.gather(*tasks)
 
-    # Step 2: proses hasil API
+    # Step 2: proses hasil API, ambil hanya server 1
     found = 0
     for (match, streams) in zip(
         [src for m in matches[:limit_matches] for src in m.get("sources", [])],
         streams_list,
     ):
         source_type, source_id = match["source"], match["id"]
-        for stream in streams:
-            stream_no = stream.get("streamNo", 1)
-            key = f"{source_type}/{source_id}/{stream_no}"
 
-            url = stream.get("file") or stream.get("url")
-            if url:
-                results[key] = url
-                found += 1
-                print(f"[+] API {key} → {url}")
-            else:
-                embed = stream.get("embedUrl")
-                if embed:
-                    embed_tasks[key] = embed
+        if not streams:
+            continue
 
-            if found >= limit_matches:
-                break
+        # Ambil hanya server 1
+        stream = streams[0]
+        stream_no = stream.get("streamNo", 1)
+        if stream_no != 1:
+            stream_no = 1  # pastikan server 1
+
+        key = f"{source_type}/{source_id}/{stream_no}"
+        url = stream.get("file") or stream.get("url")
+        if url:
+            results[key] = url
+            found += 1
+            print(f"[+] API {key} → {url}")
+        else:
+            embed = stream.get("embedUrl")
+            if embed:
+                embed_tasks[key] = embed
+
+        if found >= limit_matches:
+            break
 
     # Step 3: extract m3u8 pakai Selenium (jalan blocking di threadpool biar async aman)
     with ThreadPoolExecutor(max_workers=2) as executor:
