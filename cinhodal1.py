@@ -3,6 +3,8 @@ import asyncio
 import requests
 import json
 import time
+import datetime
+from zoneinfo import ZoneInfo
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
@@ -29,6 +31,11 @@ MATCHES_URL = config_globals.get("MATCHES_URL")
 STREAM_URL = config_globals.get("STREAM_URL")
 HEADERS = config_globals.get("HEADERS")
 
+EXEMPT_CATEGORIES = [
+    "fight",
+    "motor-sports",
+    "tennis"
+]
 
 def fetch_stream(source_type, source_id):
     """Panggil API stream (blocking, jalan di threadpool)."""
@@ -149,30 +156,45 @@ def extract_m3u8(embed_url, wait_time=15):
 
     return m3u8_url
 
-async def main(limit_matches=15):
+async def main(limit_matches=15, apply_time_filter=True):
     res = requests.get(MATCHES_URL, headers=HEADERS, timeout=15)
     matches = res.json()
 
+    now = datetime.datetime.now(ZoneInfo("Asia/Jakarta"))
+
     results = {}
     embed_tasks = {}
+
+    # --- Filter matches sesuai waktu & kategori ---
+    matches_to_process = []
+    for match in matches:
+        start_at = match["date"] / 1000
+        event_time_utc = datetime.datetime.fromtimestamp(start_at, ZoneInfo("UTC"))
+        event_time_local = event_time_utc.astimezone(ZoneInfo("Asia/Jakarta"))
+
+        category = match.get("category", "").lower()
+        if apply_time_filter and category not in EXEMPT_CATEGORIES:
+            if event_time_local < (now - datetime.timedelta(hours=2)):
+                continue
+
+        matches_to_process.append(match)
+        if len(matches_to_process) >= limit_matches:
+            break
 
     # Step 1: parallel fetch stream metadata
     with ThreadPoolExecutor(max_workers=10) as executor:
         loop = asyncio.get_running_loop()
         tasks = [
             loop.run_in_executor(executor, fetch_stream, src["source"], src["id"])
-            for match in matches[:limit_matches]
+            for match in matches_to_process
             for src in match.get("sources", [])
         ]
         streams_list = await asyncio.gather(*tasks)
 
     # Step 2: proses hasil API, ambil hanya server 1
-    found = 0
-    for (match, streams) in zip(
-        [src for m in matches[:limit_matches] for src in m.get("sources", [])],
-        streams_list,
-    ):
-        source_type, source_id = match["source"], match["id"]
+    sources_flat = [src for m in matches_to_process for src in m.get("sources", [])]
+    for match_src, streams in zip(sources_flat, streams_list):
+        source_type, source_id = match_src["source"], match_src["id"]
 
         if not streams:
             continue
@@ -181,21 +203,17 @@ async def main(limit_matches=15):
         stream = streams[0]
         stream_no = stream.get("streamNo", 1)
         if stream_no != 1:
-            stream_no = 1  # pastikan server 1
+            stream_no = 1
 
         key = f"{source_type}/{source_id}/{stream_no}"
         url = stream.get("file") or stream.get("url")
         if url:
             results[key] = url
-            found += 1
             print(f"[+] API {key} → {url}")
         else:
             embed = stream.get("embedUrl")
             if embed:
                 embed_tasks[key] = embed
-
-        if found >= limit_matches:
-            break
 
     # Step 3: extract m3u8 pakai Selenium (jalan blocking di threadpool biar async aman)
     with ThreadPoolExecutor(max_workers=2) as executor:
