@@ -5,11 +5,11 @@ import time
 import json
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+from webdriver_manager.chrome import ChromeDriverManager
 import shutil
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -41,42 +41,41 @@ def fetch_stream(source_type, source_id):
         return []
 
 def extract_m3u8(embed_url, wait_time=15):
+    # 🔧 Chrome Options
     chrome_options = Options()
-
-    # ⚙️ Setup Chrome agar stabil di GitHub Actions
-    chrome_options.add_argument("--headless=new")   # kalau error, ganti ke --headless=old
+    chrome_options.add_argument("--headless=new")  # kalau error, ganti ke --headless=old
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--disable-software-rasterizer")
     chrome_options.add_argument("--disable-extensions")
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-    chrome_options.add_argument("--remote-debugging-port=9222")
     chrome_options.add_argument("--window-size=1920,1080")
-
-    # 🔒 Disable WebRTC / STUN (aman, ganti versi stabil)
-    chrome_options.add_argument("--disable-features=WebRtcHideLocalIpsWithMdns")
-    chrome_options.add_argument("--force-webrtc-ip-handling-policy=disable_non_proxied_udp")
-
-    # 🎭 Fake User-Agent (biar ga dianggap bot)
     chrome_options.add_argument(
         "--user-agent=Mozilla/5.0 (X11; Linux x86_64) "
         "AppleWebKit/537.36 (KHTML, like Gecko) "
         "Chrome/120.0.0.0 Safari/537.36"
     )
 
-    # 📊 Logging untuk tangkap request .m3u8
-    chrome_options.set_capability("goog:loggingPrefs", {"performance": "ALL"})
+    # 📊 Enable Performance Logging (biar bisa tangkap request)
+    caps = DesiredCapabilities.CHROME.copy()
+    caps["goog:loggingPrefs"] = {"performance": "ALL"}
 
     driver = None
     m3u8_url = None
 
     try:
-        driver = webdriver.Chrome(options=chrome_options)
+        # 🚀 Pakai webdriver_manager supaya driver match dengan Chrome di runner
+        driver = webdriver.Chrome(
+            ChromeDriverManager().install(),
+            options=chrome_options,
+            desired_capabilities=caps,
+        )
+
         print(f"\n🌐 buka {embed_url}")
         driver.get(embed_url)
 
-        # ⏳ Tunggu halaman benar-benar load (maks 15 detik)
+        # Tunggu page load
         try:
             WebDriverWait(driver, wait_time).until(
                 lambda d: d.execute_script("return document.readyState") == "complete"
@@ -84,11 +83,11 @@ def extract_m3u8(embed_url, wait_time=15):
         except TimeoutException:
             print("⚠️ Timeout, halaman belum full load")
 
-        # 🔄 Scroll supaya iframe/JS ter-trigger
+        # Scroll biar JS/iframe kebuka
         driver.execute_script("window.scrollTo(0, 500)")
         time.sleep(2)
 
-        # ▶️ Klik tombol "play" kalau ada
+        # Klik tombol "Play" kalau ada
         try:
             play_buttons = driver.find_elements(
                 By.XPATH, "//button[contains(., 'Play') or contains(@class, 'play')]"
@@ -100,7 +99,7 @@ def extract_m3u8(embed_url, wait_time=15):
         except Exception:
             pass
 
-        # 📡 Ambil log beberapa kali (karena stream suka delay muncul)
+        # Ambil log beberapa kali (biar delay request bisa ketangkap)
         all_logs = []
         for _ in range(3):
             try:
@@ -109,16 +108,15 @@ def extract_m3u8(embed_url, wait_time=15):
                 break
             time.sleep(2)
 
-        # Limit supaya log gak kebanyakan
-        all_logs = all_logs[-1000:]
+        all_logs = all_logs[-1000:]  # biar gak kebanyakan
 
-        # 🔍 Cari link m3u8
+        # Cari link m3u8
         found_urls = []
         for entry in all_logs:
             try:
                 msg = json.loads(entry["message"])
                 method = msg.get("message", {}).get("method", "")
-                if "Network." not in method:
+                if not method.startswith("Network."):
                     continue
 
                 params = msg.get("message", {}).get("params", {})
@@ -127,7 +125,6 @@ def extract_m3u8(embed_url, wait_time=15):
                 url = request.get("url", "") or response.get("url", "")
 
                 if url and ".m3u8" in url:
-                    # 🚫 Skip ads/analytics
                     bad_kw = ["ad", "analytics", "track", "pixel", "google", "doubleclick", "facebook"]
                     if not any(k in url.lower() for k in bad_kw):
                         found_urls.append(url)
@@ -135,11 +132,11 @@ def extract_m3u8(embed_url, wait_time=15):
             except Exception:
                 continue
 
-        # 🎯 Ambil stream utama
+        # Pilih stream utama
         if found_urls:
             m3u8_url = next(
                 (u for u in found_urls if any(k in u for k in ["stream", "live", "hls"])),
-                found_urls[0]
+                found_urls[0],
             )
 
     except Exception as e:
