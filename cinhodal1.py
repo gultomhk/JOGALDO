@@ -39,94 +39,96 @@ def fetch_stream(source_type, source_id):
 
 def extract_m3u8(embed_url, wait_time=15):
     chrome_options = Options()
-    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-    chrome_options.add_argument("--disable-gpu")
+
+    # ⚙️ Setup Chrome agar stabil di GitHub Actions
+    chrome_options.add_argument("--headless=new")   # kalau error, ganti ke --headless=old
     chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--disable-dev-shm-usage")  # 🆕 CRITICAL for GitHub
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--disable-software-rasterizer")
+    chrome_options.add_argument("--disable-extensions")
+    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
     chrome_options.add_argument("--remote-debugging-port=9222")
     chrome_options.add_argument("--window-size=1920,1080")
 
-    # 🔒 disable WebRTC / STUN
+    # 🔒 Disable WebRTC / STUN (biar ga leak IP asli)
     chrome_options.add_argument("--disable-webrtc")
     chrome_options.add_argument("--disable-features=WebRtcHideLocalIpsWithMdns")
     chrome_options.add_argument("--force-webrtc-ip-handling-policy=disable_non_proxied_udp")
 
-    # 🆕 Add user agent to avoid detection
-    chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+    # 🎭 Fake User-Agent (biar ga dianggap bot)
+    chrome_options.add_argument(
+        "--user-agent=Mozilla/5.0 (X11; Linux x86_64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/120.0.0.0 Safari/537.36"
+    )
 
-    # 🆕 Better logging setup
+    # 📊 Logging untuk tangkap request .m3u8
     chrome_options.set_capability("goog:loggingPrefs", {"performance": "ALL"})
-    
+
     driver = webdriver.Chrome(options=chrome_options)
     m3u8_url = None
-    
+
     try:
         print(f"\n🌐 buka {embed_url}")
         driver.get(embed_url)
-        
-        # 🆕 Longer wait for GitHub + explicit waits
+
+        # ⏳ Tunggu halaman benar-benar load
         print("⏳ Menunggu page load...")
         time.sleep(wait_time)
-        
-        # 🆕 Try to scroll to trigger lazy loading
+
+        # 🔄 Scroll supaya iframe/JS ter-trigger
         driver.execute_script("window.scrollTo(0, 500)")
         time.sleep(2)
-        
-        # 🆕 Try clicking play buttons if they exist
+
+        # ▶️ Klik tombol "play" kalau ada
         try:
-            play_buttons = driver.find_elements(By.XPATH, "//button[contains(., 'Play') or contains(@class, 'play')]")
-            for button in play_buttons[:1]:  # Just click first one
-                try:
-                    button.click()
-                    print("▶️ Klik play button")
-                    time.sleep(3)
-                except:
-                    continue
-        except:
+            play_buttons = driver.find_elements(
+                By.XPATH, "//button[contains(., 'Play') or contains(@class, 'play')]"
+            )
+            if play_buttons:
+                play_buttons[0].click()
+                print("▶️ Klik play button")
+                time.sleep(3)
+        except Exception:
             pass
 
-        # 🆕 Get logs multiple times to catch delayed requests
+        # 📡 Ambil log beberapa kali (karena stream suka delay muncul)
         all_logs = []
         for _ in range(3):
-            logs = driver.get_log("performance")
-            all_logs.extend(logs)
+            all_logs.extend(driver.get_log("performance"))
             time.sleep(2)
-        
-        # 🆕 Better filtering for actual streams
+
+        # 🔍 Cari link m3u8
         found_urls = []
         for entry in all_logs:
             try:
                 msg = json.loads(entry["message"])
                 method = msg.get("message", {}).get("method", "")
-                
-                if "Network.requestWillBeSent" in method or "Network.responseReceived" in method:
-                    params = msg.get("message", {}).get("params", {})
-                    request = params.get("request", {})
-                    response = params.get("response", {})
-                    
-                    url = request.get("url", "") or response.get("url", "")
-                    
-                    if url and ".m3u8" in url:
-                        # 🆕 Filter out ads and analytics
-                        exclude_keywords = ["ad", "analytics", "track", "pixel", "google", "doubleclick", "facebook"]
-                        if not any(keyword in url.lower() for keyword in exclude_keywords):
-                            found_urls.append(url)
-                            print(f"🎯 Potensial stream: {url}")
-                            
-            except Exception as e:
+                if "Network." not in method:
+                    continue
+
+                params = msg.get("message", {}).get("params", {})
+                request = params.get("request", {})
+                response = params.get("response", {})
+                url = request.get("url", "") or response.get("url", "")
+
+                if url and ".m3u8" in url:
+                    # 🚫 Skip ads/analytics
+                    bad_kw = ["ad", "analytics", "track", "pixel", "google", "doubleclick", "facebook"]
+                    if not any(k in url.lower() for k in bad_kw):
+                        found_urls.append(url)
+                        print(f"🎯 Potensial stream: {url}")
+            except Exception:
                 continue
-        
-        # 🆕 Return the most likely stream URL
+
+        # 🎯 Ambil stream utama
         if found_urls:
-            # Prioritize URLs that look like actual streams
-            for url in found_urls:
-                if any(keyword in url for keyword in ["stream", "live", "hls", "m3u8"]):
-                    m3u8_url = url
-                    break
-            else:
-                m3u8_url = found_urls[0]  # Fallback to first found
-                
+            m3u8_url = next(
+                (u for u in found_urls if any(k in u for k in ["stream", "live", "hls"])),
+                found_urls[0]
+            )
+
     except Exception as e:
         print(f"❌ Error: {str(e)}")
     finally:
