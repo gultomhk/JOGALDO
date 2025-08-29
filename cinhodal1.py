@@ -1,10 +1,10 @@
 import asyncio
 import requests
+import time
 import json
-from concurrent.futures import ThreadPoolExecutor
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-import time
+from webdriver_manager.chrome import ChromeDriverManager
 from pathlib import Path
 
 
@@ -33,7 +33,6 @@ def fetch_stream(source_type, source_id):
         print(f"⚠️ gagal fetch stream {source_type}/{source_id}: {e}")
         return []
 
-
 def extract_m3u8(embed_url, wait_time=15):
     chrome_options = Options()
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
@@ -41,18 +40,16 @@ def extract_m3u8(embed_url, wait_time=15):
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
 
-    # ⚠️ lebih stabil dibanding --headless=new
-    chrome_options.add_argument("--headless=chrome")
+    # ⚠️ Lebih stabil dibanding --headless=new
+    chrome_options.add_argument("--headless=new")
 
-    # 🔒 disable WebRTC / STUN
-    chrome_options.add_argument("--disable-webrtc")
-    chrome_options.add_argument("--disable-features=WebRtcHideLocalIpsWithMdns")
-    chrome_options.add_argument("--force-webrtc-ip-handling-policy=disable_non_proxied_udp")
-
-    # aktifkan performance log
+    # 🔒 Optimasi logging
+    chrome_options.add_argument("--remote-debugging-port=9222")
     chrome_options.set_capability("goog:loggingPrefs", {"performance": "ALL"})
 
-    driver = webdriver.Chrome(options=chrome_options)
+    # Gunakan webdriver-manager (auto-download driver)
+    driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
+
     m3u8_url = None
     try:
         print(f"\n🌐 buka {embed_url}")
@@ -69,7 +66,7 @@ def extract_m3u8(embed_url, wait_time=15):
                     print(f"🎯 ketemu m3u8: {url}")
                     m3u8_url = url
                     break
-            except Exception as e:
+            except Exception:
                 continue
     finally:
         driver.quit()
