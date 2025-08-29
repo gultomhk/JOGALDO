@@ -51,8 +51,19 @@ def extract_m3u8(embed_url, wait_time=15):
     # aktifkan logging network
     chrome_options.set_capability("goog:loggingPrefs", {"performance": "ALL"})
 
-    # ✅ pakai webdriver-manager (otomatis unduh + cache driver)
-    service = Service(ChromeDriverManager().install())
+    # ✅ gunakan cache khusus biar gak corrupt tiap run
+    cache_path = os.path.join(os.getcwd(), ".wdm_cache")
+    os.makedirs(cache_path, exist_ok=True)
+
+    try:
+        driver_path = ChromeDriverManager(path=cache_path).install()
+    except Exception as e:
+        print(f"⚠️ WebDriverManager error {e}, hapus cache & retry...")
+        shutil.rmtree(cache_path, ignore_errors=True)
+        os.makedirs(cache_path, exist_ok=True)
+        driver_path = ChromeDriverManager(path=cache_path).install()
+
+    service = Service(driver_path)
     driver = webdriver.Chrome(service=service, options=chrome_options)
 
     m3u8_url = None
