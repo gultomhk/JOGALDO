@@ -37,42 +37,32 @@ def fetch_stream(source_type, source_id):
         print(f"⚠️ gagal fetch stream {source_type}/{source_id}: {e}")
         return []
 
-def extract_m3u8(embed_url, wait_time=10):
+def extract_m3u8(embed_url, wait_time=15):
     chrome_options = Options()
-    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+    chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--headless=new")
 
-    # 🔒 disable WebRTC / STUN (biar gak spam error twilio stun)
-    chrome_options.add_argument("--disable-webrtc")
-    chrome_options.add_argument("--disable-features=WebRtcHideLocalIpsWithMdns")
-    chrome_options.add_argument("--force-webrtc-ip-handling-policy=disable_non_proxied_udp")
-
-    # set capability logging langsung di options
-    chrome_options.set_capability("goog:loggingPrefs", {"performance": "ALL"})
-
-    # ✅ cukup panggil tanpa desired_capabilities
     driver = webdriver.Chrome(options=chrome_options)
 
     m3u8_url = None
     try:
         print(f"\n🌐 buka {embed_url}")
         driver.get(embed_url)
+
+        # aktifkan network log
+        driver.execute_cdp_cmd("Network.enable", {})
+
         time.sleep(wait_time)
 
-        logs = driver.get_log("performance")
-        for entry in logs:
-            try:
-                msg = json.loads(entry["message"])
-                params = msg.get("message", {}).get("params", {})
-                url = params.get("request", {}).get("url", "")
-                if ".m3u8" in url:
-                    print(f"🎯 ketemu m3u8: {url}")
-                    m3u8_url = url
-                    break
-            except Exception:
-                continue
+        logs = driver.execute_cdp_cmd("Network.getResponseBody", {})
+        events = driver.get_log("performance")
+
+        for entry in events:
+            msg = entry["message"]
+            if ".m3u8" in msg:
+                print(f"🎯 ketemu m3u8: {msg}")
+                return msg
     finally:
         driver.quit()
 
