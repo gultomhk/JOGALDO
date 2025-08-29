@@ -25,17 +25,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests selenium webdriver-manager
 
-      - name: 🌐 Setup Chrome & Chromedriver
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y google-chrome-stable
-          CHROME_VERSION=$(google-chrome --version | awk '{print $3}')
-          echo "Chrome version: $CHROME_VERSION"
-          wget -q "https://storage.googleapis.com/chrome-for-testing-public/$CHROME_VERSION/linux64/chromedriver-linux64.zip"
-          unzip chromedriver-linux64.zip
-          sudo mv chromedriver-linux64/chromedriver /usr/local/bin/chromedriver
-          chromedriver --version
-
       - name: 📁 Ambil file konfigurasi dari repo privat
         shell: bash
         run: |
