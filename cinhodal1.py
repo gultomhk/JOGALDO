@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import WebDriverException
+from selenium.webdriver.common.by import By
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -77,50 +78,88 @@ def extract_m3u8(embed_url, wait_time=30):
         print(f"\n🌐 buka {embed_url}")
         driver.get(embed_url)
         
-        # Tunggu dan coba beberapa metode ekstraksi
+        # Tunggu halaman load
         time.sleep(wait_time)
         
-        # Method 1: Cari m3u8 di page source
+        # Method 1: Cari m3u8 di page source dengan regex
         page_source = driver.page_source
         if ".m3u8" in page_source:
             import re
-            m3u8_matches = re.findall(r'https?://[^\s<>"]+\.m3u8[^\s<>"]*', page_source)
-            if m3u8_matches:
-                m3u8_url = m3u8_matches[0]
-                print(f"🎯 ketemu m3u8 di source: {m3u8_url}")
-                return m3u8_url
+            # Pattern untuk mencari URL m3u8
+            m3u8_patterns = [
+                r'https?://[^\s"<>]+\.m3u8(?:\?[^\s"<>]*)?',
+                r'[^a-zA-Z0-9]([a-zA-Z0-9_-]+\.m3u8(?:\?[^\s"<>]*)?)',
+                r'src=["\']([^"\']+\.m3u8[^"\']*)["\']'
+            ]
+            
+            for pattern in m3u8_patterns:
+                m3u8_matches = re.findall(pattern, page_source, re.IGNORECASE)
+                if m3u8_matches:
+                    for match in m3u8_matches:
+                        if match.startswith('http'):
+                            m3u8_url = match
+                        else:
+                            # Coba reconstruct URL jika relative
+                            base_url = "/".join(embed_url.split("/")[:3])
+                            m3u8_url = base_url + match if match.startswith("/") else base_url + "/" + match
+                        
+                        print(f"🎯 ketemu m3u8 di source: {m3u8_url}")
+                        return m3u8_url
         
         # Method 2: Execute JavaScript untuk mencari video elements
         try:
             video_sources = driver.execute_script("""
+                // Cari semua element video dan source
                 var sources = [];
-                // Cari semua video elements
-                var videos = document.querySelectorAll('video');
-                videos.forEach(function(video) {
-                    if (video.src && video.src.includes('.m3u8')) {
-                        sources.push(video.src);
-                    }
-                    // Cari source elements di dalam video
-                    var sourceElements = video.querySelectorAll('source');
-                    sourceElements.forEach(function(source) {
-                        if (source.src && source.src.includes('.m3u8')) {
-                            sources.push(source.src);
-                        }
-                    });
-                });
                 
-                // Cari di JavaScript variables
-                var scripts = document.querySelectorAll('script');
-                scripts.forEach(function(script) {
-                    var scriptText = script.innerHTML;
-                    var m3u8Matches = scriptText.match(/'https?[^']+\.m3u8[^']*'/g) || 
-                                      scriptText.match(/"https?[^"]+\.m3u8[^"]*"/g);
-                    if (m3u8Matches) {
-                        m3u8Matches.forEach(function(match) {
-                            sources.push(match.replace(/['"]/g, ''));
-                        });
+                // 1. Cari video elements dengan src m3u8
+                var videos = document.querySelectorAll('video');
+                for (var i = 0; i < videos.length; i++) {
+                    if (videos[i].src && videos[i].src.includes('.m3u8')) {
+                        sources.push(videos[i].src);
                     }
-                });
+                    
+                    // 2. Cari source elements di dalam video
+                    var sourceElements = videos[i].querySelectorAll('source');
+                    for (var j = 0; j < sourceElements.length; j++) {
+                        if (sourceElements[j].src && sourceElements[j].src.includes('.m3u8')) {
+                            sources.push(sourceElements[j].src);
+                        }
+                    }
+                }
+                
+                // 3. Cari iframe dan coba akses contentWindow
+                var iframes = document.querySelectorAll('iframe');
+                for (var i = 0; i < iframes.length; i++) {
+                    try {
+                        var iframeDoc = iframes[i].contentDocument || iframes[i].contentWindow.document;
+                        var iframeVideos = iframeDoc.querySelectorAll('video');
+                        for (var j = 0; j < iframeVideos.length; j++) {
+                            if (iframeVideos[j].src && iframeVideos[j].src.includes('.m3u8')) {
+                                sources.push(iframeVideos[j].src);
+                            }
+                        }
+                    } catch (e) {
+                        // Cross-origin error, skip
+                    }
+                }
+                
+                // 4. Cari di JavaScript variables (simple version)
+                var scripts = document.querySelectorAll('script:not([src])');
+                for (var i = 0; i < scripts.length; i++) {
+                    var scriptText = scripts[i].textContent;
+                    if (scriptText.includes('.m3u8')) {
+                        var lines = scriptText.split('\\n');
+                        for (var j = 0; j < lines.length; j++) {
+                            if (lines[j].includes('.m3u8')) {
+                                var urlMatch = lines[j].match(/(https?:\\/\\/[^"']+\\.m3u8[^"']*)/);
+                                if (urlMatch) {
+                                    sources.push(urlMatch[1]);
+                                }
+                            }
+                        }
+                    }
+                }
                 
                 return sources.length > 0 ? sources[0] : null;
             """)
@@ -132,24 +171,20 @@ def extract_m3u8(embed_url, wait_time=30):
         except Exception as js_error:
             print(f"⚠️ JavaScript execution error: {js_error}")
         
-        # Method 3: Traditional performance logs (fallback)
+        # Method 3: Cari di attributes elements
         try:
-            logs = driver.get_log("performance")
-            for entry in logs:
-                try:
-                    msg = json.loads(entry["message"])
-                    params = msg.get("message", {}).get("params", {})
-                    request_info = params.get("request", {}) or params.get("response", {})
-                    url = request_info.get("url", "")
+            # Cari elements dengan data-url atau src yang mengandung m3u8
+            elements_with_src = driver.find_elements(By.XPATH, "//*[contains(@src, '.m3u8') or contains(@data-src, '.m3u8') or contains(@data-url, '.m3u8')]")
+            for element in elements_with_src:
+                src = element.get_attribute('src') or element.get_attribute('data-src') or element.get_attribute('data-url')
+                if src and '.m3u8' in src:
+                    print(f"🎯 ketemu m3u8 di element attribute: {src}")
+                    return src
                     
-                    if url and ".m3u8" in url:
-                        print(f"🎯 ketemu m3u8 di logs: {url}")
-                        return url
-                except:
-                    continue
-                    
-        except Exception as log_error:
-            print(f"⚠️ Log access error: {log_error}")
+        except Exception as attr_error:
+            print(f"⚠️ Attribute search error: {attr_error}")
+            
+        print(f"❌ Tidak ditemukan m3u8 untuk {embed_url}")
             
     except Exception as e:
         print(f"❌ Error: {e}")
@@ -163,7 +198,7 @@ def extract_m3u8(embed_url, wait_time=30):
     return None
 
 
-def extract_m3u8_with_retry(embed_url, max_retries=2, wait_time=25):
+def extract_m3u8_with_retry(embed_url, max_retries=2, wait_time=35):
     """Extract m3u8 dengan mekanisme retry"""
     for attempt in range(max_retries):
         try:
@@ -171,13 +206,15 @@ def extract_m3u8_with_retry(embed_url, max_retries=2, wait_time=25):
             result = extract_m3u8(embed_url, wait_time)
             if result:
                 return result
+            # Jika tidak error tapi tidak ketemu, tunggu lebih lama untuk attempt berikutnya
+            time.sleep(5)
         except Exception as e:
             print(f"⚠️ Attempt {attempt + 1} failed: {e}")
-            time.sleep(3)  # Tunggu sebentar sebelum retry
+            time.sleep(3)
     
     print(f"❌ Gagal setelah {max_retries} attempts untuk {embed_url}")
     return None
-
+    
 async def main(limit_matches=8, apply_time_filter=True):
     try:
         res = requests.get(MATCHES_URL, headers=HEADERS, timeout=20)
