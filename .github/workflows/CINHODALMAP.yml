@@ -1,8 +1,6 @@
 name: ⏰ Update Streamnya Map
 
 on:
-  schedule:
-    - cron: "0 * * * *"   # setiap jam
   workflow_dispatch:
 
 jobs:
