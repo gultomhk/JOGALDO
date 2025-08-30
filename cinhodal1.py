@@ -48,7 +48,7 @@ def fetch_stream(source_type, source_id):
         print(f"⚠️ gagal fetch stream {source_type}/{source_id}: {e}")
         return []
 
-def extract_m3u8(embed_url, wait_time=10):
+def extract_m3u8(embed_url, wait_time=30):
     chrome_options = Options()
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
     chrome_options.add_argument("--disable-gpu")
@@ -71,6 +71,11 @@ def extract_m3u8(embed_url, wait_time=10):
         time.sleep(wait_time)
 
         logs = driver.get_log("performance")
+
+        # 🔎 DEBUG: cetak semua log biar tahu apa yang ketangkep di Actions
+        for entry in logs:
+            print("RAW LOG:", entry)
+
         for entry in logs:
             try:
                 msg = json.loads(entry["message"])
@@ -80,7 +85,8 @@ def extract_m3u8(embed_url, wait_time=10):
                     print(f"🎯 ketemu m3u8: {url}")
                     m3u8_url = url
                     break
-            except Exception:
+            except Exception as e:
+                print("⚠️ error parsing log:", e)
                 continue
     finally:
         driver.quit()
