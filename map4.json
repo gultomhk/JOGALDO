@@ -1,17 +1,12 @@
 {
-  "cfb/utsa-roadrunners-texas-a-m-aggies/": "https://edgestreams.pro/hls/qsdnajbq32.m3u8?st=OO-wtAhs_bgORbdNZVoBnb2ZKd_yZKwllhNl-dmXcPE&e=1756602611",
-  "mlb/new-york-yankees-chicago-white-sox-15/": "https://mainstreams.pro/hls/ijfnakfidch22.m3u8?st=NzikOvKyAVJE9-Jl76rWDcuz7BXu_GumpXO1C3ojuTg&e=1756602614",
-  "mlb/los-angeles-angels-houston-astros-31/": "https://edgestreams.pro/hls/ojzkajnach21.m3u8?st=qA94eaOJt2OAzjDgJQPCXiQnrhdSr6rmkdIydCP81iw&e=1756602618",
-  "mlb/san-diego-padres-minnesota-twins-4/": "https://mainstreams.pro/hls/jnzkdzjfanch23.m3u8?st=3_gkXNp5JOEaDINCZJfKAW0_V1wyZmwBr_diP63NZYo&e=1756602621",
-  "mlb/seattle-mariners-cleveland-guardians-10/": "https://edgestreams.pro/hls/fskjanach24.m3u8?st=C1rsda0oxGoaj0ef61Avo2no2tIZjKP1RNDOmdUP2pI&e=1756602623",
-  "mlb/detroit-tigers-kansas-city-royals-24/": "https://edgestreams.pro/hls/kjhfzua25.m3u8?st=r7hDyQbxpi94HYoTigNyRHCkm0PQxWYNJpFcpv6JdmQ&e=1756602626",
-  "mlb/baltimore-orioles-san-francisco-giants-1/": "https://mainstreams.pro/hls/dzjhkfazbka26.m3u8?st=EtOYDSeInTPe3Qopj4iromvi-fYfn--MSFXVho_SfBc&e=1756602628",
-  "cfb/utep-miners-utah-state-aggies/": "https://edgestreams.pro/hls/yetehznecs37.m3u8?st=XTNm_Um4AtNScPgXyXPRNQRbCG9lKtxbneVzhMqUVmQ&e=1756602631",
-  "cfb/new-mexico-lobos-michigan-wolverines/": "https://twhjon.7380990745.xyz:8443/hls/pdiez3cpk4198.m3u8?s=dalMIxOD6ueUgm3q9dAX5w&e=1756613434",
-  "cfb/missouri-state-bears-usc-trojans/": "https://edgestreams.pro/hls/uheyztezgj34.m3u8?st=Nob2ztV1e3awqoVuABueNuGlYG9lxAAc97m0Z5NKXYQ&e=1756602637",
-  "cfb/lsu-tigers-clemson-tigers/": "https://edgestreams.pro/hls/hezfnezkfzk45.m3u8?st=MV1rqI555RZdlwDVJkch27PzAr3LFTLdFjBVTWY6pFQ&e=1756602640",
-  "cfb/georgia-state-panthers-ole-miss-rebels/": "https://mainstreams.pro/hls/cwxcnbscbsq39.m3u8?st=XQnlQ58TKpftAYjYJyZ_QUacPtLz2ST9WdnAPsBI_jk&e=1756602642",
-  "mlb/chicago-cubs-colorado-rockies-16/": "https://mainstreams.pro/hls/jzabfazkbf27.m3u8?st=roXjZy_0C1EfnqaBaJqHlWzXtpa8BZ1F9K7-hhGbVZ4&e=1756602645",
-  "cfb/east-texas-a-m-lions-smu-mustangs/": "https://mainstreams.pro/hls/jkhazabcka36.m3u8?st=T6OhjeMATaDDbrJCQ7oo1Zs_461p2zk3tOtuxXo2YEs&e=1756602647",
-  "mlb/arizona-diamondbacks-los-angeles-dodgers-35/": "https://edgestreams.pro/hls/hefbafbakx28.m3u8?st=ANOPe4coghYuyts6vB9g3g9gmijqXFVlldgRgLkQD5M&e=1756602650"
+  "cfb/georgia-state-panthers-ole-miss-rebels/": "https://edgestreams.pro/hls/sfjnzabacah31.m3u8?st=6mEqNhRI69b1DF7TGFNEeZA1pecHdvwSxqKw9P41QmI&e=1756606237",
+  "mlb/chicago-cubs-colorado-rockies-16/": "https://edgestreams.pro/hls/jzabfazkbf27.m3u8?st=fsMrQFYdYbzi0Dz1DmqianA2uQolbEOKc-s5BTeAOFY&e=1756606241",
+  "cfb/east-texas-a-m-lions-smu-mustangs/": "https://edgestreams.pro/hls/qsdnajbq32.m3u8?st=rBplGey4NAUZqmwsORAvYzSQu5CgY3YLwcUDu6D8OTA&e=1756606245",
+  "mlb/arizona-diamondbacks-los-angeles-dodgers-35/": "https://edgestreams.pro/hls/hefbafbakx28.m3u8?st=lSJK8amaPrbr7fMbs3ObhF9vLYjnk5ImCXNpLD1qOTE&e=1756606248",
+  "cfb/georgia-southern-eagles-fresno-state-bulldogs/": "https://edgestreams.pro/hls/ijzriafaq41.m3u8?st=m1IfhS9d1emWS-er87jbIlN989807hLVI1sag87t9rc&e=1756606251",
+  "mlb/texas-rangers-athletics-5/": "https://mainstreams.pro/hls/hfzljfahzcax29.m3u8?st=gB0s3b5DvIEaD45uJS6lx9fJpBFp2Nq6n0HweI6FSrs&e=1756606267",
+  "cfb/california-golden-bears-oregon-state-beavers/": "https://mainstreams.pro/hls/uheyztezgj34.m3u8?st=5X7LrnpEqNfNfp5Dj-rnc98XKJFBz0sC6XUH37AX5OA&e=1756606270",
+  "cfb/utah-utes-ucla-bruins/": "https://edgestreams.pro/hls/hbfhzbfzak46.m3u8?st=c1dhgJ1oPMq_5PDfl6Nn3P5UbypTRphknVr_0MMldaE&e=1756606273",
+  "cfb/colorado-state-rams-washington-huskies/": "https://edgestreams.pro/hls/JHDAJBDnjdna30.m3u8?st=PTT2eeX4Q4wfHBxSKWMLwaLZIDy4_yrMEBZqQ-TJXGY&e=1756606276",
+  "f1/f1-dutch-gp-race/": "https://edgestreams.pro/hls/hbfkazbkaznc49.m3u8?st=7XN0Xq_B0Pk9hgE76OvrD69sO-CpAsSu2uA2s1NbfR4&e=1756606279"
 }
