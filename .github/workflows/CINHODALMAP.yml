@@ -8,6 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    timeout-minutes: 30  # Beri timeout yang cukup lama
 
     steps:
       - name: ⬇️ Checkout repo
@@ -23,19 +24,12 @@ jobs:
       - name: 📦 Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install requests selenium webdriver-manager
+          pip install requests selenium webdriver-manager tzdata
 
       - name: 🖥️ Install Chrome
         uses: browser-actions/setup-chrome@latest
         with:
           chrome-version: stable
-
-      - name: 💾 Pre-cache ChromeDriver
-        run: |
-          python - <<'EOF'
-          from webdriver_manager.chrome import ChromeDriverManager
-          ChromeDriverManager().install()
-          EOF
 
       - name: 📁 Ambil file konfigurasi dari repo privat
         run: |
@@ -44,7 +38,8 @@ jobs:
 
       - name: ▶️ Jalankan script Python
         run: |
-          python cinhodal1.py
+          # Jalankan dengan waktu timeout, force quit jika hang
+          timeout 25m python cinhodal1.py || echo "Proses mungkin timeout, tetapi lanjut ke step berikutnya."
 
       - name: Commit & Push changes if any
         run: |
