@@ -48,29 +48,15 @@ def extract_m3u8(embed_url, wait_time=30):
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--remote-debugging-port=0")  # Gunakan port 0 untuk auto-assign
-    chrome_options.add_argument("--no-zygote")
-    chrome_options.add_argument("--single-process")
-    chrome_options.add_argument("--disable-setuid-sandbox")
-    chrome_options.add_argument("--disable-software-rasterizer")
-    chrome_options.add_argument("--disable-extensions")
-    chrome_options.add_argument("--disable-notifications")
-    chrome_options.add_argument("--disable-popup-blocking")
+    chrome_options.add_argument("--remote-debugging-port=0")
     
-    # User agent
+    # User agent yang lebih realistic
     chrome_options.add_argument("--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-
-    # 🔒 disable WebRTC / STUN
-    chrome_options.add_argument("--disable-webrtc")
-    chrome_options.add_argument("--disable-features=WebRtcHideLocalIpsWithMdns")
-    chrome_options.add_argument("--force-webrtc-ip-handling-policy=disable_non_proxied_udp")
-
-    # Experimental options untuk stability
+    
+    # Bypass automation detection
     chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
     chrome_options.add_experimental_option('useAutomationExtension', False)
     
-    chrome_options.set_capability("goog:loggingPrefs", {"performance": "ALL"})
-
     m3u8_url = None
     driver = None
     
@@ -78,68 +64,93 @@ def extract_m3u8(embed_url, wait_time=30):
         from webdriver_manager.chrome import ChromeDriverManager
         from selenium.webdriver.chrome.service import Service
         
-        # Gunakan service dengan timeout yang lebih panjang
-        service = Service(
-            ChromeDriverManager().install(),
-            log_path=os.devnull  # Suppress driver logs
-        )
-        
+        service = Service(ChromeDriverManager().install())
         driver = webdriver.Chrome(service=service, options=chrome_options)
         
-        # Set page load timeout
-        driver.set_page_load_timeout(45)
-        driver.implicitly_wait(10)
+        # Execute JavaScript untuk bypass detection
+        driver.execute_script("""
+            Object.defineProperty(navigator, 'webdriver', {
+                get: () => undefined
+            });
+        """)
         
         print(f"\n🌐 buka {embed_url}")
         driver.get(embed_url)
         
-        # Gunakan WebDriverWait instead of time.sleep
-        from selenium.webdriver.support.ui import WebDriverWait
-        from selenium.webdriver.support import expected_conditions as EC
-        from selenium.webdriver.common.by import By
+        # Tunggu dan coba beberapa metode ekstraksi
+        time.sleep(wait_time)
         
+        # Method 1: Cari m3u8 di page source
+        page_source = driver.page_source
+        if ".m3u8" in page_source:
+            import re
+            m3u8_matches = re.findall(r'https?://[^\s<>"]+\.m3u8[^\s<>"]*', page_source)
+            if m3u8_matches:
+                m3u8_url = m3u8_matches[0]
+                print(f"🎯 ketemu m3u8 di source: {m3u8_url}")
+                return m3u8_url
+        
+        # Method 2: Execute JavaScript untuk mencari video elements
         try:
-            # Tunggu sampai halaman loading selesai
-            WebDriverWait(driver, wait_time).until(
-                lambda d: d.execute_script("return document.readyState") == "complete"
-            )
-        except:
-            print("⚠️ Page load timeout, continuing with logs...")
-        
-        # Ambil logs dengan retry mechanism
-        logs = []
-        retries = 3
-        for i in range(retries):
-            try:
-                logs = driver.get_log("performance")
-                if logs:
-                    break
-                time.sleep(2)  # Tunggu sebentar sebelum retry
-            except Exception as e:
-                print(f"⚠️ Error getting logs (attempt {i+1}/{retries}): {e}")
-                time.sleep(2)
-        
-        if not logs:
-            print("❌ Tidak bisa mendapatkan performance logs")
-            return None
-
-        for entry in logs:
-            try:
-                msg = json.loads(entry["message"])
-                message_type = msg.get("message", {}).get("method", "")
+            video_sources = driver.execute_script("""
+                var sources = [];
+                // Cari semua video elements
+                var videos = document.querySelectorAll('video');
+                videos.forEach(function(video) {
+                    if (video.src && video.src.includes('.m3u8')) {
+                        sources.push(video.src);
+                    }
+                    // Cari source elements di dalam video
+                    var sourceElements = video.querySelectorAll('source');
+                    sourceElements.forEach(function(source) {
+                        if (source.src && source.src.includes('.m3u8')) {
+                            sources.push(source.src);
+                        }
+                    });
+                });
                 
-                if "Network.request" in message_type or "Network.response" in message_type:
+                // Cari di JavaScript variables
+                var scripts = document.querySelectorAll('script');
+                scripts.forEach(function(script) {
+                    var scriptText = script.innerHTML;
+                    var m3u8Matches = scriptText.match(/'https?[^']+\.m3u8[^']*'/g) || 
+                                      scriptText.match(/"https?[^"]+\.m3u8[^"]*"/g);
+                    if (m3u8Matches) {
+                        m3u8Matches.forEach(function(match) {
+                            sources.push(match.replace(/['"]/g, ''));
+                        });
+                    }
+                });
+                
+                return sources.length > 0 ? sources[0] : null;
+            """)
+            
+            if video_sources:
+                print(f"🎯 ketemu m3u8 via JavaScript: {video_sources}")
+                return video_sources
+                
+        except Exception as js_error:
+            print(f"⚠️ JavaScript execution error: {js_error}")
+        
+        # Method 3: Traditional performance logs (fallback)
+        try:
+            logs = driver.get_log("performance")
+            for entry in logs:
+                try:
+                    msg = json.loads(entry["message"])
                     params = msg.get("message", {}).get("params", {})
                     request_info = params.get("request", {}) or params.get("response", {})
                     url = request_info.get("url", "")
                     
                     if url and ".m3u8" in url:
-                        print(f"🎯 ketemu m3u8: {url}")
-                        m3u8_url = url
-                        break
-            except Exception as e:
-                continue
-                
+                        print(f"🎯 ketemu m3u8 di logs: {url}")
+                        return url
+                except:
+                    continue
+                    
+        except Exception as log_error:
+            print(f"⚠️ Log access error: {log_error}")
+            
     except Exception as e:
         print(f"❌ Error: {e}")
     finally:
@@ -147,9 +158,9 @@ def extract_m3u8(embed_url, wait_time=30):
             try:
                 driver.quit()
             except:
-                pass  # Ignore errors during quit
+                pass
 
-    return m3u8_url
+    return None
 
 
 def extract_m3u8_with_retry(embed_url, max_retries=2, wait_time=25):
