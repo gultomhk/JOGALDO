@@ -186,8 +186,9 @@ async def main(limit_matches=8, apply_time_filter=True):
     matches_to_process = []
     for match in matches[:limit_matches]:  # Batasi dari awal
         try:
+            # PERBAIKAN: Gunakan start_at bukan startat
             start_at = match["date"] / 1000
-            event_time_utc = datetime.datetime.fromtimestamp(startat, ZoneInfo("UTC"))
+            event_time_utc = datetime.datetime.fromtimestamp(start_at, ZoneInfo("UTC"))  # Perbaikan di sini
             event_time_local = event_time_utc.astimezone(ZoneInfo("Asia/Jakarta"))
 
             category = match.get("category", "").lower()
