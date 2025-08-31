@@ -1,12 +1,14 @@
-import asyncio
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta, timezone
 from dateutil import tz
 from pathlib import Path
 import re
 import json
+import requests
 from urllib.parse import urlparse, parse_qs, unquote, urljoin, urlencode
-from playwright.async_api import async_playwright
+import urllib.parse
+from playwright.sync_api import sync_playwright
+import time
 
 # ========= Konfigurasi =========
 CONFIG_FILE = Path.home() / "bodattvdata_file.txt"
@@ -27,6 +29,11 @@ if not CONFIG_FILE.exists():
 config = load_config(CONFIG_FILE)
 BASE_URL = config["BASE_URL"]
 USER_AGENT = config["USER_AGENT"]
+HEADERS = {
+    "User-Agent": USER_AGENT,
+    "Referer": BASE_URL
+}
+
 now = datetime.now(tz.gettz("Asia/Jakarta"))
 
 # ========= Parser player?link= → nilai link (ENCODED) + extra params =========
@@ -57,16 +64,144 @@ def parse_player_link(url: str, keep_encoded: bool = True) -> str:
                 decoded += "?" + extra_str
         return decoded
 
+# ========= Pembersih hasil URL =========
+def clean_m3u8_links(urls, keep_encoded=True):
+    cleaned = []
+    for u in set(urls):
+        if "player?link=" in u:
+            u = parse_player_link(u, keep_encoded=keep_encoded)  # pakai parser kita
+            # encoded string masih mengandung ".m3u8" sebagai teks, jadi tetap lolos filter
+        if ".m3u8" in u:
+            cleaned.append(u)
+    return cleaned
+
+# ========= Fungsi Ekstraksi M3U8 dengan Playwright =========
+def extract_m3u8_with_playwright(slug):
+    """Ekstrak URL m3u8 menggunakan Playwright untuk menangani JavaScript"""
+    print(f"   🚀 Menggunakan Playwright untuk: {slug}")
+    
+    with sync_playwright() as p:
+        # Gunakan browser headless
+        browser = p.chromium.launch(headless=True)
+        context = browser.new_context(user_agent=USER_AGENT)
+        page = context.new_page()
+        
+        try:
+            # Navigasi ke halaman
+            page.goto(f"{BASE_URL}/match/{slug}", timeout=30000)
+            
+            # Tunggu hingga elemen player dimuat
+            page.wait_for_timeout(5000)  # Tunggu 5 detik untuk memastikan JavaScript selesai dieksekusi
+            
+            # Coba cari iframe player
+            iframe_element = page.query_selector("iframe[src*='link=']")
+            
+            if iframe_element:
+                # Dapatkan src dari iframe
+                iframe_src = iframe_element.get_attribute("src")
+                if iframe_src:
+                    # Parse URL iframe untuk mendapatkan parameter link
+                    parsed_url = urlparse(urljoin(BASE_URL, iframe_src))
+                    query_params = parse_qs(parsed_url.query)
+                    m3u8_encoded = query_params.get("link", [""])[0]
+                    
+                    if m3u8_encoded:
+                        m3u8_url = unquote(m3u8_encoded)
+                        if ".m3u8" in m3u8_url:
+                            print(f"   ✅ M3U8 ditemukan via Playwright: {m3u8_url}")
+                            return [m3u8_url]
+            
+            # Alternatif: Cari elemen dengan data-link
+            data_link_elements = page.query_selector_all("[data-link]")
+            m3u8_urls = []
+            
+            for element in data_link_elements:
+                data_link = element.get_attribute("data-link")
+                if data_link and data_link.endswith(".m3u8") and data_link.startswith("http"):
+                    print(f"   ✅ M3U8 ditemukan via Playwright (data-link): {data_link}")
+                    m3u8_urls.append(data_link)
+            
+            if m3u8_urls:
+                return m3u8_urls
+            
+            # Alternatif lain: Coba tangkap request network yang mengandung m3u8
+            print(f"   ⚠️ Mencoba intercept network requests untuk: {slug}")
+            
+            # List untuk menampung URL m3u8 yang ditemukan
+            captured_urls = []
+            
+            def handle_request(request):
+                url = request.url
+                if ".m3u8" in url and "geotarget" not in url.lower():
+                    captured_urls.append(url)
+                    print(f"   🔍 Terdeteksi request m3u8: {url}")
+            
+            # Pasang listener untuk request
+            page.on("request", handle_request)
+            
+            # Refresh halaman untuk menangkap request
+            page.reload(timeout=30000)
+            page.wait_for_timeout(8000)  # Tunggu lebih lama untuk menangkap request
+            
+            # Hapus listener setelah selesai
+            page.remove_listener("request", handle_request)
+            
+            if captured_urls:
+                # Hapus duplikat
+                unique_urls = list(set(captured_urls))
+                print(f"   ✅ M3U8 ditemukan via network interception: {unique_urls[0]}")
+                return unique_urls
+            
+            return []
+            
+        except Exception as e:
+            print(f"   ❌ Error dengan Playwright untuk {slug}: {e}")
+            return []
+        finally:
+            browser.close()
+
+# ========= Fungsi Ekstraksi M3U8 =========
+def extract_m3u8_urls(html):
+    """Ekstrak URL m3u8 dari HTML dengan berbagai metode"""
+    soup = BeautifulSoup(html, "html.parser")
+    data_links = soup.select("[data-link]")
+    m3u8_urls = []
+
+    for tag in data_links:
+        raw = tag.get("data-link", "")
+        if raw.endswith(".m3u8") and raw.startswith("http"):
+            print(f"   🔗 Data-link langsung: ✅ {raw}")
+            m3u8_urls.append(raw)
+        elif "/player?link=" in raw:
+            decoded = urllib.parse.unquote(raw)
+            if decoded.endswith(".m3u8") and decoded.startswith("http"):
+                print(f"   🔗 Dari iframe: ✅ {decoded}")
+                m3u8_urls.append(decoded)
+            else:
+                print(f"   ⚠️ Iframe tapi bukan m3u8: {raw}")
+        else:
+            print(f"   ⚠️ Skip: {raw}")
+    
+    # Bersihkan URL menggunakan fungsi clean_m3u8_links
+    m3u8_urls = clean_m3u8_links(m3u8_urls, keep_encoded=False)
+    return m3u8_urls
+
 # ========= Ambil daftar slug =========
 def extract_slug(row):
+    """Ekstrak slug dari elemen baris HTML."""
+    # Coba dari atribut onclick dulu
     if row.has_attr("onclick"):
         match = re.search(r"/match/([^\"']+)", row["onclick"])
         if match:
             return match.group(1).strip()
+    
+    # Fallback ke <a href="/match/...">
     link = row.select_one("a[href^='/match/']")
     if link:
         return link['href'].replace('/match/', '').strip()
+    
     return None
+
 
 def extract_slugs_from_html(html, hours_threshold=2):
     soup = BeautifulSoup(html, "html.parser")
@@ -89,7 +224,9 @@ def extract_slugs_from_html(html, hours_threshold=2):
                 timestamp = int(waktu_tag["data-timestamp"])
                 event_time_utc = datetime.fromtimestamp(timestamp, tz=timezone.utc)
                 event_time_local = event_time_utc.astimezone(tz.gettz("Asia/Jakarta"))
+                waktu = event_time_local.strftime("%d/%m-%H.%M")
             else:
+                waktu = "00/00-00.00"
                 event_time_local = now
 
             # 🔴 Cek apakah sedang live
@@ -100,7 +237,7 @@ def extract_slugs_from_html(html, hours_threshold=2):
                 print(f"⏩ Lewat waktu & bukan live, skip: {slug}")
                 continue
 
-            # 🚫 Optional pengecualian kategori
+            # 🚫 Skip keyword pengecualian
             slug_lower = slug.lower()
             is_exception = any(
                 keyword in slug_lower
@@ -119,113 +256,67 @@ def extract_slugs_from_html(html, hours_threshold=2):
     print(f"📦 Total slug valid: {len(slugs)}")
     return slugs
 
-# ========= Pembersih hasil URL =========
-def clean_m3u8_links(urls, keep_encoded=True):
-    cleaned = []
-    for u in set(urls):
-        if "player?link=" in u:
-            u = parse_player_link(u, keep_encoded=keep_encoded)  # pakai parser kita
-            # encoded string masih mengandung ".m3u8" sebagai teks, jadi tetap lolos filter
-        if ".m3u8" in u:
-            cleaned.append(u)
-    return cleaned
+# ========= Simpan ke MAP =========
+def save_to_map(slugs):
+    new_data = {}
 
-# ========= Playwright fetch m3u8 per slug =========
-async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
-    page = await context.new_page()
-    m3u8_links = []
+    for idx, slug in enumerate(slugs, 1):
+        print(f"[{idx}/{len(slugs)}] ▶ Scraping slug: {slug}", flush=True)
 
-    def handle_request(request):
-        url = request.url
-        # tangkap dua-duanya: request langsung ke .m3u8, dan wrapper player?link=
-        if ".m3u8" in url or "player?link=" in url:
-            m3u8_links.append(url)
+        try:
+            # Pertama coba dengan requests biasa
+            r = requests.get(f"{BASE_URL}/match/{slug}", headers=HEADERS, timeout=15)
+            r.raise_for_status()
 
-    page.on("request", handle_request)
+            # Ekstrak m3u8 dari halaman HTML
+            m3u8_urls = extract_m3u8_urls(r.text)
 
-    try:
-        await page.goto(f"{BASE_URL}/match/{slug}", timeout=30000, wait_until="domcontentloaded")
-        await page.wait_for_timeout(5000)
+            # Fallback ke iframe player jika belum ketemu
+            if not m3u8_urls:
+                soup = BeautifulSoup(r.text, "html.parser")
+                iframe = soup.select_one("iframe[src*='link=']")
+                if iframe:
+                    m3u8_encoded = parse_qs(
+                        urlparse(urljoin(BASE_URL, iframe["src"])).query
+                    ).get("link", [""])[0]
+                    m3u8_url = unquote(m3u8_encoded)
+                    if ".m3u8" in m3u8_url:
+                        m3u8_urls.append(m3u8_url)
 
-        if m3u8_links:
-            return slug, clean_m3u8_links(m3u8_links, keep_encoded=keep_encoded)
+            # Jika masih belum ketemu, gunakan Playwright
+            if not m3u8_urls:
+                m3u8_urls = extract_m3u8_with_playwright(slug)
 
-        # fallback: cari iframe player?link=
-        html = await page.content()
-        soup = BeautifulSoup(html, "html.parser")
-        iframe = soup.select_one("iframe[src*='player?link=']")
-        if iframe:
-            src = urljoin(BASE_URL, iframe["src"])
-            iframe_page = await context.new_page()
-            iframe_page.on("request", handle_request)
-            try:
-                await iframe_page.goto(src, timeout=30000, wait_until="domcontentloaded")
-                await iframe_page.wait_for_timeout(5000)
+            # Bersihkan URL sebelum disimpan
+            m3u8_urls = clean_m3u8_links(m3u8_urls, keep_encoded=False)
 
-                if not m3u8_links:
-                    # parse langsung dari URL iframe
-                    parsed = parse_player_link(src, keep_encoded=keep_encoded)
-                    if ".m3u8" in parsed:
-                        m3u8_links.append(parsed)
-            finally:
-                await iframe_page.close()
-
-    except Exception as e:
-        print(f"   ❌ Error buka {slug}: {e}")
-    finally:
-        await page.close()
-
-    return slug, clean_m3u8_links(m3u8_links, keep_encoded=keep_encoded)
-
-# ========= Jalankan semua slug parallel =========
-async def fetch_all_parallel(slugs, concurrency=5, keep_encoded=True):
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        context = await browser.new_context(user_agent=USER_AGENT)
-
-        semaphore = asyncio.Semaphore(concurrency)
-
-        async def sem_task(slug):
-            async with semaphore:
-                return await fetch_m3u8_with_playwright(context, slug, keep_encoded=keep_encoded)
-
-        tasks = [sem_task(slug) for slug in slugs]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-
-        await browser.close()
-
-        all_data = {}
-        for slug_result in results:
-            if isinstance(slug_result, Exception):
-                print(f"❌ Error di task: {slug_result}")
-                continue
-
-            slug, urls = slug_result
-            if urls:
-                if len(urls) == 1:
+            # Simpan hasil
+            if m3u8_urls:
+                if len(m3u8_urls) == 1:
                     # hanya 1 server → slug polos
-                    all_data[slug] = urls[0]
-                    print(f"   ✅ M3U8 ditemukan: {urls[0]}", flush=True)
+                    new_data[slug] = m3u8_urls[0]
+                    print(f"   ✅ M3U8 ditemukan: {m3u8_urls[0]}", flush=True)
                 else:
                     # server1 → slug polos
-                    all_data[slug] = urls[0]
-                    print(f"   ✅ M3U8 ditemukan (server1): {urls[0]}", flush=True)
+                    new_data[slug] = m3u8_urls[0]
+                    print(f"   ✅ M3U8 ditemukan (server1): {m3u8_urls[0]}", flush=True)
 
                     # server2,3,... → slugserver2, slugserver3, dst.
-                    for i, url in enumerate(urls[1:], start=2):
+                    for i, url in enumerate(m3u8_urls[1:], start=2):
                         key = f"{slug}server{i}"
-                        all_data[key] = url
+                        new_data[key] = url
                         print(f"   ✅ M3U8 ditemukan (server{i}): {url}", flush=True)
             else:
                 print(f"   ⚠️ Tidak ditemukan .m3u8 pada slug: {slug}", flush=True)
 
-        return all_data
-        
-# ========= Simpan ke map2.json =========
-def save_map_file(data):
+        except Exception as e:
+            print(f"   ❌ Error saat proses slug '{slug}': {e}", flush=True)
+
+    # Simpan hanya data baru yang berhasil
     with MAP_FILE.open("w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
-    print(f"✅ map2.json berhasil disimpan! Total entri: {len(data)}")
+        json.dump(new_data, f, indent=2, ensure_ascii=False)
+
+    print(f"✅ map2.json berhasil disimpan! Total entri berhasil: {len(new_data)}")
 
 # ===== MAIN =====
 if __name__ == "__main__":
@@ -235,6 +326,4 @@ if __name__ == "__main__":
 
     html = html_path.read_text(encoding="utf-8")
     slug_list = extract_slugs_from_html(html)
-
-    all_data = asyncio.run(fetch_all_parallel(slug_list, concurrency=8, keep_encoded=True))
-    save_map_file(all_data)
+    save_to_map(slug_list)
