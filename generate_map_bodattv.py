@@ -114,7 +114,11 @@ async def fetch_m3u8_with_playwright(context, slug):
                     extra_params = {k: v for k, v in qs.items() if k != "link"}
                     if extra_params:
                         from urllib.parse import urlencode
-                        decoded += "&" + urlencode(extra_params, doseq=True)
+                        query_str = urlencode(extra_params, doseq=True)
+                        if "?" in decoded:
+                            decoded += "&" + query_str
+                        else:
+                            decoded += "?" + query_str
 
                     if ".m3u8" in decoded:
                         m3u8_links.append(decoded)
