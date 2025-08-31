@@ -116,7 +116,7 @@ def find_working_proxy(embed_url, proxies):
 
 # --------------- Main Logic -----------------
 
-async def main(limit_matches=15, apply_time_filter=True):
+async def main(limit_matches=20, apply_time_filter=True):
     res = requests.get(MATCHES_URL, headers=HEADERS, timeout=15)
     matches = res.json()
 
