@@ -1,7 +1,9 @@
 name: ⏰ Update Streamnya Map
 
 on:
-  workflow_dispatch:
+  schedule:
+    - cron: "0 * * * *"   # jalan setiap 1 jam
+  workflow_dispatch:       # bisa run manual juga
 
 jobs:
   update-map:
