@@ -6,7 +6,6 @@ from pathlib import Path
 import re
 import json
 from urllib.parse import urlparse, parse_qs, unquote, urljoin
-import urllib.parse
 from playwright.async_api import async_playwright
 
 # ========= Konfigurasi =========
@@ -28,7 +27,6 @@ if not CONFIG_FILE.exists():
 config = load_config(CONFIG_FILE)
 BASE_URL = config["BASE_URL"]
 USER_AGENT = config["USER_AGENT"]
-
 now = datetime.now(tz.gettz("Asia/Jakarta"))
 
 # ========= Ambil daftar slug =========
@@ -83,61 +81,80 @@ def extract_slugs_from_html(html, hours_threshold=2):
     print(f"📦 Total slug valid: {len(slugs)}")
     return slugs
 
-# ========= Playwright fetch m3u8 =========
-async def fetch_m3u8_with_playwright(slug):
+# ========= Playwright fetch m3u8 per slug =========
+async def fetch_m3u8_with_playwright(context, slug):
+    page = await context.new_page()
+    m3u8_links = []
+
+    def handle_request(request):
+        if ".m3u8" in request.url:
+            m3u8_links.append(request.url)
+
+    page.on("request", handle_request)
+
+    try:
+        await page.goto(f"{BASE_URL}/match/{slug}", timeout=30000)
+        await page.wait_for_timeout(6000)  # tunggu JS jalan
+
+        # fallback: ambil dari iframe player?link=
+        if not m3u8_links:
+            html = await page.content()
+            soup = BeautifulSoup(html, "html.parser")
+            iframe = soup.select_one("iframe[src*='player?link=']")
+            if iframe:
+                src = iframe["src"]
+                parsed = urlparse(urljoin(BASE_URL, src))
+                qs = parse_qs(parsed.query)
+                if "link" in qs:
+                    raw_link = qs["link"][0]
+                    decoded = unquote(raw_link)
+                    if ".m3u8" in decoded:
+                        m3u8_links.append(decoded)
+    except Exception as e:
+        print(f"   ❌ Error buka {slug}: {e}")
+
+    await page.close()
+    return slug, list(set(m3u8_links))
+
+# ========= Jalankan semua slug parallel =========
+async def fetch_all_parallel(slugs, concurrency=5):
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         context = await browser.new_context(user_agent=USER_AGENT)
-        page = await context.new_page()
 
-        m3u8_links = []
+        # batasi concurrency
+        semaphore = asyncio.Semaphore(concurrency)
 
-        def handle_request(request):
-            if ".m3u8" in request.url:
-                print(f"   🎯 Ketangkap: {request.url}")
-                m3u8_links.append(request.url)
+        async def sem_task(slug):
+            async with semaphore:
+                return await fetch_m3u8_with_playwright(context, slug)
 
-        page.on("request", handle_request)
-
-        try:
-            await page.goto(f"{BASE_URL}/match/{slug}", timeout=25000)
-            await page.wait_for_timeout(6000)  # tunggu JS jalan
-        except Exception as e:
-            print(f"   ❌ Error buka {slug}: {e}")
+        tasks = [sem_task(slug) for slug in slugs]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
 
         await browser.close()
-        return list(set(m3u8_links))
 
-# ========= Simpan ke MAP pakai Playwright =========
-async def save_to_map(slugs):
-    new_data = {}
-
-    for idx, slug in enumerate(slugs, 1):
-        print(f"[{idx}/{len(slugs)}] ▶ Scraping slug: {slug}", flush=True)
-        try:
-            m3u8_urls = await fetch_m3u8_with_playwright(slug)
-
-            if m3u8_urls:
-                if len(m3u8_urls) == 1:
-                    new_data[slug] = m3u8_urls[0]
-                    print(f"   ✅ M3U8 ditemukan: {m3u8_urls[0]}", flush=True)
+        all_data = {}
+        for result in results:
+            if isinstance(result, Exception):
+                print(f"❌ Error di task: {result}")
+                continue
+            slug, urls = result
+            if urls:
+                if len(urls) == 1:
+                    all_data[slug] = urls[0]
                 else:
-                    new_data[slug] = m3u8_urls[0]
-                    print(f"   ✅ M3U8 server1: {m3u8_urls[0]}", flush=True)
-                    for i, url in enumerate(m3u8_urls[1:], start=2):
+                    all_data[slug] = urls[0]
+                    for i, url in enumerate(urls[1:], start=2):
                         key = f"{slug}server{i}"
-                        new_data[key] = url
-                        print(f"   ✅ M3U8 server{i}: {url}", flush=True)
-            else:
-                print(f"   ⚠️ Tidak ditemukan .m3u8 di {slug}", flush=True)
+                        all_data[key] = url
+        return all_data
 
-        except Exception as e:
-            print(f"   ❌ Error slug '{slug}': {e}", flush=True)
-
+# ========= Simpan ke map2.json =========
+def save_map_file(data):
     with MAP_FILE.open("w", encoding="utf-8") as f:
-        json.dump(new_data, f, indent=2, ensure_ascii=False)
-
-    print(f"✅ map2.json berhasil disimpan! Total entri: {len(new_data)}")
+        json.dump(data, f, indent=2, ensure_ascii=False)
+    print(f"✅ map2.json berhasil disimpan! Total entri: {len(data)}")
 
 # ===== MAIN =====
 if __name__ == "__main__":
@@ -147,4 +164,5 @@ if __name__ == "__main__":
 
     html = html_path.read_text(encoding="utf-8")
     slug_list = extract_slugs_from_html(html)
-    asyncio.run(save_to_map(slug_list))
+    all_data = asyncio.run(fetch_all_parallel(slug_list, concurrency=8))
+    save_map_file(all_data)
