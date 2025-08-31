@@ -3,6 +3,7 @@ import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from zoneinfo import ZoneInfo  # Python 3.9+
 from pathlib import Path
+from urllib.parse import quote  # ✅ untuk encode slug
 
 # Path ke file config
 CONFIG_FILE = Path.home() / "sterame3data_file.txt"
@@ -94,12 +95,13 @@ def main(apply_time_filter=True):
                 stream_no = 1  # pastikan server tetap 1
 
             server_name = f"{source_type} server {stream_no}"
-            slug = f"{source_type}/{stream['id']}/{stream_no}"
+            slug_raw = f"{source_type}/{stream['id']}/{stream_no}"
+            slug_encoded = quote(slug_raw, safe="")  # ✅ encode slug
 
             playlist += (
                 f'#EXTINF:-1 tvg-logo="{LOGO_URL}" group-title="⚽️| LIVE EVENT",{match_time_str}  {display_title} {server_name}\n'
                 f"{VLC_OPTS}"
-                f"{WORKER_URL.format(slug)}\n\n"
+                f"{WORKER_URL.format(slug_encoded)}\n\n"   # ✅ gunakan encoded slug
             )
 
     with open("schedule_today.m3u", "w", encoding="utf-8") as f:
