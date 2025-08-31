@@ -28,7 +28,7 @@ EXEMPT_CATEGORIES = ["fight", "motor-sports", "tennis"]
 # --------------- Utils -----------------
 
 def load_proxies():
-    """Ambil list proxy dari GitHub"""
+    """Ambil list proxy """
     try:
         resp = requests.get(PROXY_LIST_URL, timeout=15)
         resp.raise_for_status()
