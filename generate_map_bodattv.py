@@ -96,7 +96,7 @@ async def fetch_m3u8_with_playwright(context, slug):
         await page.goto(f"{BASE_URL}/match/{slug}", timeout=30000)
         await page.wait_for_timeout(6000)  # tunggu JS jalan
 
-        # fallback: ambil dari iframe player?link=
+        # fallback: cari iframe player?link=
         if not m3u8_links:
             html = await page.content()
             soup = BeautifulSoup(html, "html.parser")
@@ -105,16 +105,27 @@ async def fetch_m3u8_with_playwright(context, slug):
                 src = iframe["src"]
                 parsed = urlparse(urljoin(BASE_URL, src))
                 qs = parse_qs(parsed.query)
+
                 if "link" in qs:
                     raw_link = qs["link"][0]
                     decoded = unquote(raw_link)
+
+                    # tambahkan param tambahan selain 'link'
+                    extra_params = {k: v for k, v in qs.items() if k != "link"}
+                    if extra_params:
+                        from urllib.parse import urlencode
+                        decoded += "&" + urlencode(extra_params, doseq=True)
+
                     if ".m3u8" in decoded:
                         m3u8_links.append(decoded)
+
     except Exception as e:
         print(f"   ❌ Error buka {slug}: {e}")
 
     await page.close()
-    return slug, list(set(m3u8_links))
+    # pastikan hasil unique dan tidak ada url 'player?link='
+    cleaned = [u for u in set(m3u8_links) if "player?link=" not in u]
+    return slug, cleaned
 
 # ========= Jalankan semua slug parallel =========
 async def fetch_all_parallel(slugs, concurrency=5):
