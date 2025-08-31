@@ -195,23 +195,32 @@ async def fetch_all_parallel(slugs, concurrency=5, keep_encoded=True):
         await browser.close()
 
         all_data = {}
-        for result in results:
-            if isinstance(result, Exception):
-                print(f"❌ Error di task: {result}")
+        for slug_result in results:
+            if isinstance(slug_result, Exception):
+                print(f"❌ Error di task: {slug_result}")
                 continue
 
-            slug, urls = result
+            slug, urls = slug_result
             if urls:
-                for i, url in enumerate(urls, start=1):
-                    if i == 1:
-                        key = slug        # server1 → slug polos
-                    else:
+                if len(urls) == 1:
+                    # hanya 1 server → slug polos
+                    all_data[slug] = urls[0]
+                    print(f"   ✅ M3U8 ditemukan: {urls[0]}", flush=True)
+                else:
+                    # server1 → slug polos
+                    all_data[slug] = urls[0]
+                    print(f"   ✅ M3U8 ditemukan (server1): {urls[0]}", flush=True)
+
+                    # server2,3,... → slugserver2, slugserver3, dst.
+                    for i, url in enumerate(urls[1:], start=2):
                         key = f"{slug}server{i}"
-                    all_data[key] = url
-                    print(f"   ✅ {key}: {url}", flush=True)
+                        all_data[key] = url
+                        print(f"   ✅ M3U8 ditemukan (server{i}): {url}", flush=True)
+            else:
+                print(f"   ⚠️ Tidak ditemukan .m3u8 pada slug: {slug}", flush=True)
 
         return all_data
-
+        
 # ========= Simpan ke map2.json =========
 def save_map_file(data):
     with MAP_FILE.open("w", encoding="utf-8") as f:
