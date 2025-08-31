@@ -107,26 +107,34 @@ def extract_slugs_from_html(html, hours_threshold=2):
     return slugs
 
 # ========= Playwright fetch m3u8 per slug =========
+def clean_m3u8_links(urls):
+    cleaned = []
+    for u in set(urls):
+        if "player?link=" in u:
+            u = parse_player_link(u)
+        if ".m3u8" in u:
+            cleaned.append(u)
+    return cleaned
+
+
 async def fetch_m3u8_with_playwright(context, slug):
     page = await context.new_page()
     m3u8_links = []
 
     def handle_request(request):
-        if ".m3u8" in request.url:
+        if ".m3u8" in request.url or "player?link=" in request.url:
             m3u8_links.append(request.url)
 
     page.on("request", handle_request)
 
     try:
         await page.goto(f"{BASE_URL}/match/{slug}", timeout=30000, wait_until="domcontentloaded")
-        await page.wait_for_timeout(5000)  # biar JS sempat jalan
+        await page.wait_for_timeout(5000)
 
-        # kalau sudah dapat dari request interception, langsung return
         if m3u8_links:
             await page.close()
-            return slug, list(set(m3u8_links))
+            return slug, clean_m3u8_links(m3u8_links)
 
-        # fallback: cari iframe player?link=
         html = await page.content()
         soup = BeautifulSoup(html, "html.parser")
         iframe = soup.select_one("iframe[src*='player?link=']")
@@ -134,36 +142,17 @@ async def fetch_m3u8_with_playwright(context, slug):
             src = urljoin(BASE_URL, iframe["src"])
             iframe_page = await context.new_page()
             iframe_page.on("request", handle_request)
-
             try:
                 await iframe_page.goto(src, timeout=30000, wait_until="domcontentloaded")
                 await iframe_page.wait_for_timeout(5000)
-
-                # kalau masih belum ketemu, coba parse langsung link= dari query
                 if not m3u8_links:
-                    clean_url = parse_player_link(src)
-                    if ".m3u8" in clean_url:
-                        m3u8_links.append(clean_url)
-
-            except Exception as e:
-                print(f"   ❌ Error buka iframe {src}: {e}")
+                    m3u8_links.append(parse_player_link(src))
             finally:
                 await iframe_page.close()
-
-    except Exception as e:
-        print(f"   ❌ Error buka {slug}: {e}")
     finally:
         await page.close()
 
-    # bersihkan hasil → parse semua player?link= jadi m3u8 langsung
-    cleaned = []
-    for u in set(m3u8_links):
-        if "player?link=" in u:
-            u = parse_player_link(u)
-        if ".m3u8" in u:
-            cleaned.append(u)
-
-    return slug, cleaned
+    return slug, clean_m3u8_links(m3u8_links)
 
 # ========= Jalankan semua slug parallel =========
 async def fetch_all_parallel(slugs, concurrency=5):
