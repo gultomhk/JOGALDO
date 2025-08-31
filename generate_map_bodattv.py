@@ -36,19 +36,20 @@ now = datetime.now(tz.gettz("Asia/Jakarta"))
 
 # ========= Fungsi Ekstraksi M3U8 =========
 def extract_m3u8_urls(html):
-    """Ekstrak URL m3u8 dari HTML dengan berbagai metode"""
+    """Ekstrak URL m3u8 dari HTML dengan query string penuh"""
     soup = BeautifulSoup(html, "html.parser")
     data_links = soup.select("[data-link]")
     m3u8_urls = []
 
     for tag in data_links:
         raw = tag.get("data-link", "")
-        if raw.endswith(".m3u8") and raw.startswith("http"):
+        if ".m3u8" in raw and raw.startswith("http"):
+            # simpan URL utuh (termasuk ?auth_key=...)
             print(f"   🔗 Data-link langsung: ✅ {raw}")
             m3u8_urls.append(raw)
         elif "/player?link=" in raw:
             decoded = urllib.parse.unquote(raw)
-            if decoded.endswith(".m3u8") and decoded.startswith("http"):
+            if ".m3u8" in decoded and decoded.startswith("http"):
                 print(f"   🔗 Dari iframe: ✅ {decoded}")
                 m3u8_urls.append(decoded)
             else:
@@ -129,7 +130,6 @@ def extract_slugs_from_html(html, hours_threshold=2):
 
 # ========= Simpan ke MAP =========
 def save_to_map(slugs):
-
     new_data = {}
 
     for idx, slug in enumerate(slugs, 1):
@@ -147,25 +147,20 @@ def save_to_map(slugs):
                 soup = BeautifulSoup(r.text, "html.parser")
                 iframe = soup.select_one("iframe[src*='link=']")
                 if iframe:
-                    m3u8_encoded = parse_qs(
-                        urlparse(urljoin(BASE_URL, iframe["src"])).query
-                    ).get("link", [""])[0]
-                    m3u8_url = unquote(m3u8_encoded)
-                    if ".m3u8" in m3u8_url:
-                        m3u8_urls.append(m3u8_url)
+                    iframe_url = urljoin(BASE_URL, iframe["src"])
+                    decoded = unquote(iframe_url)
+                    if ".m3u8" in decoded:
+                        m3u8_urls.append(decoded)
 
             # Simpan hasil
             if m3u8_urls:
                 if len(m3u8_urls) == 1:
-                    # hanya 1 server → slug polos
                     new_data[slug] = m3u8_urls[0]
                     print(f"   ✅ M3U8 ditemukan: {m3u8_urls[0]}", flush=True)
                 else:
-                    # server1 → slug polos
                     new_data[slug] = m3u8_urls[0]
                     print(f"   ✅ M3U8 ditemukan (server1): {m3u8_urls[0]}", flush=True)
 
-                    # server2,3,... → slugserver2, slugserver3, dst.
                     for i, url in enumerate(m3u8_urls[1:], start=2):
                         key = f"{slug}server{i}"
                         new_data[key] = url
