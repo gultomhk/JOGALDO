@@ -5,7 +5,7 @@ from dateutil import tz
 from pathlib import Path
 import re
 import json
-from urllib.parse import urlparse, parse_qs, unquote, urljoin
+from urllib.parse import urlparse, parse_qs, unquote, urljoin, urlencode
 from playwright.async_api import async_playwright
 
 # ========= Konfigurasi =========
@@ -29,30 +29,33 @@ BASE_URL = config["BASE_URL"]
 USER_AGENT = config["USER_AGENT"]
 now = datetime.now(tz.gettz("Asia/Jakarta"))
 
-# ========= Parser player?link= → m3u8 =========
-def parse_player_link(url: str) -> str:
+# ========= Parser player?link= → nilai link (ENCODED) + extra params =========
+def parse_player_link(url: str, keep_encoded: bool = True) -> str:
     parsed = urlparse(url)
     qs = parse_qs(parsed.query)
 
     if "link" not in qs:
         return url  # bukan format player
 
-    raw_link = qs["link"][0]
-    decoded = unquote(raw_link)
+    # ambil nilai 'link' persis (encoded string)
+    encoded_link_value = qs["link"][0]
 
-    # tambahkan query tambahan selain 'link'
-    extras = []
-    for k, v in qs.items():
-        if k != "link":
-            for item in v:
-                extras.append(f"{k}={item}")
-    if extras:
-        if "?" in decoded:
-            decoded += "&" + "&".join(extras)
-        else:
-            decoded += "?" + "&".join(extras)
+    # gabungkan semua param tambahan selain 'link'
+    extras = {k: v for k, v in qs.items() if k != "link"}
+    extra_str = urlencode(extras, doseq=True) if extras else ""
 
-    return decoded
+    if keep_encoded:
+        # hasilnya tetap encoded seperti contohmu
+        return encoded_link_value + (("&" + extra_str) if extra_str else "")
+    else:
+        # decode jadi URL https://... lalu tempel param ekstra
+        decoded = unquote(encoded_link_value)
+        if extra_str:
+            if "?" in decoded:
+                decoded += "&" + extra_str
+            else:
+                decoded += "?" + extra_str
+        return decoded
 
 # ========= Ambil daftar slug =========
 def extract_slug(row):
@@ -80,7 +83,7 @@ def extract_slugs_from_html(html, hours_threshold=2):
             if not slug or slug in seen:
                 continue
 
-            # cek waktu match
+            # ⏰ Ambil timestamp pertandingan
             waktu_tag = row.select_one(".match-time")
             if waktu_tag and waktu_tag.get("data-timestamp"):
                 timestamp = int(waktu_tag["data-timestamp"])
@@ -89,11 +92,21 @@ def extract_slugs_from_html(html, hours_threshold=2):
             else:
                 event_time_local = now
 
-            # cek live
+            # 🔴 Cek apakah sedang live
             is_live = row.select_one(".live-text") is not None
 
+            # ⏩ Skip jika lewat waktu threshold & bukan live
             if not is_live and event_time_local < (now - timedelta(hours=hours_threshold)):
                 print(f"⏩ Lewat waktu & bukan live, skip: {slug}")
+                continue
+
+            # 🚫 Optional pengecualian kategori
+            slug_lower = slug.lower()
+            is_exception = any(
+                keyword in slug_lower
+                for keyword in ["tennis", "billiards", "snooker", "worldssp", "superbike"]
+            )
+            if not is_live and not is_exception and event_time_local < (now - timedelta(hours=hours_threshold)):
                 continue
 
             seen.add(slug)
@@ -106,24 +119,27 @@ def extract_slugs_from_html(html, hours_threshold=2):
     print(f"📦 Total slug valid: {len(slugs)}")
     return slugs
 
-# ========= Playwright fetch m3u8 per slug =========
-def clean_m3u8_links(urls):
+# ========= Pembersih hasil URL =========
+def clean_m3u8_links(urls, keep_encoded=True):
     cleaned = []
     for u in set(urls):
         if "player?link=" in u:
-            u = parse_player_link(u)
+            u = parse_player_link(u, keep_encoded=keep_encoded)  # pakai parser kita
+            # encoded string masih mengandung ".m3u8" sebagai teks, jadi tetap lolos filter
         if ".m3u8" in u:
             cleaned.append(u)
     return cleaned
 
-
-async def fetch_m3u8_with_playwright(context, slug):
+# ========= Playwright fetch m3u8 per slug =========
+async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
     page = await context.new_page()
     m3u8_links = []
 
     def handle_request(request):
-        if ".m3u8" in request.url or "player?link=" in request.url:
-            m3u8_links.append(request.url)
+        url = request.url
+        # tangkap dua-duanya: request langsung ke .m3u8, dan wrapper player?link=
+        if ".m3u8" in url or "player?link=" in url:
+            m3u8_links.append(url)
 
     page.on("request", handle_request)
 
@@ -132,9 +148,9 @@ async def fetch_m3u8_with_playwright(context, slug):
         await page.wait_for_timeout(5000)
 
         if m3u8_links:
-            await page.close()
-            return slug, clean_m3u8_links(m3u8_links)
+            return slug, clean_m3u8_links(m3u8_links, keep_encoded=keep_encoded)
 
+        # fallback: cari iframe player?link=
         html = await page.content()
         soup = BeautifulSoup(html, "html.parser")
         iframe = soup.select_one("iframe[src*='player?link=']")
@@ -145,27 +161,33 @@ async def fetch_m3u8_with_playwright(context, slug):
             try:
                 await iframe_page.goto(src, timeout=30000, wait_until="domcontentloaded")
                 await iframe_page.wait_for_timeout(5000)
+
                 if not m3u8_links:
-                    m3u8_links.append(parse_player_link(src))
+                    # parse langsung dari URL iframe
+                    parsed = parse_player_link(src, keep_encoded=keep_encoded)
+                    if ".m3u8" in parsed:
+                        m3u8_links.append(parsed)
             finally:
                 await iframe_page.close()
+
+    except Exception as e:
+        print(f"   ❌ Error buka {slug}: {e}")
     finally:
         await page.close()
 
-    return slug, clean_m3u8_links(m3u8_links)
+    return slug, clean_m3u8_links(m3u8_links, keep_encoded=keep_encoded)
 
 # ========= Jalankan semua slug parallel =========
-async def fetch_all_parallel(slugs, concurrency=5):
+async def fetch_all_parallel(slugs, concurrency=5, keep_encoded=True):
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         context = await browser.new_context(user_agent=USER_AGENT)
 
-        # batasi concurrency
         semaphore = asyncio.Semaphore(concurrency)
 
         async def sem_task(slug):
             async with semaphore:
-                return await fetch_m3u8_with_playwright(context, slug)
+                return await fetch_m3u8_with_playwright(context, slug, keep_encoded=keep_encoded)
 
         tasks = [sem_task(slug) for slug in slugs]
         results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -202,5 +224,6 @@ if __name__ == "__main__":
 
     html = html_path.read_text(encoding="utf-8")
     slug_list = extract_slugs_from_html(html)
-    all_data = asyncio.run(fetch_all_parallel(slug_list, concurrency=8))
+
+    all_data = asyncio.run(fetch_all_parallel(slug_list, concurrency=8, keep_encoded=True))
     save_map_file(all_data)
