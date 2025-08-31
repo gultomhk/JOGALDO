@@ -22,7 +22,8 @@ jobs:
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install beautifulsoup4 python-dateutil requests
+          pip install beautifulsoup4 python-dateutil requests playwright
+          playwright install --with-deps chromium
 
       - name: Ambil Konfigurasi dari Repo Privat
         run: |
@@ -44,10 +45,6 @@ jobs:
             echo "✅ Tidak ada perubahan"
           else
             git commit -m "auto: update map2.json"
-
-            # Setelah commit lokal, tarik perubahan terbaru dari remote
             git pull --rebase origin master
-
-            # Push commit yang sudah direbase
             git push origin master
           fi
