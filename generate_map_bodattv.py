@@ -199,15 +199,17 @@ async def fetch_all_parallel(slugs, concurrency=5, keep_encoded=True):
             if isinstance(result, Exception):
                 print(f"❌ Error di task: {result}")
                 continue
+
             slug, urls = result
             if urls:
-                if len(urls) == 1:
-                    all_data[slug] = urls[0]
-                else:
-                    all_data[slug] = urls[0]
-                    for i, url in enumerate(urls[1:], start=2):
+                for i, url in enumerate(urls, start=1):
+                    if i == 1:
+                        key = slug        # server1 → slug polos
+                    else:
                         key = f"{slug}server{i}"
-                        all_data[key] = url
+                    all_data[key] = url
+                    print(f"   ✅ {key}: {url}", flush=True)
+
         return all_data
 
 # ========= Simpan ke map2.json =========
