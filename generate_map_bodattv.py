@@ -29,6 +29,31 @@ BASE_URL = config["BASE_URL"]
 USER_AGENT = config["USER_AGENT"]
 now = datetime.now(tz.gettz("Asia/Jakarta"))
 
+# ========= Parser player?link= → m3u8 =========
+def parse_player_link(url: str) -> str:
+    parsed = urlparse(url)
+    qs = parse_qs(parsed.query)
+
+    if "link" not in qs:
+        return url  # bukan format player
+
+    raw_link = qs["link"][0]
+    decoded = unquote(raw_link)
+
+    # tambahkan query tambahan selain 'link'
+    extras = []
+    for k, v in qs.items():
+        if k != "link":
+            for item in v:
+                extras.append(f"{k}={item}")
+    if extras:
+        if "?" in decoded:
+            decoded += "&" + "&".join(extras)
+        else:
+            decoded += "?" + "&".join(extras)
+
+    return decoded
+
 # ========= Ambil daftar slug =========
 def extract_slug(row):
     if row.has_attr("onclick"):
@@ -116,13 +141,9 @@ async def fetch_m3u8_with_playwright(context, slug):
 
                 # kalau masih belum ketemu, coba parse langsung link= dari query
                 if not m3u8_links:
-                    parsed = urlparse(src)
-                    qs = parse_qs(parsed.query)
-                    if "link" in qs:
-                        raw_link = qs["link"][0]
-                        decoded = unquote(raw_link)
-                        if ".m3u8" in decoded:
-                            m3u8_links.append(decoded)
+                    clean_url = parse_player_link(src)
+                    if ".m3u8" in clean_url:
+                        m3u8_links.append(clean_url)
 
             except Exception as e:
                 print(f"   ❌ Error buka iframe {src}: {e}")
@@ -134,8 +155,14 @@ async def fetch_m3u8_with_playwright(context, slug):
     finally:
         await page.close()
 
-    # bersihkan hasil → hanya url .m3u8 valid
-    cleaned = [u for u in set(m3u8_links) if ".m3u8" in u]
+    # bersihkan hasil → parse semua player?link= jadi m3u8 langsung
+    cleaned = []
+    for u in set(m3u8_links):
+        if "player?link=" in u:
+            u = parse_player_link(u)
+        if ".m3u8" in u:
+            cleaned.append(u)
+
     return slug, cleaned
 
 # ========= Jalankan semua slug parallel =========
