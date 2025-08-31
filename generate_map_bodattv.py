@@ -7,6 +7,7 @@ import re
 import json
 from urllib.parse import urlparse, parse_qs, unquote, urljoin, urlencode
 from playwright.async_api import async_playwright
+from collections import defaultdict
 
 # ========= Konfigurasi =========
 CONFIG_FILE = Path.home() / "bodattvdata_file.txt"
@@ -30,7 +31,7 @@ USER_AGENT = config["USER_AGENT"]
 now = datetime.now(tz.gettz("Asia/Jakarta"))
 
 # ========= Parser player?link= → nilai link (ENCODED) + extra params =========
-def parse_player_link(url: str, keep_encoded: bool = True) -> str:
+def parse_player_link(url: str, keep_encoded: bool = False) -> str:
     parsed = urlparse(url)
     qs = parse_qs(parsed.query)
 
@@ -120,97 +121,105 @@ def extract_slugs_from_html(html, hours_threshold=2):
     return slugs
 
 # ========= Pembersih hasil URL =========
-def clean_m3u8_links(urls, keep_encoded=True):
+def clean_m3u8_links(urls, keep_encoded=False):
     cleaned = []
     for u in set(urls):
+        original_u = u
+        # Jika URL mengandung player?link=, parse untuk extract m3u8 dengan auth_key
         if "player?link=" in u:
             u = parse_player_link(u, keep_encoded=keep_encoded)
+            print(f"   🔄 Parsed player link: {original_u} -> {u}")
+        
+        # Pastikan URL mengandung .m3u8
         if ".m3u8" in u:
             cleaned.append(u)
     return cleaned
 
 # ========= Playwright fetch m3u8 per server =========
-async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
+async def fetch_m3u8_with_playwright(context, slug, keep_encoded=False):
     page = await context.new_page()
-    m3u8_links = []
     server_links = {}  # Dictionary untuk menyimpan link per server
+    server_counter = 1  # Counter untuk server yang ditemukan
+    domain_to_server = {}  # Mapping domain ke nomor server
 
     def handle_request(request):
+        nonlocal server_counter
         url = request.url
-        # Tangkap hanya request m3u8 yang mengandung auth_key
-        if ".m3u8" in url and "auth_key" in url:
-            # Identifikasi server berdasarkan domain atau pattern
-            server_name = "server1"  # Default
-            if "o2." in url:
-                server_name = "server2"
-            elif "o3." in url:
-                server_name = "server3"
-            elif "o4." in url:
-                server_name = "server4"
+        
+        # Tangkap request yang mengandung player?link= atau m3u8 langsung
+        if "player?link=" in url or (".m3u8" in url and "auth_key" in url):
+            # Parse URL untuk mendapatkan URL m3u8 lengkap dengan auth_key
+            if "player?link=" in url:
+                parsed_url = parse_player_link(url, keep_encoded=keep_encoded)
+            else:
+                parsed_url = url
             
-            # Simpan dengan key server yang berbeda
-            if server_name not in server_links:
-                server_links[server_name] = []
-            server_links[server_name].append(url)
-            print(f"   🔍 Terdeteksi {server_name}: {url}")
+            if ".m3u8" in parsed_url:
+                # Ekstrak domain dari URL
+                try:
+                    domain = urlparse(parsed_url).netloc
+                except:
+                    domain = "unknown"
+                
+                # Jika domain sudah pernah dilihat, gunakan nomor server yang sama
+                if domain in domain_to_server:
+                    server_name = f"server{domain_to_server[domain]}"
+                else:
+                    # Domain baru, beri nomor server baru
+                    server_name = f"server{server_counter}"
+                    domain_to_server[domain] = server_counter
+                    server_counter += 1
+                
+                server_links[server_name] = parsed_url
+                print(f"   🔍 Terdeteksi {server_name} ({domain}): {parsed_url}")
 
     page.on("request", handle_request)
 
     try:
         await page.goto(f"{BASE_URL}/match/{slug}", timeout=30000, wait_until="domcontentloaded")
-        await page.wait_for_timeout(8000)  # Tunggu lebih lama untuk menangkap semua request
+        await page.wait_for_timeout(10000)  # Tunggu lebih lama untuk menangkap semua request
 
-        # Klik semua tombol server yang tersedia
-        server_buttons = await page.query_selector_all("button, div[onclick*='server'], .server-btn, .stream-option")
+        # Coba klik semua elemen yang mungkin menjadi tombol server/quality
+        selectors_to_try = [
+            "button",
+            "div[onclick*='server']",
+            "div[onclick*='quality']",
+            "div[onclick*='stream']",
+            ".server-btn",
+            ".quality-btn",
+            ".stream-btn",
+            ".stream-option",
+            ".quality-option",
+            "[class*='server']",
+            "[class*='quality']",
+            "[class*='stream']"
+        ]
         
-        for i, button in enumerate(server_buttons):
+        for selector in selectors_to_try:
             try:
-                # Klik tombol server
-                await button.click()
-                await page.wait_for_timeout(3000)  # Tunggu request setelah klik
-                print(f"   🖱️ Diklik server button {i+1}")
+                buttons = await page.query_selector_all(selector)
+                for i, button in enumerate(buttons):
+                    try:
+                        # Klik tombol server/quality
+                        await button.click()
+                        await page.wait_for_timeout(2000)  # Tunggu request setelah klik
+                        print(f"   🖱️ Diklik {selector} #{i+1}")
+                    except Exception as e:
+                        # Skip error klik, lanjut ke tombol berikutnya
+                        continue
             except Exception as e:
-                print(f"   ⚠️ Gagal klik server button {i+1}: {e}")
-
-        # Jika tidak ada server buttons, coba cari iframe
-        if not server_links:
-            iframes = await page.query_selector_all("iframe[src*='player?link=']")
-            for iframe in iframes:
-                src = await iframe.get_attribute("src")
-                if src:
-                    full_url = urljoin(BASE_URL, src)
-                    parsed_url = parse_player_link(full_url, keep_encoded=keep_encoded)
-                    if ".m3u8" in parsed_url:
-                        # Identifikasi server
-                        server_name = "server1"
-                        if "o2." in parsed_url:
-                            server_name = "server2"
-                        elif "o3." in parsed_url:
-                            server_name = "server3"
-                        elif "o4." in parsed_url:
-                            server_name = "server4"
-                        
-                        if server_name not in server_links:
-                            server_links[server_name] = []
-                        server_links[server_name].append(parsed_url)
-                        print(f"   🔍 Iframe {server_name}: {parsed_url}")
+                # Skip error selector, lanjut ke selector berikutnya
+                continue
 
     except Exception as e:
         print(f"   ❌ Error buka {slug}: {e}")
     finally:
         await page.close()
 
-    # Kumpulkan semua link unik per server
-    final_links = []
-    for server_name, links in server_links.items():
-        if links:
-            # Ambil link pertama untuk setiap server (biasanya yang terbaik)
-            final_links.append(links[0])
-    
-    return slug, clean_m3u8_links(final_links, keep_encoded=keep_encoded)
+    return slug, server_links
 
 # ========= Jalankan semua slug parallel =========
-async def fetch_all_parallel(slugs, concurrency=5, keep_encoded=True):
+async def fetch_all_parallel(slugs, concurrency=5, keep_encoded=False):
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         context = await browser.new_context(user_agent=USER_AGENT)
@@ -232,24 +241,27 @@ async def fetch_all_parallel(slugs, concurrency=5, keep_encoded=True):
                 print(f"❌ Error di task: {slug_result}")
                 continue
 
-            slug, urls = slug_result
-            if urls:
-                if len(urls) == 1:
-                    # hanya 1 server → slug polos
-                    all_data[slug] = urls[0]
-                    print(f"   ✅ M3U8 ditemukan: {urls[0]}", flush=True)
-                else:
-                    # server1 → slug polos
-                    all_data[slug] = urls[0]
-                    print(f"   ✅ M3U8 ditemukan (server1): {urls[0]}", flush=True)
-
-                    # server2,3,... → slugserver2, slugserver3, dst.
-                    for i, url in enumerate(urls[1:], start=2):
-                        key = f"{slug}server{i}"
+            slug, server_urls = slug_result
+            if server_urls:
+                # Simpan semua server yang ditemukan
+                server_count = len(server_urls)
+                print(f"   ✅ Ditemukan {server_count} server untuk {slug}")
+                
+                # Urutkan server berdasarkan nomor (server1, server2, server3, dst.)
+                sorted_servers = sorted(server_urls.items(), key=lambda x: int(x[0].replace('server', '')))
+                
+                for i, (server_name, url) in enumerate(sorted_servers, 1):
+                    if i == 1:
+                        # Server pertama → slug polos
+                        all_data[slug] = url
+                        print(f"   ✅ M3U8 ditemukan ({server_name}): {url}")
+                    else:
+                        # Server lainnya → slugserver2, slugserver3, dst.
+                        key = f"{slug}{server_name}"
                         all_data[key] = url
-                        print(f"   ✅ M3U8 ditemukan (server{i}): {url}", flush=True)
+                        print(f"   ✅ M3U8 ditemukan ({server_name}): {url}")
             else:
-                print(f"   ⚠️ Tidak ditemukan .m3u8 pada slug: {slug}", flush=True)
+                print(f"   ⚠️ Tidak ditemukan .m3u8 pada slug: {slug}")
 
         return all_data
         
@@ -268,5 +280,5 @@ if __name__ == "__main__":
     html = html_path.read_text(encoding="utf-8")
     slug_list = extract_slugs_from_html(html)
 
-    all_data = asyncio.run(fetch_all_parallel(slug_list, concurrency=8, keep_encoded=True))
+    all_data = asyncio.run(fetch_all_parallel(slug_list, concurrency=8, keep_encoded=False))
     save_map_file(all_data)
