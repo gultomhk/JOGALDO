@@ -93,42 +93,49 @@ async def fetch_m3u8_with_playwright(context, slug):
     page.on("request", handle_request)
 
     try:
-        await page.goto(f"{BASE_URL}/match/{slug}", timeout=30000)
-        await page.wait_for_timeout(6000)  # tunggu JS jalan
+        await page.goto(f"{BASE_URL}/match/{slug}", timeout=30000, wait_until="domcontentloaded")
+        await page.wait_for_timeout(5000)  # biar JS sempat jalan
+
+        # kalau sudah dapat dari request interception, langsung return
+        if m3u8_links:
+            await page.close()
+            return slug, list(set(m3u8_links))
 
         # fallback: cari iframe player?link=
-        if not m3u8_links:
-            html = await page.content()
-            soup = BeautifulSoup(html, "html.parser")
-            iframe = soup.select_one("iframe[src*='player?link=']")
-            if iframe:
-                src = iframe["src"]
-                parsed = urlparse(urljoin(BASE_URL, src))
-                qs = parse_qs(parsed.query)
+        html = await page.content()
+        soup = BeautifulSoup(html, "html.parser")
+        iframe = soup.select_one("iframe[src*='player?link=']")
+        if iframe:
+            src = urljoin(BASE_URL, iframe["src"])
+            iframe_page = await context.new_page()
+            iframe_page.on("request", handle_request)
 
-                if "link" in qs:
-                    raw_link = qs["link"][0]
-                    decoded = unquote(raw_link)
+            try:
+                await iframe_page.goto(src, timeout=30000, wait_until="domcontentloaded")
+                await iframe_page.wait_for_timeout(5000)
 
-                    # tambahkan param tambahan selain 'link'
-                    extra_params = {k: v for k, v in qs.items() if k != "link"}
-                    if extra_params:
-                        from urllib.parse import urlencode
-                        query_str = urlencode(extra_params, doseq=True)
-                        if "?" in decoded:
-                            decoded += "&" + query_str
-                        else:
-                            decoded += "?" + query_str
+                # kalau masih belum ketemu, coba parse langsung link= dari query
+                if not m3u8_links:
+                    parsed = urlparse(src)
+                    qs = parse_qs(parsed.query)
+                    if "link" in qs:
+                        raw_link = qs["link"][0]
+                        decoded = unquote(raw_link)
+                        if ".m3u8" in decoded:
+                            m3u8_links.append(decoded)
 
-                    if ".m3u8" in decoded:
-                        m3u8_links.append(decoded)
+            except Exception as e:
+                print(f"   ❌ Error buka iframe {src}: {e}")
+            finally:
+                await iframe_page.close()
 
     except Exception as e:
         print(f"   ❌ Error buka {slug}: {e}")
+    finally:
+        await page.close()
 
-    await page.close()
-    # pastikan hasil unique dan tidak ada url 'player?link='
-    cleaned = [u for u in set(m3u8_links) if "player?link=" not in u]
+    # bersihkan hasil → hanya url .m3u8 valid
+    cleaned = [u for u in set(m3u8_links) if ".m3u8" in u]
     return slug, cleaned
 
 # ========= Jalankan semua slug parallel =========
