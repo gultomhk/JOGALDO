@@ -166,8 +166,10 @@ def clean_m3u8_links(urls, keep_encoded=True):
     return cleaned
 
 # ========= Playwright fetch m3u8 per slug (FINAL MULTI SERVER) =========
+# ========= Playwright fetch m3u8 per slug (FIX MULTI SERVER) =========
 async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
     async def process_page(url, wait_ms=12000):
+        """Buka 1 page/url, sniff semua response .m3u8 + player?link"""
         page_links = []
         page = await context.new_page()
 
@@ -183,57 +185,63 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
         page.on("response", handle_response)
 
         try:
-            await page.goto(url, timeout=30000, wait_until="networkidle")
+            await page.goto(url, timeout=30000, wait_until="domcontentloaded")
+            await page.wait_for_load_state("networkidle")
             await page.wait_for_timeout(2000)
 
-            # Klik semua tombol server
-            buttons = await page.query_selector_all(".list-server button[data-link]")
-            for btn in buttons:
-                try:
-                    await btn.scroll_into_view_if_needed()
-                    # klik + tunggu beberapa detik untuk m3u8 muncul
-                    await btn.click()
-                    for _ in range(int(wait_ms / 1000)):
-                        await asyncio.sleep(1)
-                except:
-                    continue
+            # Klik semua tombol server (kalau ada)
+            try:
+                buttons = await page.query_selector_all(".list-server button[data-link]")
+                for btn in buttons:
+                    try:
+                        await btn.scroll_into_view_if_needed()
+                        await btn.click()
+                        await asyncio.sleep(3)  # kasih waktu muncul .m3u8
+                    except:
+                        continue
+            except:
+                pass
 
-            # tunggu tambahan agar response .m3u8 muncul semua
-            await asyncio.sleep(2)
-
+            await asyncio.sleep(wait_ms / 1000)  # tambahan waktu sniff
         except Exception as e:
             print(f"   ❌ Error buka page {url}: {e}")
         finally:
-            await page.close()
+            try:
+                await page.close()
+            except:
+                pass
 
         return clean_m3u8_links(page_links, keep_encoded=keep_encoded)
 
     servers = []
-
     main_url = f"{BASE_URL}/match/{slug}"
+
+    # server1 (halaman utama)
     try:
         main_links = await process_page(main_url, wait_ms=8000)
         servers.extend(main_links)
     except Exception as e:
         print(f"   ❌ Error main slug {slug}: {e}")
 
-    # iframe player?link= (langsung tangkap response, jangan paksa page.content)
+    # cek iframe player?link= (sniff response langsung)
     try:
         page = await context.new_page()
-        page_links = []
+        iframe_links_all = []
 
         def handle_iframe_resp(response):
             resp_url = response.url
-            if ".m3u8" in resp_url and resp_url not in page_links:
-                page_links.append(resp_url)
+            if ".m3u8" in resp_url and resp_url not in iframe_links_all:
+                iframe_links_all.append(resp_url)
             elif "player?link=" in resp_url:
                 parsed = parse_player_link(resp_url, keep_encoded=keep_encoded)
-                if parsed not in page_links:
-                    page_links.append(parsed)
+                if parsed not in iframe_links_all:
+                    iframe_links_all.append(parsed)
 
         page.on("response", handle_iframe_resp)
-        await page.goto(main_url, timeout=30000, wait_until="networkidle")
-        await page.wait_for_timeout(3000)
+
+        await page.goto(main_url, timeout=30000, wait_until="domcontentloaded")
+        await page.wait_for_load_state("networkidle")
+        await page.wait_for_timeout(2000)
 
         soup = BeautifulSoup(await page.content(), "html.parser")
         iframes = soup.select("iframe[src*='player?link=']")
@@ -245,11 +253,13 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
                 servers.extend(links)
             except Exception as e:
                 print(f"   ❌ Error iframe slug {slug}: {e}")
-
     except Exception as e:
         print(f"   ❌ Error iframe main page slug {slug}: {e}")
     finally:
-        await page.close()
+        try:
+            await page.close()
+        except:
+            pass
 
     # hapus duplikat sambil jaga urutan
     seen = set()
