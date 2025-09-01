@@ -1,9 +1,6 @@
 {
-  "mlb/atlanta-braves-chicago-cubs-11/": "https://edgestreams.pro/hls/ijfnakfidch22.m3u8?st=oIAy4OVBIvkD-bGzhHZB2L9GdB0mWxNOf39xfZkh0ps&e=1756764551",
-  "mlb/philadelphia-phillies-milwaukee-brewers-8/": "https://edgestreams.pro/hls/jnzkdzjfanch23.m3u8?st=2FsVWtPdnkMrcxKSvZJbjTFGIgLnJ9-dVj2BoCsM6Fw&e=1756764559",
-  "mlb/san-francisco-giants-colorado-rockies-24/": "https://edgestreams.pro/hls/fskjanach24.m3u8?st=zhSJMxp8sKvHOs8e6WNn2dB0hWhy2AMLvKWpuyQHnrs&e=1756764562",
-  "mlb/baltimore-orioles-san-diego-padres-3/": "https://edgestreams.pro/hls/kjhfzua25.m3u8?st=EOMUnHoxCBITYQQkoFg4bZwkVK6mLFyHaqs8g0JGuP4&e=1756764564",
-  "mlb/seattle-mariners-tampa-bay-rays-13/": "https://edgestreams.pro/hls/dzjhkfazbka26.m3u8?st=0qZIC7yLOTDQK-aHGny1TF75ptwq1EZukKXnXFPU2Kk&e=1756764566",
-  "cfb/tcu-horned-frogs-north-carolina/": "https://edgestreams.pro/hls/JHDAJBDnjdna30.m3u8?st=nQ1j4uyYZ4flTJ7T4rvCSP3tvrnEs0OpDgALhI_DOQY&e=1756764568",
-  "mlb/texas-rangers-arizona-diamondbacks-11/": "https://edgestreams.pro/hls/jzabfazkbf27.m3u8?st=yhVQCOGB0q7boSh85-0vz1YIda0KdySsnjjRBq8VOKc&e=1756764582"
+  "mlb/baltimore-orioles-san-diego-padres-3/": "https://mainstreams.pro/hls/kjhfzua25.m3u8?st=tUYi5A8WQaJ9otajdaXHbFdk0Pwigz6Q9bhAGOBJKFw&e=1756768361",
+  "mlb/seattle-mariners-tampa-bay-rays-13/": "https://mainstreams.pro/hls/dzjhkfazbka26.m3u8?st=5QMsFA1fT7OqeqbSySyCpmmQZ0ADO8wZeG4oSOBKh-I&e=1756768364",
+  "cfb/tcu-horned-frogs-north-carolina/": "https://mainstreams.pro/hls/JHDAJBDnjdna30.m3u8?st=FUAhmaRIJTMSejAFtgDaC1h3n06fFJMA0Sr3hEyh3RE&e=1756768367",
+  "mlb/texas-rangers-arizona-diamondbacks-11/": "https://mainstreams.pro/hls/jzabfazkbf27.m3u8?st=UOYdvfSp9wnoy2AENAAvNVbU8ulJliAhpxf9raKKYwU&e=1756768381"
 }
