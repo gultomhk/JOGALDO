@@ -167,17 +167,15 @@ def clean_m3u8_links(urls, keep_encoded=True):
 
 # ========= Playwright fetch m3u8 per slug (FINAL MULTI SERVER) =========
 async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
-
     async def process_page(url, wait_ms=12000):
-        """Buka page, tangkap semua .m3u8, termasuk player?link="""
+        """Buka page, tangkap semua .m3u8, termasuk player?link"""
         page_links = []
         page = await context.new_page()
 
         def handle_response(response):
             resp_url = response.url
-            if ".m3u8" in resp_url:
-                if resp_url not in page_links:
-                    page_links.append(resp_url)
+            if ".m3u8" in resp_url and resp_url not in page_links:
+                page_links.append(resp_url)
             elif "player?link=" in resp_url:
                 parsed = parse_player_link(resp_url, keep_encoded=keep_encoded)
                 if parsed not in page_links:
@@ -187,15 +185,23 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
 
         try:
             await page.goto(url, timeout=30000, wait_until="networkidle")
-            await page.wait_for_timeout(wait_ms)  # tunggu player load
-            # klik semua tombol server jika ada
+            await page.wait_for_timeout(2000)
+
+            # klik semua tombol server satu per satu
             buttons = await page.query_selector_all(".list-server button[data-link]")
             for btn in buttons:
                 try:
+                    # scroll ke tombol (kadang perlu biar bisa diklik)
+                    await btn.scroll_into_view_if_needed()
                     await btn.click()
-                    await page.wait_for_timeout(4000)  # tunggu request m3u8
-                except:
+                    # tunggu request .m3u8 muncul maksimal wait_ms
+                    for _ in range(int(wait_ms / 1000)):
+                        await asyncio.sleep(1)
+                        if page_links:  # stop kalau sudah ada link baru
+                            break
+                except Exception:
                     continue
+
         except Exception as e:
             print(f"   ❌ Error buka page {url}: {e}")
         finally:
