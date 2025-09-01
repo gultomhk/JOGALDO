@@ -61,13 +61,11 @@ def extract_slugs_from_html(html, hours_threshold=2):
     slugs = []
     seen = set()
     now = datetime.now(tz=tz.gettz("Asia/Jakarta"))
-
     for row in matches:
         try:
             slug = extract_slug(row)
             if not slug or slug in seen:
                 continue
-
             waktu_tag = row.select_one(".match-time")
             if waktu_tag and waktu_tag.get("data-timestamp"):
                 timestamp = int(waktu_tag["data-timestamp"])
@@ -75,12 +73,9 @@ def extract_slugs_from_html(html, hours_threshold=2):
                 event_time_local = event_time_utc.astimezone(tz.gettz("Asia/Jakarta"))
             else:
                 event_time_local = now
-
             is_live = row.select_one(".live-text") is not None
-
             if not is_live and event_time_local < (now - timedelta(hours=hours_threshold)):
                 continue
-
             seen.add(slug)
             slugs.append(slug)
         except:
@@ -88,16 +83,12 @@ def extract_slugs_from_html(html, hours_threshold=2):
     return slugs
 
 def filter_valid_m3u8(urls):
-    valid = []
-    for u in urls:
-        if ".m3u8" in u and "404" not in u and "google.com" not in u and "adexchangeclear" not in u:
-            valid.append(u)
-    return valid
+    return [u for u in urls if ".m3u8" in u and "404" not in u and "google.com" not in u and "adexchangeclear" not in u]
 
 async def fetch_m3u8_from_page(context, url, keep_encoded=True):
-    page_links = []
+    page_links = set()
     page = await context.new_page()
-    page.on("response", lambda resp: page_links.append(resp.url) if ".m3u8" in resp.url else None)
+    page.on("response", lambda resp: page_links.add(resp.url) if ".m3u8" in resp.url else None)
     try:
         await page.goto(url, timeout=30000, wait_until="networkidle")
         await page.wait_for_timeout(4000)
@@ -111,16 +102,15 @@ async def fetch_m3u8_from_page(context, url, keep_encoded=True):
             u = parse_player_link(u, keep_encoded)
         final_links.append(u)
     final_links = filter_valid_m3u8(final_links)
-    return final_links[0] if final_links else None  # ambil 1 URL per source
+    return final_links  # ambil semua URL unik
 
 async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
     urls = []
     main_url = f"{BASE_URL}/match/{slug}"
-    first = await fetch_m3u8_from_page(context, main_url, keep_encoded)
-    if first:
-        urls.append(first)
+    first_links = await fetch_m3u8_from_page(context, main_url, keep_encoded)
+    urls.extend(first_links)
 
-    # semua iframe player?link=
+    # iframe player?link=
     page = await context.new_page()
     try:
         await page.goto(main_url, timeout=30000, wait_until="networkidle")
@@ -129,9 +119,10 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
         iframes = soup.select("iframe[src*='player?link=']")
         for iframe in iframes:
             iframe_src = urljoin(BASE_URL, iframe["src"])
-            link = await fetch_m3u8_from_page(context, iframe_src, keep_encoded)
-            if link and link not in urls:
-                urls.append(link)
+            iframe_links = await fetch_m3u8_from_page(context, iframe_src, keep_encoded)
+            for link in iframe_links:
+                if link not in urls:
+                    urls.append(link)
     except Exception as e:
         print(f"❌ Error iframe slug {slug}: {e}")
     finally:
@@ -150,11 +141,9 @@ async def fetch_all_parallel(slugs, concurrency=5, keep_encoded=True):
         browser = await p.chromium.launch(headless=True)
         context = await browser.new_context(user_agent=USER_AGENT)
         semaphore = asyncio.Semaphore(concurrency)
-
         async def sem_task(slug):
             async with semaphore:
                 return await fetch_m3u8_with_playwright(context, slug, keep_encoded)
-
         tasks = [sem_task(slug) for slug in slugs]
         results = await asyncio.gather(*tasks, return_exceptions=True)
         for r in results:
@@ -173,7 +162,6 @@ if __name__ == "__main__":
     html_path = Path("BODATTV_PAGE_SOURCE.html")
     if not html_path.exists():
         raise FileNotFoundError("❌ File HTML tidak ditemukan")
-
     html = html_path.read_text(encoding="utf-8")
     slug_list = extract_slugs_from_html(html)
     all_data = asyncio.run(fetch_all_parallel(slug_list, concurrency=8, keep_encoded=True))
