@@ -103,16 +103,6 @@ def extract_slugs_from_html(html, hours_threshold=2):
     print(f"📦 Total slug valid: {len(slugs)}")
     return slugs
 
-# ========= Pembersih hasil URL =========
-def clean_m3u8_links(urls, keep_encoded=True):
-    cleaned = []
-    for u in set(urls):
-        if "player?link=" in u:
-            u = parse_player_link(u, keep_encoded=keep_encoded)
-        if ".m3u8" in u:
-            cleaned.append(u)
-    return cleaned
-
 # ========= Filter URL murni =========
 def filter_valid_m3u8(urls):
     """Hanya ambil URL murni .m3u8, hapus /404 atau redirect ke Google/iklan"""
@@ -127,35 +117,37 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
     m3u8_links = []
 
     async def process_page(url):
-        page_links = []
+        page_links = set()
         page = await context.new_page()
 
-        def handle_request(request):
-            req_url = request.url
-            if ".m3u8" in req_url or "player?link=" in req_url:
-                page_links.append(req_url)
-
-        page.on("request", handle_request)
+        # Tangkap semua response .m3u8
+        page.on("response", lambda resp: page_links.add(resp.url) if ".m3u8" in resp.url else None)
 
         try:
-            await page.goto(url, timeout=30000, wait_until="domcontentloaded")
-            await page.wait_for_timeout(4000)
+            await page.goto(url, timeout=30000, wait_until="networkidle")
+            await page.wait_for_timeout(5000)  # tunggu JS/AJAX
         except Exception as e:
             print(f"   ❌ Error buka page {url}: {e}")
         finally:
             await page.close()
 
-        return clean_m3u8_links(page_links, keep_encoded=keep_encoded)
+        # parse player?link= jika masih ada
+        links = []
+        for u in page_links:
+            if "player?link=" in u:
+                u = parse_player_link(u, keep_encoded=keep_encoded)
+            links.append(u)
+        return filter_valid_m3u8(links)
 
-    # buka slug utama
+    # slug utama
     main_url = f"{BASE_URL}/match/{slug}"
     main_links = await process_page(main_url)
     m3u8_links.extend(main_links)
 
-    # fallback: semua iframe player?link= di halaman utama
+    # semua iframe player?link= di halaman utama
     try:
         page = await context.new_page()
-        await page.goto(main_url, timeout=30000, wait_until="domcontentloaded")
+        await page.goto(main_url, timeout=30000, wait_until="networkidle")
         html = await page.content()
         soup = BeautifulSoup(html, "html.parser")
         iframes = soup.select("iframe[src*='player?link=']")
@@ -168,9 +160,9 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
     finally:
         await page.close()
 
-    m3u8_links = list(dict.fromkeys(m3u8_links))
-    m3u8_links = filter_valid_m3u8(m3u8_links)
-    return slug, m3u8_links
+    # hapus duplikat & urutkan
+    unique_links = list(dict.fromkeys(m3u8_links))
+    return slug, unique_links
 
 # ========= Jalankan semua slug parallel =========
 async def fetch_all_parallel(slugs, concurrency=5, keep_encoded=True):
@@ -194,7 +186,6 @@ async def fetch_all_parallel(slugs, concurrency=5, keep_encoded=True):
                 continue
             slug, urls = slug_result
             if urls:
-                # pastikan server 1..n menggunakan URL valid yang sama jika perlu
                 for i, url in enumerate(urls, start=1):
                     key = slug if i == 1 else f"{slug}server{i}"
                     all_data[key] = url
