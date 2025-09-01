@@ -268,30 +268,36 @@ async def fetch_all_parallel(slugs, concurrency=5, keep_encoded=True):
 
         async def sem_task(slug):
             async with semaphore:
-                return await fetch_m3u8_with_playwright(context, slug, keep_encoded=keep_encoded)
+                try:
+                    return await fetch_m3u8_with_playwright(context, slug, keep_encoded=keep_encoded)
+                except Exception as e:
+                    print(f"❌ Error di slug {slug}: {e}")
+                    return None
 
         tasks = [sem_task(slug) for slug in slugs]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+        results = await asyncio.gather(*tasks, return_exceptions=False)
         await browser.close()
 
         all_data = {}
         for slug_result in results:
-            if isinstance(slug_result, Exception):
-                print(f"❌ Error di task: {slug_result}")
+            if not slug_result:
                 continue
             slug, urls = slug_result
             if urls:
+                # server1
                 all_data[slug] = urls[0]
                 print(f"   ✅ M3U8 ditemukan (server1): {urls[0]}", flush=True)
+
+                # server2..dst
                 for i, url in enumerate(urls[1:], start=2):
-                    key = f"{slug}server{i}"
+                    key = f"{slug} server{i}"
                     all_data[key] = url
                     print(f"   ✅ M3U8 ditemukan (server{i}): {url}", flush=True)
             else:
                 print(f"   ⚠️ Tidak ditemukan .m3u8 pada slug: {slug}", flush=True)
 
         return all_data
-
+		
 # ========= Simpan ke map2.json =========
 def save_map_file(data):
     with MAP_FILE.open("w", encoding="utf-8") as f:
