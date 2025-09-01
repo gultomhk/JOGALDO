@@ -1,12 +1,9 @@
 {
-  "mlb/los-angeles-angels-houston-astros-33/": "https://edgestreams.pro/hls/bzagLHzach19.m3u8?st=iU1nl3WIacwIArHM9k6FCAEpLpGxsvERM4vUWVcj77U&e=1756757415",
-  "mlb/chicago-white-sox-minnesota-twins-28/": "https://edgestreams.pro/hls/jkzahzadach20.m3u8?st=bzcq16CXupk2ZVOJJHqNXXvVHeEqmFBI3cR_6r0EM7o&e=1756757419",
-  "mlb/athletics-st-louis-cardinals/": "https://mainstreams.pro/hls/ojzkajnach21.m3u8?st=HgDyIPI7OnHBNLLcPehYc9m8QJ779vXSHl7IcBERAUg&e=1756757423",
-  "mlb/atlanta-braves-chicago-cubs-11/": "https://edgestreams.pro/hls/ijfnakfidch22.m3u8?st=u7hRXaeZZxRzn1LgDL1FcRVnKh-AumWfdGo2dzRupbg&e=1756757426",
-  "mlb/philadelphia-phillies-milwaukee-brewers-8/": "https://edgestreams.pro/hls/jnzkdzjfanch23.m3u8?st=nhfMjZJt30_-tc8D0pLgVMcNW53zi4HVfsVgD9ItlN8&e=1756757429",
-  "mlb/san-francisco-giants-colorado-rockies-24/": "https://edgestreams.pro/hls/fskjanach24.m3u8?st=R04YlsdUd7ZcJzKhvTu-RH9sG7FPokHWDf3dYSdDSp0&e=1756757433",
-  "mlb/baltimore-orioles-san-diego-padres-3/": "https://mainstreams.pro/hls/kjhfzua25.m3u8?st=VyCqrCTkSp6umM8AWYTUvCDHje8TQwoUK08xPdDwXb4&e=1756757435",
-  "mlb/seattle-mariners-tampa-bay-rays-13/": "https://edgestreams.pro/hls/dzjhkfazbka26.m3u8?st=5BpHe4YuXPKlBOromvRPQ6Q1npRH6Z6QdPVgPE4g-vo&e=1756757438",
-  "cfb/tcu-horned-frogs-north-carolina/": "https://edgestreams.pro/hls/JHDAJBDnjdna30.m3u8?st=SMHTXm-wF7Y1yuhGA6-zp35FiGhr8mjxzN5ubhqqzsg&e=1756757442",
-  "mlb/texas-rangers-arizona-diamondbacks-11/": "https://edgestreams.pro/hls/jzabfazkbf27.m3u8?st=AW9xs6taQ6v8u9aN28PydqKhABSc1SYRpTfH0WjChg8&e=1756757445"
+  "mlb/atlanta-braves-chicago-cubs-11/": "https://edgestreams.pro/hls/ijfnakfidch22.m3u8?st=dNBKZgVNaoNUFXiDn4FKTPneMU8_jmI44JQJLaaD2ZM&e=1756761369",
+  "mlb/philadelphia-phillies-milwaukee-brewers-8/": "https://mainstreams.pro/hls/jnzkdzjfanch23.m3u8?st=SEl3vP7jX3WF2EpvAIQWHmhZZW0G-PLAastOFWS83iM&e=1756761372",
+  "mlb/san-francisco-giants-colorado-rockies-24/": "https://edgestreams.pro/hls/fskjanach24.m3u8?st=xH1ej65KRUXgMA3spuW-0r_lXijlt09C7td2m_Xqcvk&e=1756761375",
+  "mlb/baltimore-orioles-san-diego-padres-3/": "https://edgestreams.pro/hls/kjhfzua25.m3u8?st=0IE0ZdjCl2t7Z5gClJNshbt3IFSaqPf9EPDWmJWPhv0&e=1756761377",
+  "mlb/seattle-mariners-tampa-bay-rays-13/": "https://edgestreams.pro/hls/dzjhkfazbka26.m3u8?st=NEZj77Shqr0uNVbLHSH9T173NEuKafz0w-fgh2dxipc&e=1756761380",
+  "cfb/tcu-horned-frogs-north-carolina/": "https://edgestreams.pro/hls/JHDAJBDnjdna30.m3u8?st=5MoBtdDWvvT03RuWWzyxWJcATk8-dJOA1NxBiCDEtl4&e=1756761382",
+  "mlb/texas-rangers-arizona-diamondbacks-11/": "https://edgestreams.pro/hls/jzabfazkbf27.m3u8?st=_aLNt4MLnA8M1AkYBNCO_68eKgwGaRI_6A1e3i3Zz_4&e=1756761385"
 }
