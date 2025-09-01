@@ -76,7 +76,7 @@ def extract_slugs_from_html(html, hours_threshold=2):
     print(f"📦 Total slug valid: {len(slugs)}")
     return slugs
 
-# ========= Ambil semua server dengan auth_key =========
+# ========= Fetch server dengan authkey via Playwright =========
 async def fetch_m3u8_servers(context, slug):
     servers = []
     main_url = f"{BASE_URL}/match/{slug}"
@@ -87,14 +87,13 @@ async def fetch_m3u8_servers(context, slug):
         html = await page.content()
         soup = BeautifulSoup(html, "html.parser")
 
-        # ambil semua tombol server
+        # ambil tombol server
         server_buttons = soup.select(".list-server button[data-link]")
         for idx, btn in enumerate(server_buttons, start=1):
             btn_url = btn.get("data-link")
             if not btn_url:
                 continue
 
-            # ambil URL .m3u8 via network
             page_links = []
 
             async def handle_response(response):
@@ -113,6 +112,29 @@ async def fetch_m3u8_servers(context, slug):
                 print(f"   ✅ M3U8 server{idx}: {page_links[0]}")
             else:
                 print(f"   ⚠️ Gagal ambil server{idx} dari {btn_url}")
+
+        # ambil iframe player?link=
+        iframes = soup.select("iframe[src*='player?link=']")
+        for idx, iframe in enumerate(iframes, start=len(server_buttons)+1):
+            iframe_src = urljoin(BASE_URL, iframe["src"])
+            page_links = []
+
+            async def handle_iframe_response(response):
+                resp_url = response.url
+                if ".m3u8" in resp_url and resp_url not in page_links:
+                    page_links.append(resp_url)
+
+            temp_page = await context.new_page()
+            temp_page.on("response", handle_iframe_response)
+            await temp_page.goto(iframe_src, timeout=30000, wait_until="networkidle")
+            await temp_page.wait_for_timeout(5000)
+            await temp_page.close()
+
+            if page_links:
+                servers.append(page_links[0])
+                print(f"   ✅ M3U8 iframe server{idx}: {page_links[0]}")
+            else:
+                print(f"   ⚠️ Gagal ambil iframe server{idx} dari {iframe_src}")
 
     except Exception as e:
         print(f"   ❌ Error fetch slug {slug}: {e}")
