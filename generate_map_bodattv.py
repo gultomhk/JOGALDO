@@ -165,7 +165,7 @@ def clean_m3u8_links(urls, keep_encoded=True):
             seen.add(u)
     return cleaned
 
-# ========= Playwright fetch m3u8 per slug =========
+# ========= Playwright fetch m3u8 per slug (FIXED MULTI SERVER) =========
 async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
 
     async def process_page(url):
@@ -179,28 +179,24 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
 
         page.on("response", handle_response)
 
-        extracted = []
         try:
             await page.goto(url, timeout=30000, wait_until="networkidle")
             await page.wait_for_timeout(8000)
-            html = await page.content()
-            extracted = extract_m3u8_urls(html)
         except Exception as e:
             print(f"   ❌ Error buka page {url}: {e}")
         finally:
             await page.close()
 
-        combined = list(set(page_links + extracted))
-        cleaned = clean_m3u8_links(combined, keep_encoded=keep_encoded)
-        return cleaned[0] if cleaned else None
+        return clean_m3u8_links(page_links, keep_encoded=keep_encoded)  # return semua, bukan 1 saja
 
     servers = []
 
+    # server1 dari halaman utama
     main_url = f"{BASE_URL}/match/{slug}"
-    main_link = await process_page(main_url)
-    if main_link:
-        servers.append(main_link)
+    main_links = await process_page(main_url)
+    servers.extend(main_links)
 
+    # cek iframe player?link=
     try:
         page = await context.new_page()
         await page.goto(main_url, timeout=30000, wait_until="networkidle")
@@ -210,14 +206,14 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
         iframes = soup.select("iframe[src*='player?link=']")
         for iframe in iframes:
             iframe_src = urljoin(BASE_URL, iframe["src"])
-            iframe_link = await process_page(iframe_src)
-            if iframe_link:
-                servers.append(iframe_link)
+            iframe_links = await process_page(iframe_src)
+            servers.extend(iframe_links)
     except Exception as e:
         print(f"   ❌ Error iframe slug {slug}: {e}")
     finally:
         await page.close()
 
+    # hapus duplikat sambil jaga urutan
     seen = set()
     unique_servers = []
     for link in servers:
