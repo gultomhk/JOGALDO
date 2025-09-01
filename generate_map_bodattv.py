@@ -113,6 +113,15 @@ def clean_m3u8_links(urls, keep_encoded=True):
             cleaned.append(u)
     return cleaned
 
+# ========= Filter URL murni =========
+def filter_valid_m3u8(urls):
+    """Hanya ambil URL murni .m3u8, hapus /404 atau redirect ke Google/iklan"""
+    valid = []
+    for u in urls:
+        if ".m3u8" in u and "404" not in u and "google.com" not in u and "adexchangeclear" not in u:
+            valid.append(u)
+    return valid
+
 # ========= Playwright fetch m3u8 per slug =========
 async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
     m3u8_links = []
@@ -160,6 +169,7 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
         await page.close()
 
     m3u8_links = list(dict.fromkeys(m3u8_links))
+    m3u8_links = filter_valid_m3u8(m3u8_links)
     return slug, m3u8_links
 
 # ========= Jalankan semua slug parallel =========
@@ -184,12 +194,11 @@ async def fetch_all_parallel(slugs, concurrency=5, keep_encoded=True):
                 continue
             slug, urls = slug_result
             if urls:
-                all_data[slug] = urls[0]
-                print(f"   ✅ M3U8 ditemukan (server1): {urls[0]}", flush=True)
-                for i, url in enumerate(urls[1:], start=2):
-                    key = f"{slug}server{i}"
+                # pastikan server 1..n menggunakan URL valid yang sama jika perlu
+                for i, url in enumerate(urls, start=1):
+                    key = slug if i == 1 else f"{slug}server{i}"
                     all_data[key] = url
-                    print(f"   ✅ M3U8 ditemukan (server{i}): {url}", flush=True)
+                    print(f"   ✅ M3U8 ditemukan ({key}): {url}", flush=True)
             else:
                 print(f"   ⚠️ Tidak ditemukan .m3u8 pada slug: {slug}", flush=True)
 
