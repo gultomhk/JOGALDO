@@ -121,9 +121,8 @@ def clean_m3u8_links(urls, keep_encoded=True):
             seen.add(u)
     return cleaned
 
-# ========= Playwright fetch m3u8 per slug (fixed) =========
+# ========= Playwright fetch m3u8 per slug (FIXED) =========
 async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
-    m3u8_links = []
 
     async def process_page(url):
         page_links = []
@@ -145,14 +144,18 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
         finally:
             await page.close()
 
-        return clean_m3u8_links(page_links, keep_encoded=keep_encoded)
+        cleaned = clean_m3u8_links(page_links, keep_encoded=keep_encoded)
+        return cleaned[0] if cleaned else None  # hanya ambil 1 utama
 
-    # buka slug utama
+    servers = []
+
+    # buka slug utama (server1)
     main_url = f"{BASE_URL}/match/{slug}"
-    main_links = await process_page(main_url)
-    m3u8_links.extend(main_links)
+    main_link = await process_page(main_url)
+    if main_link:
+        servers.append(main_link)
 
-    # fallback: semua iframe player?link= di halaman utama
+    # cek semua iframe player?link= di halaman utama
     try:
         page = await context.new_page()
         await page.goto(main_url, timeout=30000, wait_until="networkidle")
@@ -162,16 +165,23 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
         iframes = soup.select("iframe[src*='player?link=']")
         for iframe in iframes:
             iframe_src = urljoin(BASE_URL, iframe["src"])
-            iframe_links = await process_page(iframe_src)
-            m3u8_links.extend(iframe_links)
+            iframe_link = await process_page(iframe_src)
+            if iframe_link:
+                servers.append(iframe_link)
     except Exception as e:
         print(f"   ❌ Error iframe slug {slug}: {e}")
     finally:
         await page.close()
 
-    # hapus duplicate
-    m3u8_links = list(dict.fromkeys(m3u8_links))
-    return slug, m3u8_links
+    # hapus duplikat tapi tetap urutan
+    seen = set()
+    unique_servers = []
+    for link in servers:
+        if link not in seen:
+            unique_servers.append(link)
+            seen.add(link)
+
+    return slug, unique_servers
 
 # ========= Jalankan semua slug parallel =========
 async def fetch_all_parallel(slugs, concurrency=5, keep_encoded=True):
