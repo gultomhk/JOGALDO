@@ -168,32 +168,37 @@ def clean_m3u8_links(urls, keep_encoded=True):
 # ========= Playwright fetch m3u8 per slug (FIXED MULTI SERVER) =========
 async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
 
-    async def process_page(url):
+    async def process_page(url, wait_ms=10000):
         page_links = []
         page = await context.new_page()
 
         def handle_response(response):
             resp_url = response.url
-            if ".m3u8" in resp_url or "player?link=" in resp_url:
-                page_links.append(resp_url)
+            if ".m3u8" in resp_url:
+                if resp_url not in page_links:  # pastikan unik per page
+                    page_links.append(resp_url)
+            elif "player?link=" in resp_url:
+                parsed = parse_player_link(resp_url, keep_encoded=keep_encoded)
+                if parsed not in page_links:
+                    page_links.append(parsed)
 
         page.on("response", handle_response)
 
         try:
             await page.goto(url, timeout=30000, wait_until="networkidle")
-            await page.wait_for_timeout(8000)
+            await page.wait_for_timeout(wait_ms)  # kasih cukup waktu player load
         except Exception as e:
             print(f"   ❌ Error buka page {url}: {e}")
         finally:
             await page.close()
 
-        return clean_m3u8_links(page_links, keep_encoded=keep_encoded)  # return semua, bukan 1 saja
+        return clean_m3u8_links(page_links, keep_encoded=keep_encoded)
 
     servers = []
 
     # server1 dari halaman utama
     main_url = f"{BASE_URL}/match/{slug}"
-    main_links = await process_page(main_url)
+    main_links = await process_page(main_url, wait_ms=8000)
     servers.extend(main_links)
 
     # cek iframe player?link=
@@ -204,9 +209,10 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
         html = await page.content()
         soup = BeautifulSoup(html, "html.parser")
         iframes = soup.select("iframe[src*='player?link=']")
-        for iframe in iframes:
+        for idx, iframe in enumerate(iframes, start=2):
             iframe_src = urljoin(BASE_URL, iframe["src"])
-            iframe_links = await process_page(iframe_src)
+            print(f"   🌐 Proses iframe server{idx}: {iframe_src}")
+            iframe_links = await process_page(iframe_src, wait_ms=10000)
             servers.extend(iframe_links)
     except Exception as e:
         print(f"   ❌ Error iframe slug {slug}: {e}")
