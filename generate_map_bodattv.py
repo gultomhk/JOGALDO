@@ -87,23 +87,34 @@ async def fetch_m3u8_servers(context, slug):
         html = await page.content()
         soup = BeautifulSoup(html, "html.parser")
 
-        # ambil tombol server
-        server_buttons = soup.select(".list-server button[data-link]")
-        for idx, btn in enumerate(server_buttons, start=1):
-            btn_url = btn.get("data-link")
-            if not btn_url:
-                continue
+        # gabungkan tombol + iframe
+        items = []
 
+        # tombol server
+        server_buttons = soup.select(".list-server button[data-link]")
+        for btn in server_buttons:
+            btn_url = btn.get("data-link")
+            if btn_url:
+                items.append(btn_url)
+
+        # iframe player?link=
+        iframes = soup.select("iframe[src*='player?link=']")
+        for iframe in iframes:
+            iframe_src = urljoin(BASE_URL, iframe["src"])
+            items.append(iframe_src)
+
+        # proses semua item
+        for idx, url in enumerate(items, start=1):
             page_links = []
 
-            async def handle_response(response):
+            def handle_response(response):
                 resp_url = response.url
                 if ".m3u8" in resp_url and resp_url not in page_links:
                     page_links.append(resp_url)
 
             temp_page = await context.new_page()
             temp_page.on("response", handle_response)
-            await temp_page.goto(btn_url, timeout=30000, wait_until="networkidle")
+            await temp_page.goto(url, timeout=30000, wait_until="networkidle")
             await temp_page.wait_for_timeout(5000)
             await temp_page.close()
 
@@ -111,37 +122,22 @@ async def fetch_m3u8_servers(context, slug):
                 servers.append(page_links[0])
                 print(f"   ✅ M3U8 server{idx}: {page_links[0]}")
             else:
-                print(f"   ⚠️ Gagal ambil server{idx} dari {btn_url}")
-
-        # ambil iframe player?link=
-        iframes = soup.select("iframe[src*='player?link=']")
-        for idx, iframe in enumerate(iframes, start=len(server_buttons)+1):
-            iframe_src = urljoin(BASE_URL, iframe["src"])
-            page_links = []
-
-            async def handle_iframe_response(response):
-                resp_url = response.url
-                if ".m3u8" in resp_url and resp_url not in page_links:
-                    page_links.append(resp_url)
-
-            temp_page = await context.new_page()
-            temp_page.on("response", handle_iframe_response)
-            await temp_page.goto(iframe_src, timeout=30000, wait_until="networkidle")
-            await temp_page.wait_for_timeout(5000)
-            await temp_page.close()
-
-            if page_links:
-                servers.append(page_links[0])
-                print(f"   ✅ M3U8 iframe server{idx}: {page_links[0]}")
-            else:
-                print(f"   ⚠️ Gagal ambil iframe server{idx} dari {iframe_src}")
+                print(f"   ⚠️ Gagal ambil server{idx} dari {url}")
 
     except Exception as e:
         print(f"   ❌ Error fetch slug {slug}: {e}")
     finally:
         await page.close()
 
-    return slug, servers
+    # hapus duplikat sambil jaga urutan
+    seen = set()
+    unique_servers = []
+    for s in servers:
+        if s not in seen:
+            unique_servers.append(s)
+            seen.add(s)
+
+    return slug, unique_servers
 
 # ========= Jalankan semua slug parallel =========
 async def fetch_all_parallel(slugs, concurrency=5):
