@@ -5,6 +5,7 @@ from dateutil import tz
 from pathlib import Path
 import re
 import json
+import requests
 from urllib.parse import urlparse, parse_qs, unquote, urljoin, urlencode
 from playwright.async_api import async_playwright
 
@@ -45,6 +46,49 @@ def parse_player_link(url: str, keep_encoded: bool = True) -> str:
         if extra_str:
             decoded += "&" + extra_str if "?" in decoded else "?" + extra_str
         return decoded
+
+# ========= Ekstraksi M3U8 (HTML & iframe) =========
+def extract_m3u8_urls(html, base_url=BASE_URL):
+    """Ekstrak URL m3u8 dari HTML dengan follow iframe/player untuk ambil authkey"""
+    soup = BeautifulSoup(html, "html.parser")
+    data_links = soup.select("[data-link]")
+    m3u8_urls = []
+
+    for tag in data_links:
+        raw = tag.get("data-link", "")
+        if not raw:
+            continue
+
+        # --- Kasus langsung ---
+        if raw.endswith(".m3u8") and raw.startswith("http"):
+            print(f"   🔗 Data-link langsung: ✅ {raw}")
+            m3u8_urls.append(raw)
+
+        # --- Kasus iframe/player ---
+        elif "/player?link=" in raw:
+            iframe_url = urljoin(base_url, raw)
+            print(f"   🌐 Cek iframe: {iframe_url}")
+            try:
+                r = requests.get(iframe_url, headers={"User-Agent": USER_AGENT}, timeout=10)
+                if r.ok:
+                    iframe_html = r.text
+                    found = re.findall(r"https?://[^\s\"']+\.m3u8[^\s\"']*", iframe_html)
+                    if found:
+                        for f in found:
+                            if any(k in f for k in ["auth", "token", "key="]):
+                                print(f"   🔑 Dari iframe (authkey): ✅ {f}")
+                                m3u8_urls.append(f)
+                            else:
+                                print(f"   ⚠️ Dari iframe tanpa auth: {f}")
+                else:
+                    print(f"   ❌ Gagal load iframe: {r.status_code}")
+            except Exception as e:
+                print(f"   ❌ Error iframe fetch: {e}")
+
+        else:
+            print(f"   ⚠️ Skip: {raw}")
+
+    return m3u8_urls
 
 # ========= Ambil daftar slug =========
 def extract_slug(row):
@@ -121,14 +165,13 @@ def clean_m3u8_links(urls, keep_encoded=True):
             seen.add(u)
     return cleaned
 
-# ========= Playwright fetch m3u8 per slug (FIXED) =========
+# ========= Playwright fetch m3u8 per slug =========
 async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
 
     async def process_page(url):
         page_links = []
         page = await context.new_page()
 
-        # Tangkap semua response .m3u8
         def handle_response(response):
             resp_url = response.url
             if ".m3u8" in resp_url or "player?link=" in resp_url:
@@ -136,26 +179,28 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
 
         page.on("response", handle_response)
 
+        extracted = []
         try:
             await page.goto(url, timeout=30000, wait_until="networkidle")
-            await page.wait_for_timeout(8000)  # tunggu JS async load
+            await page.wait_for_timeout(8000)
+            html = await page.content()
+            extracted = extract_m3u8_urls(html)
         except Exception as e:
             print(f"   ❌ Error buka page {url}: {e}")
         finally:
             await page.close()
 
-        cleaned = clean_m3u8_links(page_links, keep_encoded=keep_encoded)
-        return cleaned[0] if cleaned else None  # hanya ambil 1 utama
+        combined = list(set(page_links + extracted))
+        cleaned = clean_m3u8_links(combined, keep_encoded=keep_encoded)
+        return cleaned[0] if cleaned else None
 
     servers = []
 
-    # buka slug utama (server1)
     main_url = f"{BASE_URL}/match/{slug}"
     main_link = await process_page(main_url)
     if main_link:
         servers.append(main_link)
 
-    # cek semua iframe player?link= di halaman utama
     try:
         page = await context.new_page()
         await page.goto(main_url, timeout=30000, wait_until="networkidle")
@@ -173,7 +218,6 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
     finally:
         await page.close()
 
-    # hapus duplikat tapi tetap urutan
     seen = set()
     unique_servers = []
     for link in servers:
