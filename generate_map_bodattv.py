@@ -121,7 +121,7 @@ def clean_m3u8_links(urls, keep_encoded=True):
             seen.add(u)
     return cleaned
 
-# ========= Playwright fetch m3u8 per slug =========
+# ========= Playwright fetch m3u8 per slug (fixed) =========
 async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
     m3u8_links = []
 
@@ -129,16 +129,17 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
         page_links = []
         page = await context.new_page()
 
-        def handle_request(request):
-            req_url = request.url
-            if ".m3u8" in req_url or "player?link=" in req_url:
-                page_links.append(req_url)
+        # Tangkap semua response .m3u8
+        def handle_response(response):
+            resp_url = response.url
+            if ".m3u8" in resp_url or "player?link=" in resp_url:
+                page_links.append(resp_url)
 
-        page.on("request", handle_request)
+        page.on("response", handle_response)
 
         try:
-            await page.goto(url, timeout=30000, wait_until="domcontentloaded")
-            await page.wait_for_timeout(4000)
+            await page.goto(url, timeout=30000, wait_until="networkidle")
+            await page.wait_for_timeout(8000)  # tunggu JS async load
         except Exception as e:
             print(f"   ❌ Error buka page {url}: {e}")
         finally:
@@ -154,7 +155,8 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
     # fallback: semua iframe player?link= di halaman utama
     try:
         page = await context.new_page()
-        await page.goto(main_url, timeout=30000, wait_until="domcontentloaded")
+        await page.goto(main_url, timeout=30000, wait_until="networkidle")
+        await page.wait_for_timeout(4000)
         html = await page.content()
         soup = BeautifulSoup(html, "html.parser")
         iframes = soup.select("iframe[src*='player?link=']")
@@ -167,6 +169,7 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
     finally:
         await page.close()
 
+    # hapus duplicate
     m3u8_links = list(dict.fromkeys(m3u8_links))
     return slug, m3u8_links
 
