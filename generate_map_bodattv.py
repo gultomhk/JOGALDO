@@ -269,7 +269,9 @@ async def fetch_all_parallel(slugs, concurrency=5, keep_encoded=True):
         async def sem_task(slug):
             async with semaphore:
                 try:
-                    return await fetch_m3u8_with_playwright(context, slug, keep_encoded=keep_encoded)
+                    return await fetch_m3u8_with_playwright(
+                        context, slug, keep_encoded=keep_encoded
+                    )
                 except Exception as e:
                     print(f"❌ Error di slug {slug}: {e}")
                     return None
@@ -282,19 +284,25 @@ async def fetch_all_parallel(slugs, concurrency=5, keep_encoded=True):
         for slug_result in results:
             if not slug_result:
                 continue
+
             slug, urls = slug_result
-            if urls:
-                # server1
+
+            # pastikan urls adalah list dan punya isi
+            if not urls or not isinstance(urls, (list, tuple)):
+                print(f"   ⚠️ Tidak ditemukan .m3u8 pada slug: {slug}", flush=True)
+                continue
+
+            # server1
+            if len(urls) >= 1:
                 all_data[slug] = urls[0]
                 print(f"   ✅ M3U8 ditemukan (server1): {urls[0]}", flush=True)
 
-                # server2..dst
+            # server2..dst
+            if len(urls) > 1:
                 for i, url in enumerate(urls[1:], start=2):
                     key = f"{slug} server{i}"
                     all_data[key] = url
                     print(f"   ✅ M3U8 ditemukan (server{i}): {url}", flush=True)
-            else:
-                print(f"   ⚠️ Tidak ditemukan .m3u8 pada slug: {slug}", flush=True)
 
         return all_data
 		
