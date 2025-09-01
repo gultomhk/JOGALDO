@@ -87,7 +87,7 @@ async def fetch_m3u8_servers(context, slug):
         html = await page.content()
         soup = BeautifulSoup(html, "html.parser")
 
-        # gabungkan tombol + iframe
+        # gabungkan tombol server + iframe
         items = []
 
         # tombol server
@@ -95,7 +95,7 @@ async def fetch_m3u8_servers(context, slug):
         for btn in server_buttons:
             btn_url = btn.get("data-link")
             if btn_url:
-                items.append(btn_url)
+                items.append(urljoin(BASE_URL, btn_url))
 
         # iframe player?link=
         iframes = soup.select("iframe[src*='player?link=']")
@@ -114,8 +114,11 @@ async def fetch_m3u8_servers(context, slug):
 
             temp_page = await context.new_page()
             temp_page.on("response", handle_response)
-            await temp_page.goto(url, timeout=30000, wait_until="networkidle")
-            await temp_page.wait_for_timeout(5000)
+            try:
+                await temp_page.goto(url, timeout=30000, wait_until="networkidle")
+                await temp_page.wait_for_timeout(7000)  # kasih waktu player load
+            except Exception as e:
+                print(f"   ❌ Error load {url}: {e}")
             await temp_page.close()
 
             if page_links:
@@ -143,7 +146,7 @@ async def fetch_m3u8_servers(context, slug):
 async def fetch_all_parallel(slugs, concurrency=5):
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
-        context = await browser.new_context(user_agent=USER_AGENT)
+        context = await browser.new_context(user_agent=USER_AGENT, extra_http_headers={"Referer": BASE_URL})
         semaphore = asyncio.Semaphore(concurrency)
 
         async def sem_task(slug):
