@@ -168,7 +168,7 @@ def clean_m3u8_links(urls, keep_encoded=True):
 # ========= Playwright fetch m3u8 per slug (FINAL MULTI SERVER, FIXED + LOG) =========
 async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
     async def process_page(url, wait_ms=8000, label="page", server_prefix="Server"):
-        """Buka 1 halaman / iframe → tangkap m3u8 dan player links"""
+        """Buka halaman → tangkap m3u8 & player links"""
         page = await context.new_page()
         page_links = []
 
@@ -192,34 +192,26 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
             html = await page.content()
             soup = BeautifulSoup(html, "html.parser")
 
-            # 🔹 iframe default → Server-1
-            iframes = soup.select("iframe[src*='player?link=']")
-            for idx, iframe in enumerate(iframes, start=1):
+            # 🔹 Server-1: iframe default
+            iframe = soup.select_one("iframe[src*='player?link=']")
+            if iframe and iframe.has_attr("src"):
                 iframe_src = urljoin(BASE_URL, iframe["src"])
-                server_label = f"{server_prefix}-1" if idx == 1 else f"{server_prefix}-iframe{idx}"
-                print(f"      🌐 {server_label}: iframe default {iframe_src}")
-                links = await process_page(iframe_src, wait_ms=wait_ms, label=server_label, server_prefix=server_label)
-                page_links.extend(links)
+                print(f"      🌐 {server_prefix}-1: iframe default {iframe_src}")
+                # langsung fetch response dari iframe page
+                page_links.append(iframe_src)
 
-            # 🔹 tombol server → Server-2, Server-3, dst.
+            # 🔹 Server-2,3,...: tombol server
             buttons = await page.query_selector_all(".list-server button[data-link]")
-            for idx, btn in enumerate(buttons, start=1):
+            for idx, btn in enumerate(buttons, start=2):  # Server-2 mulai dari idx=2
                 try:
-                    server_label = f"{server_prefix}-{idx+1}"  # Server-2, Server-3…
-                    print(f"      ▶️ Klik {server_label}")
+                    server_label = f"{server_prefix}-{idx}"
+                    data_link = await btn.get_attribute("data-link")
+                    if data_link:
+                        print(f"      ▶️ {server_label}: tombol server → {data_link}")
+                        page_links.append(data_link)
+                    # klik tombol untuk update iframe (opsional jika ingin fetch iframe baru)
                     await btn.click(force=True)
                     await page.wait_for_timeout(1000)
-
-                    html = await page.content()
-                    soup = BeautifulSoup(html, "html.parser")
-                    new_iframes = soup.select("iframe[src*='player?link=']")
-                    for iframe_idx, iframe in enumerate(new_iframes, start=1):
-                        iframe_src = urljoin(BASE_URL, iframe["src"])
-                        iframe_label = f"{server_label}-iframe{iframe_idx}"
-                        print(f"         🌐 {iframe_label}: iframe setelah klik tombol {iframe_src}")
-                        links = await process_page(iframe_src, wait_ms=wait_ms, label=iframe_label, server_prefix=iframe_label)
-                        page_links.extend(links)
-
                 except Exception as e:
                     print(f"      ⚠️ Gagal klik {server_label}: {e}")
 
@@ -242,7 +234,7 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
         return slug, unique_links
     except Exception as e:
         print(f"   ❌ Error main slug {slug}: {e}")
-        return slug, unique_servers
+        return slug, []
 	
 # ========= Jalankan semua slug parallel =========
 async def fetch_all_parallel(slugs, concurrency=5, keep_encoded=True):
