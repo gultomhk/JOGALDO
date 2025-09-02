@@ -140,43 +140,46 @@ def fetch_server_2n_selenium(slug):
     chrome_options.add_argument(f"user-agent={USER_AGENT}")
     chrome_options.add_argument("--window-size=1920,1080")
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-    chrome_options.set_capability("goog:loggingPrefs", {"performance": "ALL"})
 
-    driver = webdriver.Chrome(
-        service=Service(ChromeDriverManager().install()),
-        options=chrome_options
-    )
-
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
     m3u8_links = []
+
     try:
         main_url = f"{BASE_URL}/match/{slug}"
         print(f"🌐 Buka halaman: {main_url}", flush=True)
         driver.get(main_url)
         time.sleep(5)
 
-        buttons = driver.find_elements(By.CSS_SELECTOR, ".btn-server[data-link]")
+        # Ambil semua tombol server
+        buttons = driver.find_elements(By.CSS_SELECTOR, ".btn-server")
         if not buttons:
-            print("⚠️ Tidak ada tombol server tambahan ditemukan", flush=True)
+            print("⚠️ Tidak ada tombol server ditemukan", flush=True)
+        else:
+            for idx, btn in enumerate(buttons, start=1):
+                # Skip Server-1 karena sudah default
+                if idx == 1:
+                    continue
+                try:
+                    driver.execute_script("arguments[0].scrollIntoView(true);", btn)
+                    btn.click()
+                    time.sleep(2)
 
-        for idx, btn in enumerate(buttons, start=2):
-            try:
-                btn.click()
-                time.sleep(2)
-                elems = driver.find_elements(
-                    By.CSS_SELECTOR,
-                    "#player-html5 iframe[src*='player?link='], #player-html5 source[src$='.m3u8']"
-                )
-                if not elems:
-                    print(f"⚠️ Server-{idx}: iframe/source tidak ditemukan", flush=True)
+                    # Ambil iframe terbaru setelah klik tombol
+                    elems = driver.find_elements(
+                        By.CSS_SELECTOR,
+                        "#player-html5 iframe[src*='player?link='], #player-html5 source[src$='.m3u8']"
+                    )
+                    if not elems:
+                        print(f"⚠️ Server-{idx}: iframe/source tidak ditemukan", flush=True)
 
-                for elem in elems:
-                    link = elem.get_attribute("src")
-                    if link and link not in m3u8_links:
-                        link = urljoin(BASE_URL, link)
-                        print(f"✅ Server-{idx}: {link}", flush=True)
-                        m3u8_links.append(link)
-            except Exception as e:
-                print(f"⚠️ Gagal ambil Server-{idx}: {e}", flush=True)
+                    for elem in elems:
+                        link = elem.get_attribute("src")
+                        if link and link not in m3u8_links:
+                            link = urljoin(BASE_URL, link)
+                            print(f"✅ Server-{idx}: {link}", flush=True)
+                            m3u8_links.append(link)
+                except Exception as e:
+                    print(f"⚠️ Gagal ambil Server-{idx}: {e}", flush=True)
     finally:
         driver.quit()
         print("🔒 Selenium driver ditutup", flush=True)
