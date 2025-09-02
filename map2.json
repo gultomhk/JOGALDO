@@ -1,1 +1,14 @@
-{}
+{
+  "tour-of-britain-stage-1-men-woodbridge-southwold-1676km-cyc-2025": "https://o4.sundaytueday.online/uk-btsport1.m3u8?auth_key=1756823597-78c21f1d8f600fae559e89be3cd1e53a-00000000000000000000000000000000-711ca98516cd463794ec08d19b764034&type=hls&isLive=true",
+  "la-vuelta-stage-10-highlights-cycling-1": "https://o4.sundaytueday.online/uk-btsport3.m3u8?auth_key=1756823597-78c21f1d8f600fae559e89be3cd1e53a-00000000000000000000000000000000-c480cb486d317543df9dcc6c24d704c5&type=hls&isLive=true",
+  "england-vs-south-africa-first-odi-cricket-1": "https://o2.sundaytueday.online/uk-skysportcricket.m3u8?auth_key=1756823597-78c21f1d8f600fae559e89be3cd1e53a-00000000000000000000000000000000-b8a1a1064e882b1a6c4ba5aa3b5cdb11&type=hls&isLive=true",
+  "england-vs-south-africa-first-odi-cricket-1server2": "https://o2.sundaytueday.online/uk-skysportcricket.m3u8?auth_key=1756823599-78c21f1d8f600fae559e89be3cd1e53a-00000000000000000000000000000000-b34029c7ba9085ba20a687d783f9eb5e&type=hls&isLive=true",
+  "tennis-us-open-2025-mens-womens-quarterfinals-tennis-02": "https://o2.sundaytueday.online/us-espn.m3u8?auth_key=1756823597-78c21f1d8f600fae559e89be3cd1e53a-00000000000000000000000000000000-120f13c9cb4eacebd9d9f805bb07a13d&type=hls&isLive=true",
+  "tennis-us-open-2025-mens-womens-quarterfinals-tennis-02server2": "https://o2.sundaytueday.online/us-espn.m3u8?auth_key=1756823599-78c21f1d8f600fae559e89be3cd1e53a-00000000000000000000000000000000-da4c00b006edb6f8eb0c00b811fef6da&type=hls&isLive=true",
+  "italy-vs-spain-basketball-446229": "https://o5.sundaytueday.online/magenta16.m3u8?auth_key=1756823597-78c21f1d8f600fae559e89be3cd1e53a-00000000000000000000000000000000-ffef8dd7513e93e8441db4aecb16505e&type=hls&isLive=true",
+  "iceland-vs-slovenia-basketball-446230": "https://o5.sundaytueday.online/magenta17.m3u8?auth_key=1756823636-78c21f1d8f600fae559e89be3cd1e53a-00000000000000000000000000000000-768d35623d9a9c510cc1aaeddff25f8c&type=hls&isLive=true",
+  "cyprus-vs-georgia-basketball-446232": "https://o5.sundaytueday.online/magenta16.m3u8?auth_key=1756823636-78c21f1d8f600fae559e89be3cd1e53a-00000000000000000000000000000000-421887b3cf5c73cd548c091b4841c1b4&type=hls&isLive=true",
+  "france-vs-poland-basketball-446231": "https://o5.sundaytueday.online/magenta17.m3u8?auth_key=1756823637-78c21f1d8f600fae559e89be3cd1e53a-00000000000000000000000000000000-35a46e1abbdaf40dd0bf2da9c7377a05&type=hls&isLive=true",
+  "t20-tri-series-afghanistan-vs-pakistan-cricket-2025-22": "https://o2.sundaytueday.online/us-willowhd.m3u8?auth_key=1756823678-78c21f1d8f600fae559e89be3cd1e53a-00000000000000000000000000000000-a6a31bebc96307cb3e05c5a0974745a8&type=hls&isLive=true",
+  "us-open-2025-tennis-001": "https://o4.sundaytueday.online/uk-skysporttenis.m3u8?auth_key=1756823680-78c21f1d8f600fae559e89be3cd1e53a-00000000000000000000000000000000-492dd2826ee74ebf419172f5d439a03b&type=hls&isLive=true"
+}
