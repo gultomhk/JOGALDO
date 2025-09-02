@@ -267,10 +267,13 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
     except Exception as e:
         print(f"   ❌ Error iframe main page slug {slug}: {e}")
 
-    # hasil: dict {slug_serverName: url}
+    # hasil: dict {slug: url, slugserver2: url, ...}
     result = {}
     for idx, (name, url) in enumerate(servers, start=1):
-        key = f"{slug}_{name or f'server{idx}'}"
+        if idx == 1:
+            key = slug
+        else:
+            key = f"{slug}server{idx}"
         result[key] = url
 
     return result
@@ -285,7 +288,7 @@ async def fetch_all_parallel(slugs, concurrency=5, keep_encoded=True):
         async def sem_task(slug):
             async with semaphore:
                 try:
-                    # sekarang return dict langsung
+                    # return dict langsung
                     return await fetch_m3u8_with_playwright(
                         context, slug, keep_encoded=keep_encoded
                     )
@@ -293,8 +296,9 @@ async def fetch_all_parallel(slugs, concurrency=5, keep_encoded=True):
                     print(f"❌ Error di slug {slug}: {e}")
                     return {}
 
+        # kumpulkan semua task paralel
         tasks = [sem_task(slug) for slug in slugs]
-        results = await asyncio.gather(*tasks, return_exceptions=False)
+        results = await asyncio.gather(*tasks)
         await browser.close()
 
         all_data = {}
@@ -302,7 +306,7 @@ async def fetch_all_parallel(slugs, concurrency=5, keep_encoded=True):
             if not urls_dict:
                 continue
 
-            # langsung merge dict hasil ke all_data
+            # merge dict hasil ke all_data
             for key, url in urls_dict.items():
                 all_data[key] = url
                 print(f"   ✅ M3U8 ditemukan ({key}): {url}", flush=True)
