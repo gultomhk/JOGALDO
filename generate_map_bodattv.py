@@ -165,13 +165,19 @@ def clean_m3u8_links(urls, keep_encoded=True):
             seen.add(u)
     return cleaned
 
+# ========= Playwright fetch m3u8 per slug (FINAL MULTI SERVER, FIXED) =========
 async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
+    """
+    Ambil semua link .m3u8 tokenized dari 1 slug.
+    Semua tombol server diproses, iframe player otomatis diikuti.
+    """
+
     async def process_page(url, wait_ms=8000, label="server"):
-        """Buka 1 URL, klik semua tombol server, listen response .m3u8"""
+        """Buka 1 URL, ambil semua tombol server via data-link, listen response .m3u8"""
         page = await context.new_page()
         collected = []
 
-        # listener global
+        # listener global untuk sniff m3u8
         def handle_response(response):
             resp_url = response.url
             if ".m3u8" in resp_url:
@@ -185,19 +191,27 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
         try:
             await page.goto(url, timeout=30000, wait_until="domcontentloaded")
 
-            # ambil tombol server
+            # ambil semua tombol server
             buttons = await page.query_selector_all(".list-server button[data-link]") or []
             print(f"   🔘 {label}: {len(buttons)} tombol server ditemukan")
 
             for idx, btn in enumerate(buttons, start=1):
                 try:
                     name = (await btn.inner_text() or f"server{idx}").strip().replace(" ", "_")
-                    print(f"      ▶️ Klik {label} tombol{idx} ({name})")
+                    data_link = await btn.get_attribute("data-link")
+                    if not data_link:
+                        print(f"         ⚠️ {label} tombol{idx} ({name}): tidak ada data-link")
+                        continue
 
-                    # klik tombol & tunggu response m3u8
-                    async with page.expect_response(lambda r: ".m3u8" in r.url, timeout=8000) as resp_info:
-                        await btn.click(force=True)
+                    # generate URL player dari data-link
+                    player_url = urljoin(BASE_URL, f"/player?link={data_link}&type=hls&isLive=true")
+                    print(f"      ▶️ Proses {label} tombol{idx} ({name}) → {player_url}")
+
+                    # buka player_url → sniff m3u8
+                    await page.goto(player_url, timeout=30000, wait_until="domcontentloaded")
                     try:
+                        async with page.expect_response(lambda r: ".m3u8" in r.url, timeout=wait_ms) as resp_info:
+                            await page.wait_for_timeout(1000)
                         resp = await resp_info.value
                         m3u8_url = resp.url
                         if m3u8_url not in collected:
@@ -207,9 +221,9 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
                         print(f"         ⚠️ {label} tombol{idx}: tidak ada response m3u8")
 
                 except Exception as e:
-                    print(f"      ⚠️ Gagal klik {label} tombol{idx}: {e}")
+                    print(f"      ⚠️ Gagal proses {label} tombol{idx}: {e}")
 
-            await page.wait_for_timeout(wait_ms)
+            await page.wait_for_timeout(2000)
 
         except Exception as e:
             print(f"   ❌ Error buka {label} {url}: {e}")
@@ -254,7 +268,7 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
             unique.append(link)
             seen.add(link)
 
-    return slug, unique
+    return {slug: unique}
 	
 # ========= Jalankan semua slug parallel =========
 async def fetch_all_parallel(slugs, concurrency=5, keep_encoded=True):
