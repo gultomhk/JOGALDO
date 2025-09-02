@@ -168,62 +168,57 @@ def clean_m3u8_links(urls, keep_encoded=True):
 # ========= Playwright fetch m3u8 per slug (FINAL MULTI SERVER, FIXED + LOG) =========
 async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
     main_url = f"{BASE_URL}/match/{slug}"
-    page = await context.new_page()
     results = {}
 
+    page = await context.new_page()
     try:
         await page.goto(main_url, timeout=30000, wait_until="domcontentloaded")
-        buttons = await page.query_selector_all(".list-server button[data-link]")
 
+        # extract tombol jadi data statis
+        buttons = await page.query_selector_all(".list-server button[data-link]")
         if not buttons:
             print(f"❌ Tidak ada tombol server di {slug}")
             return results
 
+        server_buttons = []
         for idx, btn in enumerate(buttons, start=1):
             try:
                 name = (await btn.inner_text() or f"server{idx}").strip().replace(" ", "_")
-                print(f"      ▶️ Klik tombol server{idx} ({name})")
+                link = await btn.get_attribute("data-link")
+                if link:
+                    server_buttons.append((name, urljoin(BASE_URL, link)))
+            except:
+                continue
 
-                # klik tombol server
-                await btn.click()
+        # loop data tombol → langsung buka url iframe
+        for idx, (name, server_url) in enumerate(server_buttons, start=1):
+            print(f"      ▶️ Proses {slug} server{idx} ({name}) → {server_url}")
 
-                # tunggu iframe player muncul
-                try:
-                    await page.wait_for_selector("iframe[src*='player?link=']", timeout=10000)
-                except:
-                    print(f"      ⚠️ iframe tidak muncul untuk {name}")
-                    continue
+            iframe_page = await context.new_page()
+            m3u8_links = []
 
-                # ambil iframe terakhir
-                html = await page.content()
-                soup = BeautifulSoup(html, "html.parser")
-                iframe_src = urljoin(BASE_URL, soup.select("iframe[src*='player?link=']")[-1]["src"])
+            def handle_response(response):
+                resp_url = response.url
+                if resp_url.endswith(".m3u8") or ".m3u8?" in resp_url:
+                    if not any(bad in resp_url for bad in ["404", "google.com", "adexchangeclear"]):
+                        m3u8_links.append(resp_url)
 
-                # buka iframe di tab baru
-                iframe_page = await context.new_page()
-                m3u8_links = []
+            iframe_page.on("response", handle_response)
 
-                def handle_response(response):
-                    resp_url = response.url
-                    if resp_url.endswith(".m3u8") or ".m3u8?" in resp_url:
-                        if not any(bad in resp_url for bad in ["404", "google.com", "adexchangeclear"]):
-                            m3u8_links.append(resp_url)
-
-                iframe_page.on("response", handle_response)
-
-                await iframe_page.goto(iframe_src, timeout=30000, wait_until="domcontentloaded")
+            try:
+                await iframe_page.goto(server_url, timeout=30000, wait_until="domcontentloaded")
                 await iframe_page.wait_for_timeout(5000)
+            except Exception as e:
+                print(f"      ⚠️ Gagal buka server {name}: {e}")
+            finally:
                 await iframe_page.close()
 
-                if m3u8_links:
-                    key = slug if idx == 1 else f"{slug}_{name}"
-                    results[key] = m3u8_links[-1]  # ambil link terakhir valid
-                    print(f"   ✅ M3U8 ditemukan ({key}): {results[key]}")
-                else:
-                    print(f"      ⚠️ Tidak ada m3u8 di {name}")
-
-            except Exception as e:
-                print(f"      ⚠️ Gagal proses tombol server{idx}: {e}")
+            if m3u8_links:
+                key = slug if idx == 1 else f"{slug}_{name}"
+                results[key] = m3u8_links[-1]  # ambil terakhir
+                print(f"   ✅ M3U8 ditemukan ({key}): {results[key]}")
+            else:
+                print(f"      ⚠️ Tidak ada m3u8 di {name}")
 
     except Exception as e:
         print(f"   ❌ Error buka main slug {slug}: {e}")
