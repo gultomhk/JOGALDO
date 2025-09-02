@@ -197,7 +197,7 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
             soup = BeautifulSoup(html, "html.parser")
 
             # 🔹 Server-1: iframe default
-            iframe = soup.select_one("iframe[src*='player?link=']")
+            iframe = soup.select_one(".iframe-wrapper iframe[src*='player?link=']")
             if iframe and iframe.has_attr("src"):
                 iframe_src = urljoin(BASE_URL, iframe["src"])
                 print(f"      🌐 {server_prefix}-1: iframe default {iframe_src}")
@@ -208,26 +208,24 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
 
             # 🔹 Server-2,3,...: tombol server
             buttons = await page.query_selector_all(".list-server button[data-link]")
-            for idx, btn in enumerate(buttons, start=2):  # Server-2 mulai dari idx=2
+            for idx, btn in enumerate(buttons, start=1):  # start=1 karena Server-1 sudah diambil
+                server_label = f"{server_prefix}-{idx+1}"  # Server-2, Server-3...
                 try:
-                    server_label = f"{server_prefix}-{idx}"
                     print(f"      ▶️ Klik {server_label}")
                     await btn.click(force=True)
-                    await page.wait_for_timeout(1000)
+                    await page.wait_for_timeout(1500)  # tunggu iframe update
 
                     # Ambil iframe baru setelah klik tombol
-                    html_after = await page.content()
-                    soup_after = BeautifulSoup(html_after, "html.parser")
-                    new_iframe = soup_after.select_one("iframe[src*='player?link=']")
-                    if new_iframe and new_iframe.has_attr("src"):
-                        iframe_src = urljoin(BASE_URL, new_iframe["src"])
+                    new_iframe = await page.query_selector(".iframe-wrapper iframe[src*='player?link=']")
+                    if new_iframe:
+                        iframe_src = await new_iframe.get_attribute("src")
+                        iframe_src = urljoin(BASE_URL, iframe_src)
                         iframe_label = f"{server_label}-iframe1"
-                        print(f"         🌐 {iframe_label}: iframe setelah klik tombol {iframe_src}")
+                        print(f"         🌐 {iframe_label}: iframe setelah klik tombol → {iframe_src}")
                         new_links = await process_page(
                             iframe_src, wait_ms=wait_ms, label=iframe_label, server_prefix=iframe_label
                         )
                         page_links.extend(new_links)
-
                 except Exception as e:
                     print(f"      ⚠️ Gagal klik {server_label}: {e}")
 
