@@ -8,7 +8,7 @@ import json
 import requests
 from urllib.parse import urlparse, parse_qs, unquote, urljoin, urlencode
 from playwright.async_api import async_playwright
-
+from webdriver_manager.chrome import ChromeDriverManager
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
@@ -130,13 +130,14 @@ def clean_m3u8_links(urls, keep_encoded=True):
     return cleaned
 
 # ========= Server-2..N pakai Selenium =========
-def fetch_server_2n_selenium(slug, driver_path="chromedriver"):
+def fetch_server_2n_selenium(slug):
     options = Options()
     options.add_argument("--headless")
     options.add_argument("--disable-gpu")
     options.add_argument(f"user-agent={USER_AGENT}")
 
-    driver = webdriver.Chrome(service=Service(driver_path), options=options)
+    # pakai webdriver-manager langsung install driver yang cocok
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
     m3u8_links = []
     try:
         main_url = f"{BASE_URL}/match/{slug}"
@@ -160,7 +161,6 @@ def fetch_server_2n_selenium(slug, driver_path="chromedriver"):
                         m3u8_links.append(link)
             except Exception as e:
                 print(f"⚠️ Gagal ambil Server-{idx}: {e}")
-
     finally:
         driver.quit()
     return m3u8_links
