@@ -175,7 +175,6 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
         page = await context.new_page()
         page_links = []
 
-        # 🔹 Tangkap response m3u8 atau player link
         def handle_response(response):
             resp_url = response.url
             if ".m3u8" in resp_url and resp_url not in page_links:
@@ -193,7 +192,7 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
             await page.goto(url, timeout=30000, wait_until="domcontentloaded")
             await page.wait_for_timeout(wait_ms)
 
-            # 🔹 Server-1: iframe default
+            # Server-1: iframe default
             iframe = await page.query_selector(".iframe-wrapper iframe[src*='player?link=']")
             if iframe:
                 iframe_src = await iframe.get_attribute("src")
@@ -203,17 +202,19 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
             else:
                 print(f"      ⚠️ Tidak ditemukan iframe default Server-1")
 
-            # 🔹 Server-2..N: klik tombol server
+            # Server-2..N: klik tombol server
             buttons = await page.query_selector_all(".btn-server[data-link]")
             for idx, btn in enumerate(buttons, start=2):
                 server_label = f"{server_prefix}-{idx}"
                 try:
                     print(f"      ▶️ Klik tombol {server_label}")
                     await btn.click(force=True)
-                    await page.wait_for_timeout(2000)  # tunggu JS render player
 
-                    # Ambil #player-html5
-                    player_elem = await page.query_selector("#player-html5 iframe, #player-html5 source")
+                    # 🔹 Tunggu iframe baru di #player-html5 muncul
+                    player_elem = await page.wait_for_selector(
+                        "#player-html5 iframe[src*='player?link='], #player-html5 source[src$='.m3u8']",
+                        timeout=5000
+                    )
                     if player_elem:
                         m3u8_link = await player_elem.get_attribute("src")
                         if m3u8_link:
@@ -223,6 +224,8 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
                                 page_links.append(m3u8_link)
                     else:
                         print(f"         ⚠️ Tidak ditemukan #player-html5 di {server_label}")
+
+                    await page.wait_for_timeout(500)
 
                 except Exception as e:
                     print(f"      ⚠️ Gagal klik {server_label}: {e}")
