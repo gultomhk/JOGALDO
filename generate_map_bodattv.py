@@ -169,15 +169,13 @@ def clean_m3u8_links(urls, keep_encoded=True):
 async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
     """
     Fetch semua link m3u8 & player dari halaman match FSTV.
-    Menangani Server-1 (iframe default) sampai Server-N (tombol server via ChangeLink).
+    Menangani Server-1 (iframe default) sampai Server-N (tombol server via klik tombol).
     """
-    import json
-
     async def process_page(url, wait_ms=8000, label="page", server_prefix="Server"):
         page = await context.new_page()
         page_links = []
 
-        # 🔹 Tangkap semua response m3u8 atau player link
+        # 🔹 Tangkap response m3u8 atau player link
         def handle_response(response):
             resp_url = response.url
             if ".m3u8" in resp_url and resp_url not in page_links:
@@ -195,57 +193,39 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
             await page.goto(url, timeout=30000, wait_until="domcontentloaded")
             await page.wait_for_timeout(wait_ms)
 
-            html = await page.content()
-            soup = BeautifulSoup(html, "html.parser")
-
             # 🔹 Server-1: iframe default
-            iframe = soup.select_one(".iframe-wrapper iframe[src*='player?link=']")
-            if iframe and iframe.has_attr("src"):
-                iframe_src = urljoin(BASE_URL, iframe["src"])
+            iframe = await page.query_selector(".iframe-wrapper iframe[src*='player?link=']")
+            if iframe:
+                iframe_src = await iframe.get_attribute("src")
+                iframe_src = urljoin(BASE_URL, iframe_src)
                 print(f"      🌐 {server_prefix}-1: iframe default {iframe_src}")
-                page_links.append(iframe_src)  # langsung ambil link m3u8 / player
+                page_links.append(iframe_src)
             else:
                 print(f"      ⚠️ Tidak ditemukan iframe default Server-1")
 
-            # 🔹 Server-2,3,...: tombol server (ChangeLink API)
-            buttons = soup.select(".list-server button[data-link]")
-            for idx, btn in enumerate(buttons, start=2):  # Server-2 mulai dari idx=2
+            # 🔹 Server-2..N: klik tombol server
+            buttons = await page.query_selector_all(".btn-server[data-link]")
+            for idx, btn in enumerate(buttons, start=2):
+                server_label = f"{server_prefix}-{idx}"
                 try:
-                    server_label = f"{server_prefix}-{idx}"
-                    data_link = btn.get("data-link")
-                    data_type = btn.get("data-link-type", "hls")
-                    data_live = btn.get("data-link-live", "true")
+                    print(f"      ▶️ Klik tombol {server_label}")
+                    await btn.click(force=True)
+                    await page.wait_for_timeout(2000)  # tunggu JS render player
 
-                    print(f"      ▶️ Ambil {server_label} via ChangeLink → {data_link}")
-
-                    # 🔹 Panggil endpoint ?handler=ChangeLink
-                    payload = {
-                        "linkSource": data_link,
-                        "type": data_type,
-                        "isLive": data_live
-                    }
-                    resp = await page.request.post(f"{BASE_URL}/match/{slug}?handler=ChangeLink", data=payload)
-                    resp_html = await resp.text()
-                    soup2 = BeautifulSoup(resp_html, "html.parser")
-
-                    # 🔹 Ambil m3u8 dari #player-html5
-                    player_elem = soup2.select_one("#player-html5 source[src$='.m3u8'], #player-html5 iframe[src*='player?link=']")
+                    # Ambil #player-html5
+                    player_elem = await page.query_selector("#player-html5 iframe, #player-html5 source")
                     if player_elem:
-                        if player_elem.name == "source":
-                            m3u8_link = player_elem.get("src")
-                        else:
-                            m3u8_link = player_elem.get("src")  # iframe case
-                        m3u8_link = urljoin(BASE_URL, m3u8_link)
-                        print(f"         🌐 {server_label}: {m3u8_link}")
-                        if m3u8_link not in page_links:
-                            page_links.append(m3u8_link)
+                        m3u8_link = await player_elem.get_attribute("src")
+                        if m3u8_link:
+                            m3u8_link = urljoin(BASE_URL, m3u8_link)
+                            if m3u8_link not in page_links:
+                                print(f"         🌐 {server_label}: {m3u8_link}")
+                                page_links.append(m3u8_link)
                     else:
-                        print(f"         ⚠️ Tidak ditemukan m3u8 pada {server_label}")
-
-                    await page.wait_for_timeout(500)
+                        print(f"         ⚠️ Tidak ditemukan #player-html5 di {server_label}")
 
                 except Exception as e:
-                    print(f"      ⚠️ Gagal ambil {server_label}: {e}")
+                    print(f"      ⚠️ Gagal klik {server_label}: {e}")
 
         except Exception as e:
             print(f"   ❌ Error buka {label} {url}: {e}")
