@@ -268,7 +268,7 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
             unique.append(link)
             seen.add(link)
 
-    return {slug: unique}
+    return slug, unique
 	
 # ========= Jalankan semua slug parallel =========
 async def fetch_all_parallel(slugs, concurrency=5, keep_encoded=True):
