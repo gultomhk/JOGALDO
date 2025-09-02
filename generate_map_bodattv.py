@@ -174,11 +174,16 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
 
         def handle_response(response):
             resp_url = response.url
-            if ".m3u8" in resp_url:
-                page_links.append((server_name or label, resp_url))
+
+            # hanya ambil m3u8 valid
+            if resp_url.endswith(".m3u8") or ".m3u8?" in resp_url:
+                if not any(bad in resp_url for bad in ["404", "google.com", "adexchangeclear"]):
+                    page_links.append((server_name or label, resp_url))
+
+            # kalau wrapper player?link= → parse
             elif "player?link=" in resp_url:
                 parsed = parse_player_link(resp_url, keep_encoded=keep_encoded)
-                if parsed:
+                if parsed and (parsed.endswith(".m3u8") or ".m3u8?" in parsed):
                     page_links.append((server_name or label, parsed))
 
         page.on("response", handle_response)
@@ -197,10 +202,10 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
                     name = (await btn.inner_text() or f"server{idx}").strip().replace(" ", "_")
                     print(f"      ▶️ Klik {label} tombol{idx} ({name})")
 
-                    # klik tombol server
+                    # klik tombol
                     await btn.click()
 
-                    # tunggu iframe muncul setelah klik
+                    # tunggu iframe muncul
                     try:
                         await page.wait_for_selector("iframe[src*='player?link=']", timeout=10000)
                     except:
@@ -212,7 +217,7 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
                     soup = BeautifulSoup(html, "html.parser")
                     iframe_src = urljoin(BASE_URL, soup.select("iframe[src*='player?link=']")[-1]["src"])
 
-                    # recursive: proses iframe
+                    # recursive proses iframe
                     links = await process_page(
                         iframe_src,
                         wait_ms=wait_ms,
@@ -224,7 +229,7 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
                 except Exception as e:
                     print(f"      ⚠️ Gagal klik {label} tombol{idx}: {e}")
 
-            # kasih waktu tangkap response tambahan
+            # kasih waktu buat response tambahan
             await page.wait_for_timeout(wait_ms)
 
         except Exception as e:
@@ -244,7 +249,7 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
     except Exception as e:
         print(f"   ❌ Error main slug {slug}: {e}")
 
-    # proses iframe default (jika ada)
+    # proses iframe default
     try:
         page = await context.new_page()
         await page.goto(main_url, timeout=30000, wait_until="domcontentloaded")
@@ -267,13 +272,22 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
     except Exception as e:
         print(f"   ❌ Error iframe main page slug {slug}: {e}")
 
-    # hasil: dict {slug: url, slugserver2: url, ...}
+    # hasil: dict {slug: url, slug_serverName: url, ...}
     result = {}
+    seen = set()
     for idx, (name, url) in enumerate(servers, start=1):
+        if not url or any(bad in url for bad in ["404", "google.com", "adexchangeclear"]):
+            continue
+        if url in seen:
+            continue
+        seen.add(url)
+
         if idx == 1:
             key = slug
         else:
-            key = f"{slug}server{idx}"
+            # pakai nama server jika ada
+            key = f"{slug}_{name}" if name else f"{slug}server{idx}"
+
         result[key] = url
 
     return result
