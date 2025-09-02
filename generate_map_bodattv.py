@@ -165,97 +165,73 @@ def clean_m3u8_links(urls, keep_encoded=True):
             seen.add(u)
     return cleaned
 
-# ========= Playwright fetch m3u8 per slug (FINAL MULTI SERVER, FIXED + LOG) =========
 async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
     async def process_page(url, wait_ms=8000, label="server"):
-        """Buka 1 URL, listen response .m3u8, return daftar link"""
+        """Buka 1 URL, klik semua tombol server, listen response .m3u8"""
         page = await context.new_page()
-        page_links = []
+        collected = []
 
+        # listener global
         def handle_response(response):
             resp_url = response.url
-            if ".m3u8" in resp_url and resp_url not in page_links:
-                print(f"      ✅ {label}: m3u8 terdeteksi {resp_url}")
-                page_links.append(resp_url)
-            elif "player?link=" in resp_url:
-                parsed = parse_player_link(resp_url, keep_encoded=keep_encoded)
-                if parsed not in page_links:
-                    print(f"      ✅ {label}: player link {parsed}")
-                    page_links.append(parsed)
+            if ".m3u8" in resp_url:
+                if not any(bad in resp_url for bad in ["404", "google.com", "adexchangeclear"]):
+                    if resp_url not in collected:
+                        print(f"      ✅ {label}: m3u8 terdeteksi {resp_url}")
+                        collected.append(resp_url)
 
         page.on("response", handle_response)
 
         try:
             await page.goto(url, timeout=30000, wait_until="domcontentloaded")
 
-            # cek tombol server
-            try:
-                buttons = await page.query_selector_all(".list-server button[data-link]")
-                if buttons:
-                    print(f"   🔘 {label}: ditemukan {len(buttons)} tombol server")
-                else:
-                    print(f"   ⚠️ {label}: tidak ada tombol server")
-            except:
-                buttons = []
+            # ambil tombol server
+            buttons = await page.query_selector_all(".list-server button[data-link]") or []
+            print(f"   🔘 {label}: {len(buttons)} tombol server ditemukan")
 
-            # proses tiap tombol → iframe baru → m3u8
             for idx, btn in enumerate(buttons, start=1):
                 try:
-                    print(f"      ▶️ Klik {label} tombol{idx}")
-                    await btn.click(force=True)
+                    name = (await btn.inner_text() or f"server{idx}").strip().replace(" ", "_")
+                    print(f"      ▶️ Klik {label} tombol{idx} ({name})")
 
-                    # tunggu iframe baru muncul setelah klik
+                    # klik tombol & tunggu response m3u8
+                    async with page.expect_response(lambda r: ".m3u8" in r.url, timeout=8000) as resp_info:
+                        await btn.click(force=True)
                     try:
-                        await page.wait_for_selector("iframe[src*='player?link=']", timeout=5000)
+                        resp = await resp_info.value
+                        m3u8_url = resp.url
+                        if m3u8_url not in collected:
+                            print(f"         ✅ {label} tombol{idx}: tokenized {m3u8_url}")
+                            collected.append(m3u8_url)
                     except:
-                        print(f"      ⚠️ {label} tombol{idx}: tidak ada iframe setelah klik")
-                        continue
-
-                    # ambil iframe terakhir (server yg baru ditrigger)
-                    html = await page.content()
-                    soup = BeautifulSoup(html, "html.parser")
-                    iframes = soup.select("iframe[src*='player?link=']")
-                    if not iframes:
-                        continue
-                    iframe_src = urljoin(BASE_URL, iframes[-1]["src"])
-                    print(f"         🌐 {label} tombol{idx}: iframe {iframe_src}")
-
-                    # proses iframe di tab baru
-                    links = await process_page(iframe_src, wait_ms=wait_ms, label=f"{label}-tombol{idx}")
-                    page_links.extend(links)
+                        print(f"         ⚠️ {label} tombol{idx}: tidak ada response m3u8")
 
                 except Exception as e:
                     print(f"      ⚠️ Gagal klik {label} tombol{idx}: {e}")
 
-            # tambahan waktu biar request sisa ketangkap
-            await page.wait_for_timeout(2000)
+            await page.wait_for_timeout(wait_ms)
 
         except Exception as e:
             print(f"   ❌ Error buka {label} {url}: {e}")
         finally:
             await page.close()
 
-        return clean_m3u8_links(page_links, keep_encoded=keep_encoded)
+        return collected
 
     servers = []
     main_url = f"{BASE_URL}/match/{slug}"
 
-    # 🔹 proses halaman utama (tombol → iframe → m3u8)
+    # 🔹 proses halaman utama (klik tombol → ambil m3u8)
     try:
         main_links = await process_page(main_url, wait_ms=8000, label="main")
         servers.extend(main_links)
     except Exception as e:
         print(f"   ❌ Error main slug {slug}: {e}")
 
-    # 🔹 proses iframe bawaan halaman (kalau ada)
+    # 🔹 proses iframe bawaan (kalau ada)
     try:
         page = await context.new_page()
         await page.goto(main_url, timeout=30000, wait_until="domcontentloaded")
-
-        try:
-            await page.wait_for_selector("iframe[src*='player?link=']", timeout=5000)
-        except:
-            print(f"   ⚠️ Tidak ada iframe di slug {slug}")
 
         soup = BeautifulSoup(await page.content(), "html.parser")
         iframes = soup.select("iframe[src*='player?link=']")
@@ -266,21 +242,19 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
                 links = await process_page(iframe_src, wait_ms=10000, label=f"iframe{idx}")
                 servers.extend(links)
             except Exception as e:
-                print(f"   ❌ Error iframe slug {slug}: {e}")
+                print(f"   ❌ Error iframe {idx} slug {slug}: {e}")
+        await page.close()
     except Exception as e:
         print(f"   ❌ Error iframe main page slug {slug}: {e}")
-    finally:
-        await page.close()
 
     # 🔹 hapus duplikat tapi jaga urutan
-    seen, unique_servers = set(), []
+    seen, unique = set(), []
     for link in servers:
-        # unik berdasarkan full URL (termasuk token)
         if link not in seen:
-            unique_servers.append(link)
+            unique.append(link)
             seen.add(link)
 
-    return slug, unique_servers
+    return slug, unique
 	
 # ========= Jalankan semua slug parallel =========
 async def fetch_all_parallel(slugs, concurrency=5, keep_encoded=True):
