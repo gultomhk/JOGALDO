@@ -208,14 +208,29 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
             # 🔹 Server-2..N: klik tombol server
             buttons = await page.query_selector_all(".btn-server")
             if len(buttons) > 1:
-                for idx, btn in enumerate(buttons[1:], start=2):  # skip tombol pertama
+                for idx, btn in enumerate(buttons[1:], start=2):  # skip Server-1
                     server_label = f"{server_prefix}-{idx}"
                     try:
                         print(f"      ▶️ Klik tombol {server_label}")
-                        await btn.click(force=True)
-                        await page.wait_for_timeout(2000)  # tunggu JS render player
 
-                        # Ambil isi #player-html5
+                        # Simpan iframe lama (biar bisa deteksi ganti)
+                        old_iframe = await page.query_selector("#player-html5 iframe")
+
+                        # Klik tombol server
+                        await btn.click(force=True, no_wait_after=True)
+
+                        # Tunggu iframe lama hilang (jika ada)
+                        if old_iframe:
+                            try:
+                                await old_iframe.wait_for_element_state("detached", timeout=5000)
+                            except:
+                                pass
+
+                        # Tunggu iframe/source baru muncul
+                        await page.wait_for_selector("#player-html5 iframe, #player-html5 source",
+                                                     state="attached", timeout=5000)
+
+                        # Ambil iframe/source terbaru
                         player_elem = await page.query_selector("#player-html5 iframe, #player-html5 source")
                         if player_elem:
                             src = await player_elem.get_attribute("src")
