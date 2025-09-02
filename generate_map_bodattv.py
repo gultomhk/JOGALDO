@@ -8,11 +8,11 @@ import json
 import requests
 from urllib.parse import urlparse, parse_qs, unquote, urljoin, urlencode
 from playwright.async_api import async_playwright
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
+from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from urllib.parse import urljoin
 import time
 
 # ========= Konfigurasi =========
@@ -131,20 +131,32 @@ def clean_m3u8_links(urls, keep_encoded=True):
 
 # ========= Server-2..N pakai Selenium =========
 def fetch_server_2n_selenium(slug):
-    options = Options()
-    options.add_argument("--headless")
-    options.add_argument("--disable-gpu")
-    options.add_argument(f"user-agent={USER_AGENT}")
+    chrome_options = Options()
+    chrome_options.add_argument("--headless=new")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument(f"user-agent={USER_AGENT}")
+    chrome_options.add_argument("--window-size=1920,1080")
+    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+    chrome_options.set_capability("goog:loggingPrefs", {"performance": "ALL"})
 
-    # pakai webdriver-manager langsung install driver yang cocok
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+    driver = webdriver.Chrome(
+        service=Service(ChromeDriverManager().install()),
+        options=chrome_options
+    )
+
     m3u8_links = []
     try:
         main_url = f"{BASE_URL}/match/{slug}"
+        print(f"🌐 Buka halaman: {main_url}", flush=True)
         driver.get(main_url)
         time.sleep(5)
 
         buttons = driver.find_elements(By.CSS_SELECTOR, ".btn-server[data-link]")
+        if not buttons:
+            print("⚠️ Tidak ada tombol server tambahan ditemukan", flush=True)
+
         for idx, btn in enumerate(buttons, start=2):
             try:
                 btn.click()
@@ -153,16 +165,21 @@ def fetch_server_2n_selenium(slug):
                     By.CSS_SELECTOR,
                     "#player-html5 iframe[src*='player?link='], #player-html5 source[src$='.m3u8']"
                 )
+                if not elems:
+                    print(f"⚠️ Server-{idx}: iframe/source tidak ditemukan", flush=True)
+
                 for elem in elems:
                     link = elem.get_attribute("src")
                     if link and link not in m3u8_links:
                         link = urljoin(BASE_URL, link)
-                        print(f"✅ Server-{idx}: {link}")
+                        print(f"✅ Server-{idx}: {link}", flush=True)
                         m3u8_links.append(link)
             except Exception as e:
-                print(f"⚠️ Gagal ambil Server-{idx}: {e}")
+                print(f"⚠️ Gagal ambil Server-{idx}: {e}", flush=True)
     finally:
         driver.quit()
+        print("🔒 Selenium driver ditutup", flush=True)
+
     return m3u8_links
 
 # ========= Playwright fetch m3u8 per slug (Server-1) =========
