@@ -8,13 +8,6 @@ import json
 import requests
 from urllib.parse import urlparse, parse_qs, unquote, urljoin, urlencode
 from playwright.async_api import async_playwright
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
-from urllib.parse import urljoin
-import time
 
 # ========= Konfigurasi =========
 CONFIG_FILE = Path.home() / "bodattvdata_file.txt"
@@ -54,7 +47,50 @@ def parse_player_link(url: str, keep_encoded: bool = True) -> str:
             decoded += "&" + extra_str if "?" in decoded else "?" + extra_str
         return decoded
 
-# ========= Extract slug =========
+# ========= Ekstraksi M3U8 (HTML & iframe) =========
+def extract_m3u8_urls(html, base_url=BASE_URL):
+    """Ekstrak URL m3u8 dari HTML dengan follow iframe/player untuk ambil authkey"""
+    soup = BeautifulSoup(html, "html.parser")
+    data_links = soup.select("[data-link]")
+    m3u8_urls = []
+
+    for tag in data_links:
+        raw = tag.get("data-link", "")
+        if not raw:
+            continue
+
+        # --- Kasus langsung ---
+        if raw.endswith(".m3u8") and raw.startswith("http"):
+            print(f"   🔗 Data-link langsung: ✅ {raw}")
+            m3u8_urls.append(raw)
+
+        # --- Kasus iframe/player ---
+        elif "/player?link=" in raw:
+            iframe_url = urljoin(base_url, raw)
+            print(f"   🌐 Cek iframe: {iframe_url}")
+            try:
+                r = requests.get(iframe_url, headers={"User-Agent": USER_AGENT}, timeout=10)
+                if r.ok:
+                    iframe_html = r.text
+                    found = re.findall(r"https?://[^\s\"']+\.m3u8[^\s\"']*", iframe_html)
+                    if found:
+                        for f in found:
+                            if any(k in f for k in ["auth", "token", "key="]):
+                                print(f"   🔑 Dari iframe (authkey): ✅ {f}")
+                                m3u8_urls.append(f)
+                            else:
+                                print(f"   ⚠️ Dari iframe tanpa auth: {f}")
+                else:
+                    print(f"   ❌ Gagal load iframe: {r.status_code}")
+            except Exception as e:
+                print(f"   ❌ Error iframe fetch: {e}")
+
+        else:
+            print(f"   ⚠️ Skip: {raw}")
+
+    return m3u8_urls
+
+# ========= Ambil daftar slug =========
 def extract_slug(row):
     if row.has_attr("onclick"):
         match = re.search(r"/match/([^\"']+)", row["onclick"])
@@ -65,7 +101,6 @@ def extract_slug(row):
         return link['href'].replace('/match/', '').strip()
     return None
 
-# ========= Extract slugs dari HTML =========
 def extract_slugs_from_html(html, hours_threshold=2):
     soup = BeautifulSoup(html, "html.parser")
     matches = soup.select("div.common-table-row.table-row")
@@ -130,123 +165,94 @@ def clean_m3u8_links(urls, keep_encoded=True):
             seen.add(u)
     return cleaned
 
-# ========= Server-2..N pakai Selenium =========
-def fetch_server_2n_selenium(slug):
-    chrome_options = Options()
-    chrome_options.add_argument("--headless=new")
-    chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument(f"user-agent={USER_AGENT}")
-    chrome_options.add_argument("--window-size=1920,1080")
-    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+# ========= Playwright fetch m3u8 per slug (FINAL MULTI SERVER, FIXED + LOG) =========
+async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
+    """
+    Fetch semua link m3u8 & player dari halaman match FSTV.
+    Menangani Server-1 (iframe default) sampai Server-N (tombol server via klik tombol).
+    """
+    async def process_page(url, wait_ms=8000, label="page", server_prefix="Server"):
+        page = await context.new_page()
+        page_links = []
 
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
-    m3u8_links = []
+        # 🔹 Tangkap response m3u8 atau player link
+        def handle_response(response):
+            resp_url = response.url
+            if ".m3u8" in resp_url and resp_url not in page_links:
+                print(f"      ✅ {label}: m3u8 terdeteksi {resp_url}")
+                page_links.append(resp_url)
+            elif "player?link=" in resp_url:
+                parsed = parse_player_link(resp_url, keep_encoded=keep_encoded)
+                if parsed not in page_links:
+                    print(f"      ✅ {label}: player link {parsed}")
+                    page_links.append(parsed)
 
-    try:
-        main_url = f"{BASE_URL}/match/{slug}"
-        print(f"🌐 Buka halaman: {main_url}", flush=True)
-        driver.get(main_url)
-        time.sleep(5)
+        page.on("response", handle_response)
 
-        # Ambil semua tombol server
-        buttons = driver.find_elements(By.CSS_SELECTOR, ".btn-server")
-        if not buttons:
-            print("⚠️ Tidak ada tombol server ditemukan", flush=True)
-        else:
-            for idx, btn in enumerate(buttons, start=1):
-                # Skip Server-1 karena sudah default
-                if idx == 1:
-                    continue
+        try:
+            await page.goto(url, timeout=30000, wait_until="domcontentloaded")
+            await page.wait_for_timeout(wait_ms)
+
+            # 🔹 Server-1: iframe default
+            iframe = await page.query_selector(".iframe-wrapper iframe[src*='player?link=']")
+            if iframe:
+                iframe_src = await iframe.get_attribute("src")
+                iframe_src = urljoin(BASE_URL, iframe_src)
+                print(f"      🌐 {server_prefix}-1: iframe default {iframe_src}")
+                page_links.append(iframe_src)
+            else:
+                print(f"      ⚠️ Tidak ditemukan iframe default Server-1")
+
+            # 🔹 Server-2..N: klik tombol server
+            buttons = await page.query_selector_all(".btn-server[data-link]")
+            for idx, btn in enumerate(buttons, start=2):
+                server_label = f"{server_prefix}-{idx}"
                 try:
-                    driver.execute_script("arguments[0].scrollIntoView(true);", btn)
-                    btn.click()
-                    time.sleep(2)
+                    print(f"      ▶️ Klik tombol {server_label}")
+                    await btn.click(force=True)
+                    await page.wait_for_timeout(2000)  # tunggu JS render player
 
-                    # Ambil iframe terbaru setelah klik tombol
-                    elems = driver.find_elements(
-                        By.CSS_SELECTOR,
-                        "#player-html5 iframe[src*='player?link='], #player-html5 source[src$='.m3u8']"
-                    )
-                    if not elems:
-                        print(f"⚠️ Server-{idx}: iframe/source tidak ditemukan", flush=True)
+                    # Ambil #player-html5
+                    player_elem = await page.query_selector("#player-html5 iframe, #player-html5 source")
+                    if player_elem:
+                        m3u8_link = await player_elem.get_attribute("src")
+                        if m3u8_link:
+                            m3u8_link = urljoin(BASE_URL, m3u8_link)
+                            if m3u8_link not in page_links:
+                                print(f"         🌐 {server_label}: {m3u8_link}")
+                                page_links.append(m3u8_link)
+                    else:
+                        print(f"         ⚠️ Tidak ditemukan #player-html5 di {server_label}")
 
-                    for elem in elems:
-                        link = elem.get_attribute("src")
-                        if link and link not in m3u8_links:
-                            link = urljoin(BASE_URL, link)
-                            print(f"✅ Server-{idx}: {link}", flush=True)
-                            m3u8_links.append(link)
                 except Exception as e:
-                    print(f"⚠️ Gagal ambil Server-{idx}: {e}", flush=True)
-    finally:
-        driver.quit()
-        print("🔒 Selenium driver ditutup", flush=True)
+                    print(f"      ⚠️ Gagal klik {server_label}: {e}")
 
-    return m3u8_links
+        except Exception as e:
+            print(f"   ❌ Error buka {label} {url}: {e}")
+        finally:
+            await page.close()
 
-# ========= Playwright fetch m3u8 per slug (Server-1) =========
-async def fetch_m3u8_server1_playwright(context, slug, keep_encoded=True):
-    page_links = []
-    page = await context.new_page()
+        return clean_m3u8_links(page_links, keep_encoded=keep_encoded)
 
-    def handle_response(response):
-        resp_url = response.url
-        if ".m3u8" in resp_url and resp_url not in page_links:
-            print(f"✅ Server-1: m3u8 terdeteksi {resp_url}")
-            page_links.append(resp_url)
-
-    page.on("response", handle_response)
+    main_url = f"{BASE_URL}/match/{slug}"
     try:
-        main_url = f"{BASE_URL}/match/{slug}"
-        await page.goto(main_url, timeout=30000, wait_until="domcontentloaded")
-        await page.wait_for_timeout(5000)
+        slug, links = slug, await process_page(main_url, wait_ms=8000, label="main", server_prefix="Server")
 
-        iframe = await page.query_selector(".iframe-wrapper iframe[src*='player?link=']")
-        if iframe:
-            iframe_src = await iframe.get_attribute("src")
-            iframe_src = urljoin(BASE_URL, iframe_src)
-            print(f"✅ Server-1: iframe default {iframe_src}")
-            page_links.append(iframe_src)
-        else:
-            print("⚠️ Server-1 iframe tidak ditemukan")
+        # Hapus duplikat tapi jaga urutan
+        seen, unique_links = set(), []
+        for link in links:
+            if link not in seen:
+                unique_links.append(link)
+                seen.add(link)
+
+        if not unique_links:
+            print(f"   ⚠️ Tidak ditemukan .m3u8 pada slug: {slug}")
+        return slug, unique_links
+
     except Exception as e:
-        print(f"❌ Error Server-1: {e}")
-    finally:
-        await page.close()
-
-    return clean_m3u8_links(page_links, keep_encoded=keep_encoded)
-
-# ========= Fetch semua slug hybrid =========
-async def fetch_m3u8_hybrid(context, slug, keep_encoded=True):
-    # Tangani Server-1
-    try:
-        links_server1 = await fetch_m3u8_server1_playwright(context, slug, keep_encoded)
-    except Exception as e:
-        print(f"❌ Server-1 error untuk {slug}: {e}")
-        links_server1 = []
-
-    # Tangani Server-2..N
-    try:
-        links_server2n = fetch_server_2n_selenium(slug)
-    except Exception as e:
-        print(f"❌ Server-2..N error untuk {slug}: {e}")
-        links_server2n = []
-
-    # Gabungkan semua link
-    all_links = links_server1 + links_server2n
-
-    # Hapus duplikat tapi jaga urutan
-    seen, unique_links = set(), []
-    for l in all_links:
-        if l not in seen:
-            unique_links.append(l)
-            seen.add(l)
-
-    return slug, unique_links
-
-
+        print(f"   ❌ Error main slug {slug}: {e}")
+        return slug, []
+	
 # ========= Jalankan semua slug parallel =========
 async def fetch_all_parallel(slugs, concurrency=5, keep_encoded=True):
     async with async_playwright() as p:
@@ -256,32 +262,37 @@ async def fetch_all_parallel(slugs, concurrency=5, keep_encoded=True):
 
         async def sem_task(slug):
             async with semaphore:
-                try:
-                    return await fetch_m3u8_hybrid(context, slug, keep_encoded=keep_encoded)
-                except Exception as e:
-                    print(f"❌ Task error untuk {slug}: {e}")
-                    return slug, []
+                return await fetch_m3u8_with_playwright(context, slug, keep_encoded=keep_encoded)
 
         tasks = [sem_task(slug) for slug in slugs]
-        results = await asyncio.gather(*tasks, return_exceptions=False)
+        results = await asyncio.gather(*tasks, return_exceptions=True)
         await browser.close()
 
         all_data = {}
-        for slug, urls in results:
+        for slug_result in results:
+            if isinstance(slug_result, Exception):
+                print(f"❌ Error di task: {slug_result}")
+                continue
+            slug, urls = slug_result
             if urls:
                 all_data[slug] = urls[0]
+                print(f"   ✅ M3U8 ditemukan (server1): {urls[0]}", flush=True)
                 for i, url in enumerate(urls[1:], start=2):
                     key = f"{slug}server{i}"
                     all_data[key] = url
+                    print(f"   ✅ M3U8 ditemukan (server{i}): {url}", flush=True)
+            else:
+                print(f"   ⚠️ Tidak ditemukan .m3u8 pada slug: {slug}", flush=True)
 
         return all_data
+
 # ========= Simpan ke map2.json =========
 def save_map_file(data):
     with MAP_FILE.open("w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
     print(f"✅ map2.json berhasil disimpan! Total entri: {len(data)}")
 
-# ========= MAIN =========
+# ===== MAIN =====
 if __name__ == "__main__":
     html_path = Path("BODATTV_PAGE_SOURCE.html")
     if not html_path.exists():
@@ -289,5 +300,6 @@ if __name__ == "__main__":
 
     html = html_path.read_text(encoding="utf-8")
     slug_list = extract_slugs_from_html(html)
-    all_data = asyncio.run(fetch_all_parallel(slug_list, concurrency=5, keep_encoded=True))
+
+    all_data = asyncio.run(fetch_all_parallel(slug_list, concurrency=8, keep_encoded=True))
     save_map_file(all_data)
