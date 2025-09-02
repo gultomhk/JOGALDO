@@ -10,9 +10,9 @@ from urllib.parse import urlparse, parse_qs, unquote, urljoin, urlencode
 from playwright.async_api import async_playwright
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
+from webdriver_manager.chrome import ChromeDriverManager
 from urllib.parse import urljoin
 import time
 
@@ -217,8 +217,21 @@ async def fetch_m3u8_server1_playwright(context, slug, keep_encoded=True):
 
 # ========= Fetch semua slug hybrid =========
 async def fetch_m3u8_hybrid(context, slug, keep_encoded=True):
-    links_server1 = await fetch_m3u8_server1_playwright(context, slug, keep_encoded)
-    links_server2n = fetch_server_2n_selenium(slug)
+    # Tangani Server-1
+    try:
+        links_server1 = await fetch_m3u8_server1_playwright(context, slug, keep_encoded)
+    except Exception as e:
+        print(f"❌ Server-1 error untuk {slug}: {e}")
+        links_server1 = []
+
+    # Tangani Server-2..N
+    try:
+        links_server2n = fetch_server_2n_selenium(slug)
+    except Exception as e:
+        print(f"❌ Server-2..N error untuk {slug}: {e}")
+        links_server2n = []
+
+    # Gabungkan semua link
     all_links = links_server1 + links_server2n
 
     # Hapus duplikat tapi jaga urutan
@@ -227,7 +240,9 @@ async def fetch_m3u8_hybrid(context, slug, keep_encoded=True):
         if l not in seen:
             unique_links.append(l)
             seen.add(l)
+
     return slug, unique_links
+
 
 # ========= Jalankan semua slug parallel =========
 async def fetch_all_parallel(slugs, concurrency=5, keep_encoded=True):
@@ -238,25 +253,25 @@ async def fetch_all_parallel(slugs, concurrency=5, keep_encoded=True):
 
         async def sem_task(slug):
             async with semaphore:
-                return await fetch_m3u8_hybrid(context, slug, keep_encoded=keep_encoded)
+                try:
+                    return await fetch_m3u8_hybrid(context, slug, keep_encoded=keep_encoded)
+                except Exception as e:
+                    print(f"❌ Task error untuk {slug}: {e}")
+                    return slug, []
 
         tasks = [sem_task(slug) for slug in slugs]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+        results = await asyncio.gather(*tasks, return_exceptions=False)
         await browser.close()
 
         all_data = {}
-        for slug_result in results:
-            if isinstance(slug_result, Exception):
-                print(f"❌ Error di task: {slug_result}")
-                continue
-            slug, urls = slug_result
+        for slug, urls in results:
             if urls:
                 all_data[slug] = urls[0]
                 for i, url in enumerate(urls[1:], start=2):
                     key = f"{slug}server{i}"
                     all_data[key] = url
-        return all_data
 
+        return all_data
 # ========= Simpan ke map2.json =========
 def save_map_file(data):
     with MAP_FILE.open("w", encoding="utf-8") as f:
