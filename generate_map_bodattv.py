@@ -1,20 +1,17 @@
 import asyncio
-from bs4 import BeautifulSoup
-from datetime import datetime, timedelta, timezone
-from dateutil import tz
-from pathlib import Path
+import time
 import re
 import json
+from pathlib import Path
+from datetime import datetime, timedelta, timezone
+from dateutil import tz
+from bs4 import BeautifulSoup
 import requests
 from urllib.parse import urlparse, parse_qs, unquote, urljoin, urlencode
 from playwright.async_api import async_playwright
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
+import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
-from urllib.parse import urljoin
-import time
 
 # ========= Konfigurasi =========
 CONFIG_FILE = Path.home() / "bodattvdata_file.txt"
