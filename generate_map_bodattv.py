@@ -259,7 +259,7 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
 
     return slug, result
 	
-# ========= Jalankan semua slug parallel =========
+# ========= Ambil semua slug parallel =========
 async def fetch_all_parallel(slugs, concurrency=5, keep_encoded=True):
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
@@ -269,40 +269,27 @@ async def fetch_all_parallel(slugs, concurrency=5, keep_encoded=True):
         async def sem_task(slug):
             async with semaphore:
                 try:
+                    # sekarang return dict langsung
                     return await fetch_m3u8_with_playwright(
                         context, slug, keep_encoded=keep_encoded
                     )
                 except Exception as e:
                     print(f"❌ Error di slug {slug}: {e}")
-                    return None
+                    return {}
 
         tasks = [sem_task(slug) for slug in slugs]
         results = await asyncio.gather(*tasks, return_exceptions=False)
         await browser.close()
 
         all_data = {}
-        for slug_result in results:
-            if not slug_result:
+        for urls_dict in results:
+            if not urls_dict:
                 continue
 
-            slug, urls = slug_result
-
-            # pastikan urls adalah list dan punya isi
-            if not urls or not isinstance(urls, (list, tuple)):
-                print(f"   ⚠️ Tidak ditemukan .m3u8 pada slug: {slug}", flush=True)
-                continue
-
-            # server1
-            if len(urls) >= 1:
-                all_data[slug] = urls[0]
-                print(f"   ✅ M3U8 ditemukan (server1): {urls[0]}", flush=True)
-
-            # server2..dst
-            if len(urls) > 1:
-                for i, url in enumerate(urls[1:], start=2):
-                    key = f"{slug} server{i}"
-                    all_data[key] = url
-                    print(f"   ✅ M3U8 ditemukan (server{i}): {url}", flush=True)
+            # langsung merge dict hasil ke all_data
+            for key, url in urls_dict.items():
+                all_data[key] = url
+                print(f"   ✅ M3U8 ditemukan ({key}): {url}", flush=True)
 
         return all_data
 		
