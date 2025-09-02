@@ -34,7 +34,6 @@ jobs:
 
       - name: Jalankan Script Generate map.json
         run: |
-          cp $HOME/bodattvdata_file.txt .
           python generate_map_bodattv.py
 
       - name: Push map2.json ke Repo
