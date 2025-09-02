@@ -9,6 +9,7 @@ import requests
 from urllib.parse import urlparse, parse_qs, unquote, urljoin, urlencode
 from playwright.async_api import async_playwright
 import logging
+import time
 
 # ========= Setup Logging =========
 logging.basicConfig(
@@ -184,77 +185,94 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
     Semua tombol server diproses, iframe player otomatis diikuti.
     """
 
-    async def process_page(url, wait_ms=8000, label="server"):
-        """Buka 1 URL, ambil semua tombol server via data-link, listen response .m3u8"""
+    async def process_server_buttons(page, label="main"):
+        """Proses semua tombol server pada halaman dan kembalikan URL m3u8 untuk masing-masing"""
+        server_urls = {}
+        
+        # Ambil semua tombol server
+        buttons = await page.query_selector_all(".list-server button[data-link]") or []
+        logger.info(f"{label}: {len(buttons)} tombol server ditemukan")
+        
+        for idx, btn in enumerate(buttons, start=1):
+            try:
+                name = (await btn.inner_text() or f"server{idx}").strip().replace(" ", "_")
+                data_link = await btn.get_attribute("data-link")
+                if not data_link:
+                    logger.warning(f"{label} tombol{idx} ({name}): tidak ada data-link")
+                    continue
+                
+                logger.info(f"Proses {label} tombol{idx} ({name}) - data-link: {data_link}")
+                
+                # Buat promise untuk menangkap response m3u8 sebelum klik
+                response_promise = asyncio.create_task(
+                    wait_for_m3u8_response(page, timeout=10000)
+                )
+                
+                # Klik tombol server
+                await btn.click()
+                await page.wait_for_timeout(2000)  # Tunggu setelah klik
+                
+                # Tunggu response m3u8
+                try:
+                    m3u8_url = await asyncio.wait_for(response_promise, timeout=10)
+                    if m3u8_url:
+                        server_urls[name] = m3u8_url
+                        logger.info(f"{label} {name}: tokenized {m3u8_url}")
+                    else:
+                        logger.warning(f"{label} {name}: tidak ada response m3u8 setelah klik")
+                except asyncio.TimeoutError:
+                    logger.warning(f"{label} {name}: timeout menunggu response m3u8")
+                
+            except Exception as e:
+                logger.error(f"Gagal proses {label} tombol{idx}: {e}")
+        
+        return server_urls
+    
+    async def wait_for_m3u8_response(page, timeout=10000):
+        """Tunggu dan kembalikan URL m3u8 dari response"""
+        start_time = time.time()
+        
+        while time.time() - start_time < timeout:
+            # Periksa apakah ada elemen video atau iframe yang berubah
+            video_elements = await page.query_selector_all("video, iframe")
+            for elem in video_elements:
+                src = await elem.get_attribute("src")
+                if src and ".m3u8" in src:
+                    return src
+            
+            # Tunggu sebentar sebelum pemeriksaan berikutnya
+            await asyncio.sleep(0.5)
+        
+        return None
+
+    async def process_page(url, label="server"):
+        """Buka 1 URL dan proses semua tombol server di dalamnya"""
         page = await context.new_page()
-        collected = []
-
-        # listener global untuk sniff m3u8
-        def handle_response(response):
-            resp_url = response.url
-            if ".m3u8" in resp_url:
-                if not any(bad in resp_url for bad in ["404", "google.com", "adexchangeclear"]):
-                    if resp_url not in collected:
-                        logger.info(f"{label}: m3u8 terdeteksi {resp_url}")
-                        collected.append(resp_url)
-
-        page.on("response", handle_response)
-
+        server_urls = {}
+        
         try:
             await page.goto(url, timeout=30000, wait_until="domcontentloaded")
             logger.info(f"Berhasil membuka halaman: {url}")
-
-            # ambil semua tombol server
-            buttons = await page.query_selector_all(".list-server button[data-link]") or []
-            logger.info(f"{label}: {len(buttons)} tombol server ditemukan")
-
-            for idx, btn in enumerate(buttons, start=1):
-                try:
-                    name = (await btn.inner_text() or f"server{idx}").strip().replace(" ", "_")
-                    data_link = await btn.get_attribute("data-link")
-                    if not data_link:
-                        logger.warning(f"{label} tombol{idx} ({name}): tidak ada data-link")
-                        continue
-
-                    logger.info(f"Proses {label} tombol{idx} ({name}) - data-link: {data_link}")
-
-                    # Klik tombol server untuk memicu permintaan m3u8
-                    await btn.click()
-                    await page.wait_for_timeout(2000)  # Tunggu sebentar setelah klik
-
-                    # Tunggu response m3u8 setelah klik
-                    try:
-                        async with page.expect_response(lambda r: ".m3u8" in r.url, timeout=wait_ms) as resp_info:
-                            await page.wait_for_timeout(1000)
-                        resp = await resp_info.value
-                        m3u8_url = resp.url
-                        if m3u8_url not in collected:
-                            logger.info(f"{label} tombol{idx}: tokenized {m3u8_url}")
-                            collected.append(m3u8_url)
-                    except Exception as e:
-                        logger.warning(f"{label} tombol{idx}: tidak ada response m3u8 setelah klik: {e}")
-
-                except Exception as e:
-                    logger.error(f"Gagal proses {label} tombol{idx}: {e}")
-
-            await page.wait_for_timeout(2000)
-
+            
+            # Proses tombol server
+            server_urls = await process_server_buttons(page, label)
+            
         except Exception as e:
             logger.error(f"Error buka {label} {url}: {e}")
         finally:
             await page.close()
+        
+        return server_urls
 
-        return collected
-
-    servers = []
+    all_server_urls = {}
     main_url = f"{BASE_URL}/match/{slug}"
     logger.info(f"Memproses slug: {slug}")
 
     # 🔹 proses halaman utama (klik tombol → ambil m3u8)
     try:
-        main_links = await process_page(main_url, wait_ms=8000, label="main")
-        servers.extend(main_links)
-        logger.info(f"Slug {slug}: {len(main_links)} link ditemukan dari halaman utama")
+        main_servers = await process_page(main_url, label="main")
+        all_server_urls.update(main_servers)
+        logger.info(f"Slug {slug}: {len(main_servers)} server ditemukan dari halaman utama")
     except Exception as e:
         logger.error(f"Error main slug {slug}: {e}")
 
@@ -271,24 +289,19 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
             iframe_src = urljoin(BASE_URL, iframe["src"])
             logger.info(f"Proses iframe default{idx}: {iframe_src}")
             try:
-                links = await process_page(iframe_src, wait_ms=10000, label=f"iframe{idx}")
-                servers.extend(links)
-                logger.info(f"Slug {slug} iframe{idx}: {len(links)} link ditemukan")
+                iframe_servers = await process_page(iframe_src, label=f"iframe{idx}")
+                # Tambahkan prefix untuk membedakan server dari iframe yang berbeda
+                prefixed_servers = {f"iframe{idx}_{k}": v for k, v in iframe_servers.items()}
+                all_server_urls.update(prefixed_servers)
+                logger.info(f"Slug {slug} iframe{idx}: {len(iframe_servers)} server ditemukan")
             except Exception as e:
                 logger.error(f"Error iframe {idx} slug {slug}: {e}")
         await page.close()
     except Exception as e:
         logger.error(f"Error iframe main page slug {slug}: {e}")
 
-    # 🔹 hapus duplikat tapi jaga urutan
-    seen, unique = set(), []
-    for link in servers:
-        if link not in seen:
-            unique.append(link)
-            seen.add(link)
-
-    logger.info(f"Slug {slug} selesai: {len(unique)} unique link ditemukan")
-    return slug, unique
+    logger.info(f"Slug {slug} selesai: {len(all_server_urls)} unique server ditemukan")
+    return slug, all_server_urls
 	
 # ========= Jalankan semua slug parallel =========
 async def fetch_all_parallel(slugs, concurrency=5, keep_encoded=True):
@@ -310,14 +323,15 @@ async def fetch_all_parallel(slugs, concurrency=5, keep_encoded=True):
             if isinstance(slug_result, Exception):
                 logger.error(f"Error di task: {slug_result}")
                 continue
-            slug, urls = slug_result
-            if urls:
-                all_data[slug] = urls[0]
-                logger.info(f"M3U8 ditemukan (server1): {urls[0]}")
-                for i, url in enumerate(urls[1:], start=2):
-                    key = f"{slug}server{i}"
-                    all_data[key] = url
-                    logger.info(f"M3U8 ditemukan (server{i}): {url}")
+            slug, server_urls = slug_result
+            if server_urls:
+                for server_name, url in server_urls.items():
+                    if server_name == "Server-1":  # Server utama
+                        all_data[slug] = url
+                    else:
+                        key = f"{slug}_{server_name}"
+                        all_data[key] = url
+                    logger.info(f"M3U8 ditemukan ({server_name}): {url}")
             else:
                 logger.warning(f"Tidak ditemukan .m3u8 pada slug: {slug}")
 
