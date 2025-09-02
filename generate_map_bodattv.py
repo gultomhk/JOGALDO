@@ -173,6 +173,7 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
     """
 
     async def process_page(url, wait_ms=8000, label="page", server_prefix="Server"):
+        print(f"\n🔎 Proses slug: {slug} ({url})") 
         page = await context.new_page()
         page_links = []
 
@@ -194,21 +195,6 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
             await page.goto(url, timeout=30000, wait_until="domcontentloaded")
             await page.wait_for_timeout(wait_ms)
 
-            # 🔹 Tunggu sampai tombol server muncul
-            try:
-                await page.wait_for_selector(".btn-server", timeout=5000)
-            except:
-                print("      ⚠️ Tidak ada tombol server ditemukan sama sekali")
-                return []
-
-            buttons = await page.query_selector_all(".btn-server")
-            print(f"      🔍 Jumlah tombol server terdeteksi: {len(buttons)}")
-
-            # 🔹 Debug: tampilkan semua innerText tombol server
-            for i, btn in enumerate(buttons, start=1):
-                text = await btn.inner_text()
-                print(f"         🔹 Tombol-{i}: '{text.strip()}'")
-
             # 🔹 Server-1: iframe default
             iframe = await page.query_selector(".iframe-wrapper iframe[src*='player?link=']")
             if iframe:
@@ -221,15 +207,31 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
                 print(f"      ⚠️ Tidak ditemukan iframe default Server-1")
 
             # 🔹 Server-2..N: klik tombol server
+            buttons = await page.query_selector_all(".btn-server")
             if len(buttons) > 1:
-                for idx, btn in enumerate(buttons[1:], start=2):
+                for idx, btn in enumerate(buttons[1:], start=2):  # skip Server-1
                     server_label = f"{server_prefix}-{idx}"
                     try:
                         print(f"      ▶️ Klik tombol {server_label}")
 
-                        await btn.click(force=True, no_wait_after=True)
-                        await page.wait_for_timeout(3000)  # tunggu AJAX render
+                        # Simpan iframe lama (biar bisa deteksi ganti)
+                        old_iframe = await page.query_selector("#player-html5 iframe")
 
+                        # Klik tombol server
+                        await btn.click(force=True, no_wait_after=True)
+
+                        # Tunggu iframe lama hilang (jika ada)
+                        if old_iframe:
+                            try:
+                                await old_iframe.wait_for_element_state("detached", timeout=5000)
+                            except:
+                                pass
+
+                        # Tunggu iframe/source baru muncul
+                        await page.wait_for_selector("#player-html5 iframe, #player-html5 source",
+                                                     state="attached", timeout=5000)
+
+                        # Ambil iframe/source terbaru
                         player_elem = await page.query_selector("#player-html5 iframe, #player-html5 source")
                         if player_elem:
                             src = await player_elem.get_attribute("src")
@@ -274,7 +276,6 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
     except Exception as e:
         print(f"   ❌ Error main slug {slug}: {e}")
         return slug, []
-
 	
 # ========= Jalankan semua slug parallel =========
 async def fetch_all_parallel(slugs, concurrency=5, keep_encoded=True):
@@ -285,6 +286,7 @@ async def fetch_all_parallel(slugs, concurrency=5, keep_encoded=True):
 
         async def sem_task(slug):
             async with semaphore:
+                print(f"\n🚀 Mulai ambil slug: {slug}")
                 return await fetch_m3u8_with_playwright(context, slug, keep_encoded=keep_encoded)
 
         tasks = [sem_task(slug) for slug in slugs]
