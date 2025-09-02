@@ -167,11 +167,15 @@ def clean_m3u8_links(urls, keep_encoded=True):
 
 # ========= Playwright fetch m3u8 per slug (FINAL MULTI SERVER, FIXED + LOG) =========
 async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
+    """
+    Fetch semua link m3u8 & player dari halaman match FSTV.
+    Menangani Server-1 (iframe default) sampai Server-N (tombol server).
+    """
     async def process_page(url, wait_ms=8000, label="page", server_prefix="Server"):
-        """Buka halaman → tangkap m3u8 & player links"""
         page = await context.new_page()
         page_links = []
 
+        # 🔹 Tangkap response m3u8 atau player link
         def handle_response(response):
             resp_url = response.url
             if ".m3u8" in resp_url and resp_url not in page_links:
@@ -197,21 +201,33 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
             if iframe and iframe.has_attr("src"):
                 iframe_src = urljoin(BASE_URL, iframe["src"])
                 print(f"      🌐 {server_prefix}-1: iframe default {iframe_src}")
-                # langsung fetch response dari iframe page
-                page_links.append(iframe_src)
+                new_links = await process_page(
+                    iframe_src, wait_ms=wait_ms, label=f"{server_prefix}-1", server_prefix=f"{server_prefix}-1"
+                )
+                page_links.extend(new_links)
 
             # 🔹 Server-2,3,...: tombol server
             buttons = await page.query_selector_all(".list-server button[data-link]")
             for idx, btn in enumerate(buttons, start=2):  # Server-2 mulai dari idx=2
                 try:
                     server_label = f"{server_prefix}-{idx}"
-                    data_link = await btn.get_attribute("data-link")
-                    if data_link:
-                        print(f"      ▶️ {server_label}: tombol server → {data_link}")
-                        page_links.append(data_link)
-                    # klik tombol untuk update iframe (opsional jika ingin fetch iframe baru)
+                    print(f"      ▶️ Klik {server_label}")
                     await btn.click(force=True)
                     await page.wait_for_timeout(1000)
+
+                    # Ambil iframe baru setelah klik tombol
+                    html_after = await page.content()
+                    soup_after = BeautifulSoup(html_after, "html.parser")
+                    new_iframe = soup_after.select_one("iframe[src*='player?link=']")
+                    if new_iframe and new_iframe.has_attr("src"):
+                        iframe_src = urljoin(BASE_URL, new_iframe["src"])
+                        iframe_label = f"{server_label}-iframe1"
+                        print(f"         🌐 {iframe_label}: iframe setelah klik tombol {iframe_src}")
+                        new_links = await process_page(
+                            iframe_src, wait_ms=wait_ms, label=iframe_label, server_prefix=iframe_label
+                        )
+                        page_links.extend(new_links)
+
                 except Exception as e:
                     print(f"      ⚠️ Gagal klik {server_label}: {e}")
 
@@ -225,13 +241,18 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
     main_url = f"{BASE_URL}/match/{slug}"
     try:
         slug, links = slug, await process_page(main_url, wait_ms=8000, label="main", server_prefix="Server")
-        # hapus duplikat tapi jaga urutan
+
+        # Hapus duplikat tapi jaga urutan
         seen, unique_links = set(), []
         for link in links:
             if link not in seen:
                 unique_links.append(link)
                 seen.add(link)
+
+        if not unique_links:
+            print(f"   ⚠️ Tidak ditemukan .m3u8 pada slug: {slug}")
         return slug, unique_links
+
     except Exception as e:
         print(f"   ❌ Error main slug {slug}: {e}")
         return slug, []
