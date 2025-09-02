@@ -13,13 +13,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v4
+      - name: 📦 Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # penting untuk bisa git pull / rebase
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: "3.11"
 
       - name: Install Dependencies
         run: |
@@ -32,20 +34,23 @@ jobs:
           git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} configrepo
           cp configrepo/bodattvdata_file.txt $HOME/bodattvdata_file.txt
 
-      - name: Jalankan Script Generate map.json
+      - name: Jalankan Script Generate map2.json
         run: |
           python generate_map_bodattv.py
 
-      - name: Push map2.json ke Repo
+      - name: 📤 Commit & Push jika ada perubahan
         run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          git pull --rebase origin master
           git add map2.json
+
           if git diff --cached --quiet; then
-            echo "✅ Tidak ada perubahan"
+            echo "ℹ️ Tidak ada perubahan pada map2.json. Skip commit dan push."
           else
-            git commit -m "auto: update map2.json"
+            echo "✅ Perubahan terdeteksi. Commit dan push..."
+            git commit -m "Update map2.json - $(date +'%Y-%m-%d %H:%M:%S')"
+            git pull --rebase origin master
             git push origin master
+            echo "🚀 Berhasil push ke repository."
           fi
