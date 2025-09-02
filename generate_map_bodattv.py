@@ -197,19 +197,28 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
                     name = (await btn.inner_text() or f"server{idx}").strip().replace(" ", "_")
                     print(f"      ▶️ Klik {label} tombol{idx} ({name})")
 
-                    # klik dan tunggu load
-                    async with page.expect_navigation(timeout=15000):
-                        await btn.click(force=True)
+                    # klik tombol server
+                    await btn.click()
 
-                    await page.wait_for_selector("iframe[src*='player?link=']", timeout=5000)
+                    # tunggu iframe muncul setelah klik
+                    try:
+                        await page.wait_for_selector("iframe[src*='player?link=']", timeout=10000)
+                    except:
+                        print(f"      ⚠️ iframe tidak muncul untuk tombol {name}")
+                        continue
 
-                    # iframe terakhir setelah klik
+                    # ambil iframe terakhir
                     html = await page.content()
                     soup = BeautifulSoup(html, "html.parser")
                     iframe_src = urljoin(BASE_URL, soup.select("iframe[src*='player?link=']")[-1]["src"])
 
                     # recursive: proses iframe
-                    links = await process_page(iframe_src, wait_ms=wait_ms, label=f"{label}-btn{idx}", server_name=name)
+                    links = await process_page(
+                        iframe_src,
+                        wait_ms=wait_ms,
+                        label=f"{label}-btn{idx}",
+                        server_name=name
+                    )
                     page_links.extend(links)
 
                 except Exception as e:
@@ -242,11 +251,18 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
 
         soup = BeautifulSoup(await page.content(), "html.parser")
         iframes = soup.select("iframe[src*='player?link=']")
+
         for idx, iframe in enumerate(iframes, start=1):
             iframe_src = urljoin(BASE_URL, iframe["src"])
             print(f"   🌐 Proses iframe default{idx}: {iframe_src}")
-            links = await process_page(iframe_src, wait_ms=10000, label=f"iframe{idx}", server_name=f"default{idx}")
+            links = await process_page(
+                iframe_src,
+                wait_ms=10000,
+                label=f"iframe{idx}",
+                server_name=f"default{idx}"
+            )
             servers.extend(links)
+
         await page.close()
     except Exception as e:
         print(f"   ❌ Error iframe main page slug {slug}: {e}")
@@ -257,7 +273,7 @@ async def fetch_m3u8_with_playwright(context, slug, keep_encoded=True):
         key = f"{slug}_{name or f'server{idx}'}"
         result[key] = url
 
-    return slug, result
+    return result
 	
 # ========= Ambil semua slug parallel =========
 async def fetch_all_parallel(slugs, concurrency=5, keep_encoded=True):
