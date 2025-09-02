@@ -1,7 +1,18 @@
 {
-  "santa-fe-vs-once-caldas-football-1392435": "https://o4.sundaytueday.online/z-winsport.m3u8",
-  "angel-city-w-vs-bay-fc-football-1339371": "https://o4.sundaytueday.online/usa-cbssport.m3u8",
-  "minnesota-lynx-w-vs-dallas-wings-w-basketball-443349": "https://o2.sundaytueday.online/us-nbatv.m3u8",
-  "tour-of-britain-stage-1-men-woodbridge-southwold-1676km-cyc-2025": "https://o4.sundaytueday.online/uk-btsport1.m3u8",
-  "la-vuelta-stage-10-highlights-cycling-1": "https://o4.sundaytueday.online/uk-btsport3.m3u8"
+  "us-open-2025-tennis-001": "https://o4.sundaytueday.online/uk-skysporttenis.m3u8?auth_key=1756775820-cba0ea4c00d4b40d6cd2704d1b1c1fb9-00000000000000000000000000000000-a660d2bb1ac7ae5ff440565b943d58ec&type=hls&isLive=true",
+  "us-open-2025-tennis-001server2": "https://o4.sundaytueday.online/uk-skysporttenis.m3u8?auth_key=1756775826-cba0ea4c00d4b40d6cd2704d1b1c1fb9-00000000000000000000000000000000-0afd3bfe38d42914dafcad860436e04e&type=hls&isLive=true",
+  "tennis-us-open-2025-mens-womens-round-of-16-tennis-02": "https://o2.sundaytueday.online/us-espn.m3u8?auth_key=1756775820-cba0ea4c00d4b40d6cd2704d1b1c1fb9-00000000000000000000000000000000-94f21c2c64bcb11719028981aff9259c&type=hls&isLive=true",
+  "tennis-us-open-2025-mens-womens-round-of-16-atp-2025": "https://o2.sundaytueday.online/us-espn2.m3u8?auth_key=1756775820-cba0ea4c00d4b40d6cd2704d1b1c1fb9-00000000000000000000000000000000-8426903d10db850973801d8877160e14&type=hls&isLive=true",
+  "san-diego-padres-vs-baltimore-orioles-baseball-165347": "https://o5.sundaytueday.online/mlb-sandiegopadres.m3u8?auth_key=1756775821-cba0ea4c00d4b40d6cd2704d1b1c1fb9-00000000000000000000000000000000-da2fee1b8d8dadab69aaefe5f85c87d5&type=hls&isLive=true",
+  "tampa-bay-rays-vs-seattle-mariners-baseball-165346": "https://o5.sundaytueday.online/mlb-tampabayrays.m3u8?auth_key=1756775831-cba0ea4c00d4b40d6cd2704d1b1c1fb9-00000000000000000000000000000000-f9a8ffbc2c2d1f944a27327582992cdc&type=hls&isLive=true",
+  "santa-fe-vs-once-caldas-football-1392435": "https://o4.sundaytueday.online/z-winsport.m3u8?auth_key=1756775832-cba0ea4c00d4b40d6cd2704d1b1c1fb9-00000000000000000000000000000000-139b927112bf61d6f89d28166fbaecd9&type=hls&isLive=true",
+  "angel-city-w-vs-bay-fc-football-1339371": "https://o4.sundaytueday.online/usa-cbssport.m3u8?auth_key=1756775832-cba0ea4c00d4b40d6cd2704d1b1c1fb9-00000000000000000000000000000000-d699728d7bd917c85544f1c505f7908a&type=hls&isLive=true",
+  "minnesota-lynx-w-vs-dallas-wings-w-basketball-443349": "https://o2.sundaytueday.online/us-nbatv.m3u8?auth_key=1756775863-cba0ea4c00d4b40d6cd2704d1b1c1fb9-00000000000000000000000000000000-acaa58824fdcf323d07a3ca3feccecc6&type=hls&isLive=true",
+  "north-carolina-vs-tcu-american-football-17690": "https://o2.sundaytueday.online/us-espn.m3u8?auth_key=1756775871-cba0ea4c00d4b40d6cd2704d1b1c1fb9-00000000000000000000000000000000-53b027b18005b7019eddcdca13b3a36b&type=hls&isLive=true",
+  "north-carolina-vs-tcu-american-football-17690server2": "https://o2.sundaytueday.online/us-espn.m3u8?auth_key=1756775880-cba0ea4c00d4b40d6cd2704d1b1c1fb9-00000000000000000000000000000000-d42412034ffd90bd8caa798f1479e379&type=hls&isLive=true",
+  "arizona-diamondbacks-vs-texas-rangers-baseball-165352": "https://o5.sundaytueday.online/mlb-arizonadiamondbacks.m3u8?auth_key=1756775871-cba0ea4c00d4b40d6cd2704d1b1c1fb9-00000000000000000000000000000000-1ab511e481195aa1c0ec943800b4142d&type=hls&isLive=true",
+  "arizona-diamondbacks-vs-texas-rangers-baseball-165352server2": "https://o5.sundaytueday.online/mlb-arizonadiamondbacks.m3u8?auth_key=1756775876-cba0ea4c00d4b40d6cd2704d1b1c1fb9-00000000000000000000000000000000-9906a9012f17d849cca446ce311a1aa2&type=hls&isLive=true",
+  "tour-of-britain-stage-1-men-woodbridge-southwold-1676km-cyc-2025": "https://o4.sundaytueday.online/uk-btsport1.m3u8?auth_key=1756775885-cba0ea4c00d4b40d6cd2704d1b1c1fb9-00000000000000000000000000000000-582b20c46524ddbaab23a3fce90a0854&type=hls&isLive=true",
+  "la-vuelta-stage-10-highlights-cycling-1": "https://o4.sundaytueday.online/uk-btsport3.m3u8?auth_key=1756775889-cba0ea4c00d4b40d6cd2704d1b1c1fb9-00000000000000000000000000000000-bc1d4c8e3eac0265533f560047c007eb&type=hls&isLive=true",
+  "la-vuelta-stage-10-highlights-cycling-1server2": "https://o4.sundaytueday.online/uk-btsport3.m3u8?auth_key=1756775896-cba0ea4c00d4b40d6cd2704d1b1c1fb9-00000000000000000000000000000000-eeea55097e3114784bb2db22be4df59e&type=hls&isLive=true"
 }
