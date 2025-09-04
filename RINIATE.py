@@ -106,19 +106,27 @@ def get_links(live_url, proxies):
     links = []
     soup = BeautifulSoup(html, "html.parser")
 
-    # 1️⃣ Cek <a.link-channel>
+    # 1️⃣ Cari via <a.link-channel>
     for tag in soup.select("a.link-channel"):
         raw = tag.get("data-url")
         if raw:
             final_url, _ = resolve_m3u8(clean_url(raw))
             links.append(JetLink(final_url))
 
-    # 2️⃣ Kalau belum dapat, cari .m3u8 di seluruh HTML
+    # 2️⃣ Kalau kosong, fallback regex cari .m3u8
     if not links:
         import re
         matches = re.findall(r'https.*?\.m3u8[^"\'<> ]*', html)
         for m in matches:
             links.append(JetLink(m))
+
+    # 3️⃣ Debug log
+    if links:
+        print(f"   🎯 Ketemu {len(links)} link m3u8 di {live_url}")
+        for l in links:
+            print("      ➡️", l.url)
+    else:
+        print(f"   ⚠️ Tidak ada link m3u8 di {live_url}")
 
     return links
 
