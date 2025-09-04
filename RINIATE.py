@@ -1,4 +1,4 @@
-import requests, urllib.parse, json
+import requests, re, urllib.parse, json
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta, date
 from pytz import timezone
