@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 from pathlib import Path
 import datetime
 from zoneinfo import ZoneInfo
+from deep_translator import GoogleTranslator
 import sys
 
 # Path ke file config
@@ -29,7 +30,8 @@ USER_AGENT = (
     "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 )
 
-def translate_vi_to_id(text):
+def translate_vi_to_id(text: str) -> str:
+    # dictionary fallback
     translations = {
         "Giải Cỏ:": "", "Nga": "Rusia", "Anh": "Inggris", "Đài Loan": "Taiwan",
         "Ngoại Hạng Đan Mạch": "Liga Denmark", "VĐQG Ý": "Serie A Italia", "Áo": "Austria",
@@ -40,18 +42,26 @@ def translate_vi_to_id(text):
         "V-League": "V-League Vietnam", "AFC Champions League": "Liga Champions Asia", "Tứ Xuyên": "Sichuan", 
         "Hà Lan": "Belanda", "Bồ Đào Nha": "Portugal", "Bóng chuyền": "Bola voli", "Phần Lan": "Finlandia",
         "Hạng 2": "Liga 2", "Ngoại Hạng": "Liga Primer", "Cúp": "Piala", "Xê Út": "Arab Saudi", "TRỰC TIẾP CẦU LÔNG": "BULUTANGKIS LANGSUNG", 
-        "VĐQG Brazil": "Serie A Brasil", "VĐQG Argentina": "Liga Argentina", "Triều Tiên": "Terpilih",
+        "VĐQG Brazil": "Serie A Brasil", "VĐQG Argentina": "Liga Argentina", "Triều Tiên": "Korea Utara",
         "VĐQG Bulgaria": "Liga Bulgaria", "Hạng hai": "Liga 2", "VĐQG": "Liga", "Đài Loan": "Taiwan",
         "Hạng nhất": "Devisi 1", "Ả Rập": "Arab", "Thụy Điển": "Swedia", "Ấn Độ": "India",
-        "Hàn Quốc": "Korea", "nữ": "Putri", "Trung Quốc": "Cina", "Mở Rộng": "terbuka", "Huyền thoại": "Legendaris",
+        "Hàn Quốc": "Korea", "nữ": "Putri", "Trung Quốc": "Cina", "Mở Rộng": "Terbuka", "Huyền thoại": "Legendaris",
         "Bóng chuyền nam": "Bola voli putra", "Bóng chuyền nữ": "Bola voli putri", "Giải Vô địch": "Kejuaraan",
-        "Bóng rổ": "Bola basket", "Nhật Bản": "Jepang", "Hạng Nhì": "Liga 2", "Trực tiếp": "Live", "Đơn Nữ": "Tunggal Putri", "Đơn Nam": "Tunggal Putra",
+        "Bóng rổ": "Bola basket", "Nhật Bản": "Jepang", "Hạng Nhì": "Liga 2", "Trực tiếp": "Live", 
+        "Đơn Nữ": "Tunggal Putri", "Đơn Nam": "Tunggal Putra",
         "Ba Lan": "Polandia", "Hy Lạp": "Yunani", "Ai Cập": "Mesir", "Pháp": "Perancis", "Giải Tennis": "Turnamen Tenis",
-        "Tây Ban Nha": "Spanyol", "Bỉ": "Belgia", "Thổ Nhĩ Kỳ": "Turki", "Đài Bắc Trung Hoa": "Cina Taipei", "Đài Bắc Trung hoa": "Taipei",
+        "Tây Ban Nha": "Spanyol", "Bỉ": "Belgia", "Thổ Nhĩ Kỳ": "Turki", "Đài Bắc Trung Hoa": "Cina Taipei",
     }
-    for vi, idn in translations.items():
-        text = text.replace(vi, idn)
-    return text.strip()
+
+    try:
+        # coba translate via Google Translate
+        return GoogleTranslator(source="vi", target="id").translate(text)
+    except Exception as e:
+        print(f"⚠️ Translate API error: {e}", file=sys.stderr)
+        # fallback ke replace manual
+        for vi, idn in translations.items():
+            text = text.replace(vi, idn)
+        return text.strip()
 
 def fetch_m3u_with_playwright():
     try:
