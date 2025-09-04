@@ -113,14 +113,21 @@ def get_links(live_url, proxies):
             final_url, _ = resolve_m3u8(clean_url(raw))
             links.append(JetLink(final_url))
 
-    # 2️⃣ Kalau masih kosong, fallback regex
+    # 2️⃣ Kalau masih kosong, coba iframe
+    if not links:
+        for iframe in soup.find_all("iframe"):
+            src = iframe.get("src")
+            if src and ".m3u8" in src:
+                links.append(JetLink(src))
+
+    # 3️⃣ Kalau masih kosong juga, fallback regex global
     if not links:
         import re
         matches = re.findall(r'https.*?\.m3u8[^"\'<> ]*', html)
         for m in matches:
             links.append(JetLink(m))
 
-    # 3️⃣ Debug log
+    # 4️⃣ Debug log
     if links:
         print(f"   🎯 Ketemu {len(links)} link m3u8 di {live_url}")
         for l in links:
@@ -129,7 +136,6 @@ def get_links(live_url, proxies):
         print(f"   ⚠️ Tidak ada link m3u8 di {live_url}")
 
     return links
-
 
 def save_to_map3_json(items, file="map3.json"):
     result = {}
@@ -144,13 +150,17 @@ def save_to_map3_json(items, file="map3.json"):
         else:
             continue
 
-        # Simpan hanya link valid
-        for link in item.links:
-            if link.url.endswith(".m3u8"):
-                result[slug] = link.url
+        # Simpan semua link m3u8 valid
+        valid_links = [link.url for link in item.links if link.url.endswith(".m3u8")]
+        for idx, url in enumerate(valid_links, start=1):
+            if idx == 1:
+                key = slug
+            else:
+                key = f"{slug} server{idx}"
+            result[key] = url
 
     Path(file).write_text(json.dumps(result, indent=2), encoding="utf-8")
-    print(f"✅ JSON disimpan: {file}")
+    print(f"✅ JSON disimpan: {file} (total {len(result)} stream)")
 
 def main():
     proxies = load_proxies()
