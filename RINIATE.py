@@ -102,14 +102,24 @@ def get_links(live_url, proxies):
     html = safe_get(live_url, proxies)
     if not html:
         return []
-    soup = BeautifulSoup(html, "html.parser")
+
     links = []
+    soup = BeautifulSoup(html, "html.parser")
+
+    # 1️⃣ Cek <a.link-channel>
     for tag in soup.select("a.link-channel"):
         raw = tag.get("data-url")
-        if not raw:
-            continue
-        final_url, _ = resolve_m3u8(clean_url(raw))
-        links.append(JetLink(final_url))
+        if raw:
+            final_url, _ = resolve_m3u8(clean_url(raw))
+            links.append(JetLink(final_url))
+
+    # 2️⃣ Kalau belum dapat, cari .m3u8 di seluruh HTML
+    if not links:
+        import re
+        matches = re.findall(r'https.*?\.m3u8[^"\'<> ]*', html)
+        for m in matches:
+            links.append(JetLink(m))
+
     return links
 
 def save_to_map3_json(items, file="map3.json"):
