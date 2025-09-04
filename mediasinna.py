@@ -53,12 +53,15 @@ def translate_vi_to_id(text: str) -> str:
         "Tây Ban Nha": "Spanyol", "Bỉ": "Belgia", "Thổ Nhĩ Kỳ": "Turki", "Đài Bắc Trung Hoa": "Cina Taipei",
     }
 
+    if text.isascii():
+        return text.strip()
+
+    # Coba API translator
     try:
-        # coba translate via Google Translate
         return GoogleTranslator(source="vi", target="id").translate(text)
     except Exception as e:
-        print(f"⚠️ Translate API error: {e}", file=sys.stderr)
-        # fallback ke replace manual
+        print(f"⚠️ Translate API error: {text} --> {e}", file=sys.stderr)
+        # fallback dictionary
         for vi, idn in translations.items():
             text = text.replace(vi, idn)
         return text.strip()
