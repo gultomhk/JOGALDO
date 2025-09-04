@@ -106,14 +106,14 @@ def get_links(live_url, proxies):
     links = []
     soup = BeautifulSoup(html, "html.parser")
 
-    # 1️⃣ Cari via <a.link-channel>
+    # 1️⃣ Cari via <a.link-channel data-url="...m3u8">
     for tag in soup.select("a.link-channel"):
         raw = tag.get("data-url")
-        if raw:
+        if raw and raw.endswith(".m3u8"):
             final_url, _ = resolve_m3u8(clean_url(raw))
             links.append(JetLink(final_url))
 
-    # 2️⃣ Kalau kosong, fallback regex cari .m3u8
+    # 2️⃣ Kalau masih kosong, fallback regex
     if not links:
         import re
         matches = re.findall(r'https.*?\.m3u8[^"\'<> ]*', html)
@@ -130,20 +130,25 @@ def get_links(live_url, proxies):
 
     return links
 
+
 def save_to_map3_json(items, file="map3.json"):
     result = {}
     for item in items:
         page_url = item.page_url
         if not page_url:
             continue
+
         path = urllib.parse.urlparse(page_url).path.strip("/")
         if path.endswith(".html"):
             slug = path.split("/")[-1].removesuffix(".html")
         else:
             continue
 
+        # Simpan hanya link valid
         for link in item.links:
-            result[slug] = link.url
+            if link.url.endswith(".m3u8"):
+                result[slug] = link.url
+
     Path(file).write_text(json.dumps(result, indent=2), encoding="utf-8")
     print(f"✅ JSON disimpan: {file}")
 
