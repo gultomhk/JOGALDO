@@ -1,17 +1,15 @@
-import requests
-import re
-import base64, json, binascii
+from zoneinfo import ZoneInfo  # built-in, ganti dateutil.tz
 from datetime import datetime, timedelta, date
-from dateutil import tz
-from zoneinfo import ZoneInfo
-import html
-from pytz import timezone
+from pathlib import Path
+import requests
 from bs4 import BeautifulSoup
 import urllib.parse
 import urllib3
 from pathlib import Path
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+
 
 # 🔧 Load AESPORT config
 CONFIG = {}
@@ -55,7 +53,7 @@ def parse_fixture():
 
     soup = BeautifulSoup(html, "html.parser")
     items = []
-    max_date = datetime.now(timezone("Asia/Jakarta")) + timedelta(days=2)
+    max_date = datetime.now(ZoneInfo("Asia/Jakarta")) + timedelta(days=2)
     for game in soup.select("div.fixture-page-item"):
         try:
             t1 = game.select_one("span.name-team-left").text.strip()
@@ -63,7 +61,7 @@ def parse_fixture():
             title = f"{t1} vs {t2}"
             league = game.select_one("div.tournament").text.strip()
             ts = int(game.select_one(".time-format")["data-time"]) // 1000
-            dt = datetime.fromtimestamp(ts, tz=timezone("Asia/Jakarta"))
+            dt = datetime.fromtimestamp(ts, tz=ZoneInfo("Asia/Jakarta"))
             if dt > max_date:
                 continue
             href = game.select_one("a").get("href")
@@ -90,7 +88,7 @@ def parse_upcoming():
             title = f"{t1} vs {t2}"
             league = match.select_one("p.tour-name").text.strip()
             ts = int(match.select_one(".time-format")["data-time"]) // 1000
-            dt = datetime.fromtimestamp(ts, tz=timezone("Asia/Jakarta"))
+            dt = datetime.fromtimestamp(ts, tz=ZoneInfo("Asia/Jakarta"))
             href = match.select_one("a.btn-watch").get("href")
             slug = href.split("/")[-1].replace(".html", "")
             items.append(JetItem(title, slug, league, dt))
@@ -113,7 +111,7 @@ def get_aesport_matches():
 
     outputs = []
     for item in unique.values():
-        waktu = item.starttime.astimezone(timezone("Asia/Jakarta")).strftime("%d/%m-%H.%M")
+        waktu = item.starttime.astimezone(ZoneInfo("Asia/Jakarta")).strftime("%d/%m-%H.%M")
         nama = f"{waktu} {item.title}"
         stream_url = AESPORT_WORKER_TEMPLATE2.format(slug=item.slug)
         line = [
@@ -134,3 +132,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
