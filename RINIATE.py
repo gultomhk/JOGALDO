@@ -83,13 +83,12 @@ def get_links(live_url, proxies):
     # Cari <a data-url>
     for a in soup.select("div.info-section a[data-url]"):
         url = a.get("data-url")
-        if url and url.endswith(".m3u8"):
-            if url not in [l.url for l in links]:
-                links.append(JetLink(url))
+        if url and url.endswith(".m3u8") and url not in [l.url for l in links]:
+            links.append(JetLink(url))
 
+    # fallback: regex di HTML
     if not links:
         print(f"⚠️ Tidak ditemukan <a data-url> di {live_url}, fallback regex")
-        # fallback regex
         for link in set(re.findall(r'https.*?\.m3u8[^"\'<> ]*', html)):
             if link not in [l.url for l in links]:
                 links.append(JetLink(link))
@@ -144,8 +143,8 @@ def save_to_map3_json(items, file="map3.json"):
             slug = path.split("/")[-1].removesuffix(".html")
         else:
             continue
-        for link in item.links:
-            result[slug] = link.url
+        # simpan semua link .m3u8, bisa array
+        result[slug] = [l.url for l in item.links]
     Path(file).write_text(json.dumps(result, indent=2), encoding="utf-8")
     print(f"✅ JSON disimpan: {file}")
 
