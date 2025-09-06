@@ -6,7 +6,6 @@ from datetime import datetime
 from pytz import timezone
 from pathlib import Path
 import urllib3
-import re
 
 # Matikan peringatan SSL
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -71,20 +70,28 @@ def safe_get(url, proxies):
     return None
 
 # =========================
-# Cari link .m3u8 di halaman detail
+# Ambil link .m3u8 dari halaman detail
 # =========================
 def get_links(live_url, proxies):
     html = safe_get(live_url, proxies)
     if not html:
         return []
 
+    soup = BeautifulSoup(html, "html.parser")
     links = []
-    m3u8_matches = re.findall(r'https.*?\.m3u8[^"\'<> ]*', html)
 
-    for link in set(m3u8_matches):
-        if any(x in link for x in ["jwplatform", "cloudflare", "akamaihd"]):
-            continue
-        links.append(JetLink(link))
+    # Cari <a data-url="..."> di info-section
+    for a in soup.select("div.info-section a[data-url]"):
+        url = a.get("data-url")
+        if url and url.endswith(".m3u8"):
+            links.append(JetLink(url))
+
+    if not links:
+        # fallback: regex di HTML
+        import re
+        m3u8_matches = re.findall(r'https.*?\.m3u8[^"\'<> ]*', html)
+        for link in set(m3u8_matches):
+            links.append(JetLink(link))
 
     return links
 
@@ -119,19 +126,7 @@ def parse_item(m, dt, proxies):
     full_url = href.get("href")
     full_url = full_url if full_url.startswith("http") else f"https://{DOMAIN}{full_url}"
 
-    # ✅ Cari langsung .m3u8 di blok (jarang ada)
-    raw_html = str(m)
-    m3u8_matches = re.findall(r'https.*?\.m3u8[^"\'<> ]*', raw_html)
-
-    links = []
-    for link in set(m3u8_matches):
-        if any(x in link for x in ["jwplatform", "cloudflare", "akamaihd"]):
-            continue
-        links.append(JetLink(link))
-
-    # ✅ fallback: kalau belum ada link, buka page detail
-    if not links:
-        links = get_links(full_url, proxies)
+    links = get_links(full_url, proxies)
 
     return JetItem(title, links, league, dt, page_url=full_url)
 
@@ -162,7 +157,6 @@ def main():
     if not proxies:
         return
 
-    # ✅ Hanya scrape dari playing.html
     playing_html = safe_get(f"https://{DOMAIN}/playing.html", proxies)
     playing = parse_html(playing_html, "div.row-item-match", parse_item, proxies) if playing_html else []
 
