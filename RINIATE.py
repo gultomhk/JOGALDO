@@ -71,22 +71,40 @@ def safe_get(url, proxies):
     return None
 
 # =========================
+# Cari link .m3u8 di halaman detail
+# =========================
+def get_links(live_url, proxies):
+    html = safe_get(live_url, proxies)
+    if not html:
+        return []
+
+    links = []
+    m3u8_matches = re.findall(r'https.*?\.m3u8[^"\'<> ]*', html)
+
+    for link in set(m3u8_matches):
+        if any(x in link for x in ["jwplatform", "cloudflare", "akamaihd"]):
+            continue
+        links.append(JetLink(link))
+
+    return links
+
+# =========================
 # Fungsi parsing HTML
 # =========================
-def parse_html(html, selector, item_parser):
+def parse_html(html, selector, item_parser, proxies):
     soup = BeautifulSoup(html, "html.parser")
     items = []
     for m in soup.select(selector):
         try:
             ts = int(m.select_one(".time-format")["data-time"]) // 1000
             dt = datetime.fromtimestamp(ts, tz=wib)
-            items.append(item_parser(m, dt))
+            items.append(item_parser(m, dt, proxies))
         except Exception as e:
             print("⚠️ Parse error:", e)
             continue
     return items
 
-def parse_item(m, dt):
+def parse_item(m, dt, proxies):
     t1 = m.select_one("span.name-team-left").text.strip()
     t2 = m.select_one("span.name-team-right").text.strip()
     title = f"{t1} vs {t2}"
@@ -101,7 +119,7 @@ def parse_item(m, dt):
     full_url = href.get("href")
     full_url = full_url if full_url.startswith("http") else f"https://{DOMAIN}{full_url}"
 
-    # ✅ Cari langsung .m3u8 di blok ini
+    # ✅ Cari langsung .m3u8 di blok (jarang ada)
     raw_html = str(m)
     m3u8_matches = re.findall(r'https.*?\.m3u8[^"\'<> ]*', raw_html)
 
@@ -110,6 +128,10 @@ def parse_item(m, dt):
         if any(x in link for x in ["jwplatform", "cloudflare", "akamaihd"]):
             continue
         links.append(JetLink(link))
+
+    # ✅ fallback: kalau belum ada link, buka page detail
+    if not links:
+        links = get_links(full_url, proxies)
 
     return JetItem(title, links, league, dt, page_url=full_url)
 
@@ -142,7 +164,7 @@ def main():
 
     # ✅ Hanya scrape dari playing.html
     playing_html = safe_get(f"https://{DOMAIN}/playing.html", proxies)
-    playing = parse_html(playing_html, "div.row-item-match", parse_item) if playing_html else []
+    playing = parse_html(playing_html, "div.row-item-match", parse_item, proxies) if playing_html else []
 
     print(f"\n📡 Total Live Match: {len(playing)}")
     for item in playing:
