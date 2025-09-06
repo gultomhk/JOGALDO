@@ -81,7 +81,8 @@ def parse_html(html, selector, item_parser):
             ts = int(m.select_one(".time-format")["data-time"]) // 1000
             dt = datetime.fromtimestamp(ts, tz=wib)
             items.append(item_parser(m, dt))
-        except:
+        except Exception as e:
+            print("⚠️ Parse error:", e)
             continue
     return items
 
@@ -89,41 +90,28 @@ def parse_item(m, dt):
     t1 = m.select_one("span.name-team-left").text.strip()
     t2 = m.select_one("span.name-team-right").text.strip()
     title = f"{t1} vs {t2}"
+
     league = (
         m.select_one("p.tour-name").text.strip()
         if m.select_one("p.tour-name")
         else m.select_one("div.tournament").text.strip()
     )
+
     href = m.select_one("a.btn-watch") or m.select_one("a")
     full_url = href.get("href")
     full_url = full_url if full_url.startswith("http") else f"https://{DOMAIN}{full_url}"
-    return JetItem(title, [JetLink(full_url)], league, dt, page_url=full_url)
 
-# =========================
-# Ambil links live (pakai regex .m3u8 + filter)
-# =========================
-def get_links(live_url, proxies):
-    html = safe_get(live_url, proxies)
-    if not html:
-        return []
+    # ✅ Cari langsung .m3u8 di blok ini
+    raw_html = str(m)
+    m3u8_matches = re.findall(r'https.*?\.m3u8[^"\'<> ]*', raw_html)
 
     links = []
-    m3u8_matches = re.findall(r'https.*?\.m3u8[^"\'<> ]*', html)
-
     for link in set(m3u8_matches):
-        # ⚡ Skip jwplatform / cloudflare / akamai
         if any(x in link for x in ["jwplatform", "cloudflare", "akamaihd"]):
             continue
         links.append(JetLink(link))
 
-    if links:
-        print("🎯 Ditemukan link .m3u8:")
-        for l in links:
-            print("   ", l.url)
-    else:
-        print("⚠️ Tidak ada link .m3u8 valid ditemukan!")
-
-    return links
+    return JetItem(title, links, league, dt, page_url=full_url)
 
 # =========================
 # Simpan ke JSON
@@ -159,7 +147,8 @@ def main():
     print(f"\n📡 Total Live Match: {len(playing)}")
     for item in playing:
         print(f"🕒 {item.starttime.strftime('%d/%m %H:%M')} | {item.league} | {item.title}")
-        item.links = get_links(item.page_url, proxies)
+        for l in item.links:
+            print("   🎯", l.url)
 
     save_to_map3_json(playing)
 
