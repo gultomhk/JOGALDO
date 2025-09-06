@@ -143,25 +143,21 @@ def extract_matches_from_html(html):
 
             print(f"📃 Parsed: {waktu} | {title}")
 
-            # Ambil halaman slug dan hitung jumlah m3u8
+            # Ambil halaman slug dan ambil hanya 1 server (server1 saja)
             slug_html = get_slug_page(slug)
             m3u8_urls = extract_m3u8_urls(slug_html)
-            num_servers = len(m3u8_urls)
 
-            if num_servers == 0:
+            if not m3u8_urls:
                 print(f"⚠️  Tidak ada server untuk {slug}, skip")
                 continue
 
-            for idx in range(num_servers):
-                server_suffix = "" if idx == 0 else f"server{idx + 1}"
-                display_name = f"{waktu} {title}" if idx == 0 else f"{waktu} {title} {server_suffix}"
-
-                output += [
-                    f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{LOGO}",{display_name}',
-                    f'#EXTVLCOPT:http-user-agent={USER_AGENT}',
-                    f'#EXTVLCOPT:http-referrer={BASE_URL}/',
-                    f'{WORKER_URL}{slug}{server_suffix}'
-                ]
+            # Ambil hanya server pertama
+            output += [
+                f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{LOGO}",{waktu} {title}',
+                f'#EXTVLCOPT:http-user-agent={USER_AGENT}',
+                f'#EXTVLCOPT:http-referrer={BASE_URL}/',
+                f'{WORKER_URL}{slug}'
+            ]
 
         except Exception as e:
             print(f"❌ Error parsing table row: {e}")
