@@ -6,6 +6,7 @@ from datetime import datetime
 from pytz import timezone
 from pathlib import Path
 import urllib3
+import re
 
 # Matikan peringatan SSL
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -13,7 +14,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # Zona waktu WIB
 wib = timezone("Asia/Jakarta")
 
-# Load konfigurasi dari file eksternal
+# Load konfigurasi
 CONFIG = {}
 exec((Path.home() / "aebabami_file.txt").read_text(encoding="utf-8"), CONFIG)
 
@@ -30,10 +31,9 @@ HEADERS = {
 # Class
 # =========================
 class JetLink:
-    def __init__(self, url, name=None, headers=None):
+    def __init__(self, url, name=None):
         self.url = url
         self.name = name or url
-        self.headers = headers or {}
 
 class JetItem:
     def __init__(self, title, links, league, starttime, page_url=None):
@@ -44,7 +44,7 @@ class JetItem:
         self.page_url = page_url
 
 # =========================
-# Fungsi proxy
+# Proxy
 # =========================
 def load_proxies():
     try:
@@ -56,61 +56,49 @@ def load_proxies():
         print(f"⚠️ Gagal ambil proxy: {e}")
         return []
 
-def safe_get(url, proxies):
+def safe_get(url, proxies, timeout=10):
     for p in proxies:
         proxy = {"http": p, "https": p}
         try:
-            r = requests.get(url, headers=HEADERS, timeout=10, proxies=proxy, verify=False)
+            r = requests.get(url, headers=HEADERS, timeout=timeout, proxies=proxy, verify=False)
             if r.status_code == 200:
                 print(f"↪️ OK: {url} via {p}")
                 return r.text
-        except:
+        except Exception:
             continue
     print(f"❌ Gagal ambil {url} dengan semua proxy.")
     return None
 
 # =========================
-# Ambil link .m3u8 dari halaman detail
+# Ambil link .m3u8
 # =========================
 def get_links(live_url, proxies):
     html = safe_get(live_url, proxies)
     if not html:
         return []
 
-    soup = BeautifulSoup(html, "html.parser")
     links = []
+    soup = BeautifulSoup(html, "html.parser")
 
-    # Cari <a data-url="..."> di info-section
+    # Cari <a data-url>
     for a in soup.select("div.info-section a[data-url]"):
         url = a.get("data-url")
         if url and url.endswith(".m3u8"):
-            links.append(JetLink(url))
+            if url not in [l.url for l in links]:
+                links.append(JetLink(url))
 
     if not links:
-        # fallback: regex di HTML
-        import re
-        m3u8_matches = re.findall(r'https.*?\.m3u8[^"\'<> ]*', html)
-        for link in set(m3u8_matches):
-            links.append(JetLink(link))
+        print(f"⚠️ Tidak ditemukan <a data-url> di {live_url}, fallback regex")
+        # fallback regex
+        for link in set(re.findall(r'https.*?\.m3u8[^"\'<> ]*', html)):
+            if link not in [l.url for l in links]:
+                links.append(JetLink(link))
 
     return links
 
 # =========================
-# Fungsi parsing HTML
+# Parsing HTML
 # =========================
-def parse_html(html, selector, item_parser, proxies):
-    soup = BeautifulSoup(html, "html.parser")
-    items = []
-    for m in soup.select(selector):
-        try:
-            ts = int(m.select_one(".time-format")["data-time"]) // 1000
-            dt = datetime.fromtimestamp(ts, tz=wib)
-            items.append(item_parser(m, dt, proxies))
-        except Exception as e:
-            print("⚠️ Parse error:", e)
-            continue
-    return items
-
 def parse_item(m, dt, proxies):
     t1 = m.select_one("span.name-team-left").text.strip()
     t2 = m.select_one("span.name-team-right").text.strip()
@@ -127,11 +115,23 @@ def parse_item(m, dt, proxies):
     full_url = full_url if full_url.startswith("http") else f"https://{DOMAIN}{full_url}"
 
     links = get_links(full_url, proxies)
-
     return JetItem(title, links, league, dt, page_url=full_url)
 
+def parse_html(html, selector, item_parser, proxies):
+    soup = BeautifulSoup(html, "html.parser")
+    items = []
+    for m in soup.select(selector):
+        try:
+            ts = int(m.select_one(".time-format")["data-time"]) // 1000
+            dt = datetime.fromtimestamp(ts, tz=wib)
+            items.append(item_parser(m, dt, proxies))
+        except Exception as e:
+            print("⚠️ Parse error:", e)
+            continue
+    return items
+
 # =========================
-# Simpan ke JSON
+# Simpan JSON
 # =========================
 def save_to_map3_json(items, file="map3.json"):
     result = {}
