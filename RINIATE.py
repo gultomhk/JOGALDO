@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, date
 from pytz import timezone
 from pathlib import Path
 import urllib3
+import re
 
 # Matikan peringatan SSL
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -41,7 +42,7 @@ class JetItem:
         self.links = links
         self.league = league
         self.starttime = starttime
-        self.page_url = page_url  # ⬅️ Tambahkan atribut ini
+        self.page_url = page_url
 
 # =========================
 # Fungsi proxy
@@ -97,38 +98,16 @@ def parse_item(m, dt):
     return JetItem(title, [JetLink(full_url)], league, dt, page_url=full_url)
 
 # =========================
-# Resolving & Cleaning URL
-# =========================
-def resolve_m3u8(url):
-    try:
-        path = urllib.parse.urlparse(url).path.strip("/")
-        if path.endswith(".html"):
-            slug = path.split("/")[-1].removesuffix(".html")
-            return url, slug
-        else:
-            cid = path.split("/")[0]
-            return url, cid
-    except:
-        return url, None
-
-def clean_url(url):
-    return url
-
-# =========================
-# Ambil links live
+# Ambil links live (pakai regex .m3u8)
 # =========================
 def get_links(live_url, proxies):
     html = safe_get(live_url, proxies)
     if not html:
         return []
-    soup = BeautifulSoup(html, "html.parser")
     links = []
-    for tag in soup.select("a.link-channel"):
-        raw = tag.get("data-url")
-        if not raw:
-            continue
-        final_url, _ = resolve_m3u8(clean_url(raw))
-        links.append(JetLink(final_url))
+    m3u8_matches = re.findall(r'https.*?\.m3u8[^"\'<> ]*', html)
+    for link in set(m3u8_matches):
+        links.append(JetLink(link))
     return links
 
 # =========================
