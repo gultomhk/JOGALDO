@@ -2,7 +2,7 @@ import requests
 import urllib.parse
 import json
 from bs4 import BeautifulSoup
-from datetime import datetime, timedelta, date
+from datetime import datetime
 from pytz import timezone
 from pathlib import Path
 import urllib3
@@ -73,15 +73,13 @@ def safe_get(url, proxies):
 # =========================
 # Fungsi parsing HTML
 # =========================
-def parse_html(html, selector, item_parser, max_days=None):
+def parse_html(html, selector, item_parser):
     soup = BeautifulSoup(html, "html.parser")
     items = []
     for m in soup.select(selector):
         try:
             ts = int(m.select_one(".time-format")["data-time"]) // 1000
             dt = datetime.fromtimestamp(ts, tz=wib)
-            if max_days and dt > datetime.now(tz=wib) + timedelta(days=max_days):
-                continue
             items.append(item_parser(m, dt))
         except:
             continue
@@ -91,23 +89,40 @@ def parse_item(m, dt):
     t1 = m.select_one("span.name-team-left").text.strip()
     t2 = m.select_one("span.name-team-right").text.strip()
     title = f"{t1} vs {t2}"
-    league = m.select_one("p.tour-name").text.strip() if m.select_one("p.tour-name") else m.select_one("div.tournament").text.strip()
+    league = (
+        m.select_one("p.tour-name").text.strip()
+        if m.select_one("p.tour-name")
+        else m.select_one("div.tournament").text.strip()
+    )
     href = m.select_one("a.btn-watch") or m.select_one("a")
     full_url = href.get("href")
     full_url = full_url if full_url.startswith("http") else f"https://{DOMAIN}{full_url}"
     return JetItem(title, [JetLink(full_url)], league, dt, page_url=full_url)
 
 # =========================
-# Ambil links live (pakai regex .m3u8)
+# Ambil links live (pakai regex .m3u8 + filter)
 # =========================
 def get_links(live_url, proxies):
     html = safe_get(live_url, proxies)
     if not html:
         return []
+
     links = []
     m3u8_matches = re.findall(r'https.*?\.m3u8[^"\'<> ]*', html)
+
     for link in set(m3u8_matches):
+        # ⚡ Skip jwplatform / cloudflare / akamai
+        if any(x in link for x in ["jwplatform", "cloudflare", "akamaihd"]):
+            continue
         links.append(JetLink(link))
+
+    if links:
+        print("🎯 Ditemukan link .m3u8:")
+        for l in links:
+            print("   ", l.url)
+    else:
+        print("⚠️ Tidak ada link .m3u8 valid ditemukan!")
+
     return links
 
 # =========================
@@ -137,23 +152,16 @@ def main():
     if not proxies:
         return
 
-    fixture_html = safe_get(f"https://{DOMAIN}/fixture/all.html", proxies)
-    upcoming_html = safe_get(f"https://{DOMAIN}/upcoming.html", proxies)
+    # ✅ Hanya scrape dari playing.html
     playing_html = safe_get(f"https://{DOMAIN}/playing.html", proxies)
-
-    fixtures = parse_html(fixture_html, "div.fixture-page-item", parse_item, max_days=2) if fixture_html else []
-    upcoming = parse_html(upcoming_html, "div.row-item-match", parse_item) if upcoming_html else []
     playing = parse_html(playing_html, "div.row-item-match", parse_item) if playing_html else []
 
-    today = [f for f in fixtures if f.starttime.date() == date.today()]
-    focus = today + upcoming + playing
-
-    print(f"\n📆 Total Pertandingan: {len(focus)}")
-    for item in focus:
+    print(f"\n📡 Total Live Match: {len(playing)}")
+    for item in playing:
         print(f"🕒 {item.starttime.strftime('%d/%m %H:%M')} | {item.league} | {item.title}")
         item.links = get_links(item.page_url, proxies)
 
-    save_to_map3_json(focus)
+    save_to_map3_json(playing)
 
 if __name__ == "__main__":
     main()
