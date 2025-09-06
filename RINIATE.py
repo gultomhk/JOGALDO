@@ -1,12 +1,16 @@
-import requests, re, urllib.parse, json
+import requests
+import urllib.parse
+import json
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta, date
 from pytz import timezone
 from pathlib import Path
 import urllib3
 
+# Matikan peringatan SSL
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+# Zona waktu WIB
 wib = timezone("Asia/Jakarta")
 
 # Load konfigurasi dari file eksternal
@@ -22,6 +26,9 @@ HEADERS = {
     "Origin": f"https://{DOMAIN}"
 }
 
+# =========================
+# Class
+# =========================
 class JetLink:
     def __init__(self, url, name=None, headers=None):
         self.url = url
@@ -36,6 +43,9 @@ class JetItem:
         self.starttime = starttime
         self.page_url = page_url  # ⬅️ Tambahkan atribut ini
 
+# =========================
+# Fungsi proxy
+# =========================
 def load_proxies():
     try:
         print("🌐 Mengambil daftar proxy...")
@@ -59,6 +69,9 @@ def safe_get(url, proxies):
     print(f"❌ Gagal ambil {url} dengan semua proxy.")
     return None
 
+# =========================
+# Fungsi parsing HTML
+# =========================
 def parse_html(html, selector, item_parser, max_days=None):
     soup = BeautifulSoup(html, "html.parser")
     items = []
@@ -81,8 +94,11 @@ def parse_item(m, dt):
     href = m.select_one("a.btn-watch") or m.select_one("a")
     full_url = href.get("href")
     full_url = full_url if full_url.startswith("http") else f"https://{DOMAIN}{full_url}"
-    return JetItem(title, [JetLink(full_url)], league, dt, page_url=full_url)  # ⬅️ Simpan page_url di sini
+    return JetItem(title, [JetLink(full_url)], league, dt, page_url=full_url)
 
+# =========================
+# Resolving & Cleaning URL
+# =========================
 def resolve_m3u8(url):
     try:
         path = urllib.parse.urlparse(url).path.strip("/")
@@ -98,70 +114,45 @@ def resolve_m3u8(url):
 def clean_url(url):
     return url
 
+# =========================
+# Ambil links live
+# =========================
 def get_links(live_url, proxies):
     html = safe_get(live_url, proxies)
     if not html:
         return []
-
-    links = []
     soup = BeautifulSoup(html, "html.parser")
-
-    # 1️⃣ Cari via <a.link-channel data-url="...m3u8">
+    links = []
     for tag in soup.select("a.link-channel"):
         raw = tag.get("data-url")
-        if raw and raw.endswith(".m3u8"):
-            final_url, _ = resolve_m3u8(clean_url(raw))
-            links.append(JetLink(final_url))
-
-    # 2️⃣ Kalau masih kosong, coba iframe
-    if not links:
-        for iframe in soup.find_all("iframe"):
-            src = iframe.get("src")
-            if src and ".m3u8" in src:
-                links.append(JetLink(src))
-
-    # 3️⃣ Kalau masih kosong juga, fallback regex global
-    if not links:
-        import re
-        matches = re.findall(r'https.*?\.m3u8[^"\'<> ]*', html)
-        for m in matches:
-            links.append(JetLink(m))
-
-    # 4️⃣ Debug log
-    if links:
-        print(f"   🎯 Ketemu {len(links)} link m3u8 di {live_url}")
-        for l in links:
-            print("      ➡️", l.url)
-    else:
-        print(f"   ⚠️ Tidak ada link m3u8 di {live_url}")
-
+        if not raw:
+            continue
+        final_url, _ = resolve_m3u8(clean_url(raw))
+        links.append(JetLink(final_url))
     return links
 
+# =========================
+# Simpan ke JSON
+# =========================
 def save_to_map3_json(items, file="map3.json"):
     result = {}
     for item in items:
         page_url = item.page_url
         if not page_url:
             continue
-
         path = urllib.parse.urlparse(page_url).path.strip("/")
         if path.endswith(".html"):
             slug = path.split("/")[-1].removesuffix(".html")
         else:
             continue
-
-        # Simpan semua link m3u8 valid
-        valid_links = [link.url for link in item.links if link.url.endswith(".m3u8")]
-        for idx, url in enumerate(valid_links, start=1):
-            if idx == 1:
-                key = slug
-            else:
-                key = f"{slug} server{idx}"
-            result[key] = url
-
+        for link in item.links:
+            result[slug] = link.url
     Path(file).write_text(json.dumps(result, indent=2), encoding="utf-8")
-    print(f"✅ JSON disimpan: {file} (total {len(result)} stream)")
+    print(f"✅ JSON disimpan: {file}")
 
+# =========================
+# Main
+# =========================
 def main():
     proxies = load_proxies()
     if not proxies:
