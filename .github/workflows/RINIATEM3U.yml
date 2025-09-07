@@ -41,6 +41,14 @@ jobs:
           git config --global user.email "github-actions@github.com"
 
           git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} repo-output
+
+          # 🚫 Skip kalau matama.m3u kosong
+          if [ ! -s matama.m3u ]; then
+            echo "⚠️ matama.m3u kosong, tidak ada push & file lama aman."
+            exit 0
+          fi
+
+          # ✅ Hanya copy kalau ada isi
           cp matama.m3u repo-output/
 
           cd repo-output
