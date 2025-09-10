@@ -150,15 +150,37 @@ async def main(limit_matches=20, apply_time_filter=True):
         ]
         streams_list = await asyncio.gather(*tasks)
 
-    # Step 2: pilih proxy yang jalan
+    # Step 2: pilih proxy dengan tes langsung ke embed pertama
     proxies = load_proxies()
     working_proxy = None
-    for p in proxies:
-        if test_proxy(p):
-            working_proxy = p
+
+    # cari embed pertama yang valid
+    first_embed = None
+    for streams in streams_list:
+        if streams and streams[0].get("embedUrl"):
+            first_embed = streams[0]["embedUrl"]
             break
 
-    es = Embedsports(proxy=working_proxy) if working_proxy else Embedsports()
+    if not first_embed:
+        print("⚠️ Tidak ada embed untuk dites proxy")
+        return
+
+    for p in proxies:
+        try:
+            print(f"🔎 Tes proxy {p} dengan {first_embed}")
+            es_test = Embedsports(proxy=p)
+            _ = es_test.get_link(first_embed)  # langsung coba decrypt
+            print(f"✅ Proxy OK: {p}")
+            working_proxy = p
+            break
+        except Exception as e:
+            print(f"❌ Proxy {p} gagal: {e}")
+
+    if not working_proxy:
+        print("⛔ Tidak ada proxy yang berhasil, hentikan proses.")
+        return
+
+    es = Embedsports(proxy=working_proxy)
 
     # Step 3: proses hasil API + embed resolver
     for (src, streams) in zip(
@@ -200,7 +222,3 @@ async def main(limit_matches=20, apply_time_filter=True):
         json.dump(results, f, indent=2, ensure_ascii=False)
 
     print(f"\n✅ Disimpan {len(results)} stream ke map5.json")
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
