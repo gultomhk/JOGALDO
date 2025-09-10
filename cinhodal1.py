@@ -9,6 +9,11 @@ from urllib.parse import urlparse
 import re
 import base64
 from Crypto.Cipher import AES
+import sys
+
+# helper log dengan flush
+def log(msg):
+    print(msg, flush=True)
 
 # Path ke file config
 CONFIG_FILE = Path.home() / "sterame3data_file.txt"
@@ -67,7 +72,7 @@ class Embedsports:
             "streamSc": stream_sc,
         }
 
-        resp = self.session.post(self.base + "/fetch", json=payload, timeout=15)
+        resp = self.session.post(self.base + "/fetch", json=payload, timeout=8)
         resp.raise_for_status()
         data = resp.json()
 
@@ -79,51 +84,44 @@ class Embedsports:
 
 # --------------- Utils -----------------
 def load_proxies():
-    """Ambil list proxy"""
     try:
         resp = requests.get(PROXY_LIST_URL, timeout=15)
         resp.raise_for_status()
         proxies = [line.strip() for line in resp.text.splitlines() if line.strip()]
-        print(f"🔌 Total proxy terambil: {len(proxies)}")
+        log(f"🔌 Total proxy terambil: {len(proxies)}")
         return proxies
     except Exception as e:
-        print(f"⚠️ Gagal ambil proxy list: {e}")
+        log(f"⚠️ Gagal ambil proxy list: {e}")
         return []
 
 
-def test_proxy(proxy):
-    """Cek apakah proxy bisa akses embedsports.top"""
-    try:
-        url = "https://embedsports.top"
-        r = requests.get(url, proxies={"http": proxy, "https": proxy}, timeout=10)
-        if r.status_code == 200:
-            print(f"✅ Proxy OK: {proxy}")
-            return True
-    except Exception:
-        pass
-    return False
-
-
 def fetch_stream(source_type, source_id):
-    """Panggil API stream (blocking, jalan di threadpool)."""
     try:
         url = STREAM_URL.format(source_type, source_id)
-        res = requests.get(url, headers=HEADERS, timeout=30)
+        res = requests.get(url, headers=HEADERS, timeout=15)
         res.raise_for_status()
         return res.json()
     except Exception as e:
-        print(f"⚠️ gagal fetch stream {source_type}/{source_id}: {e}")
+        log(f"⚠️ gagal fetch stream {source_type}/{source_id}: {e}")
         return []
 
 
 # --------------- Main Logic -----------------
 async def main(limit_matches=20, apply_time_filter=True):
-    res = requests.get(MATCHES_URL, headers=HEADERS, timeout=15)
-    matches = res.json()
+    log("🚀 Mulai cinhodal1.py")
+
+    try:
+        log(f"🌐 Fetch {MATCHES_URL}")
+        res = requests.get(MATCHES_URL, headers=HEADERS, timeout=15)
+        res.raise_for_status()
+        matches = res.json()
+        log(f"✅ Ambil {len(matches)} matches dari API")
+    except Exception as e:
+        log(f"⛔ Gagal ambil MATCHES_URL: {e}")
+        return
 
     now = datetime.datetime.now(ZoneInfo("Asia/Jakarta"))
 
-    # --- Filter matches sesuai waktu & kategori ---
     filtered_matches = []
     for match in matches:
         start_at = match["date"] / 1000
@@ -136,7 +134,7 @@ async def main(limit_matches=20, apply_time_filter=True):
                 continue
         filtered_matches.append(match)
 
-    print(f"📊 Total match terpilih: {len(filtered_matches)}")
+    log(f"📊 Total match terpilih: {len(filtered_matches)}")
 
     results = {}
 
@@ -150,11 +148,10 @@ async def main(limit_matches=20, apply_time_filter=True):
         ]
         streams_list = await asyncio.gather(*tasks)
 
-    # Step 2: pilih proxy dengan tes langsung ke embed pertama
+    # Step 2: pilih proxy dengan embed pertama
     proxies = load_proxies()
     working_proxy = None
 
-    # cari embed pertama yang valid
     first_embed = None
     for streams in streams_list:
         if streams and streams[0].get("embedUrl"):
@@ -162,22 +159,24 @@ async def main(limit_matches=20, apply_time_filter=True):
             break
 
     if not first_embed:
-        print("⚠️ Tidak ada embed untuk dites proxy")
+        log("⚠️ Tidak ada embed ditemukan untuk tes proxy")
         return
+
+    log(f"🎯 Embed pertama untuk tes: {first_embed}")
 
     for p in proxies:
         try:
-            print(f"🔎 Tes proxy {p} dengan {first_embed}")
+            log(f"🔎 Tes proxy {p}")
             es_test = Embedsports(proxy=p)
-            _ = es_test.get_link(first_embed)  # langsung coba decrypt
-            print(f"✅ Proxy OK: {p}")
+            _ = es_test.get_link(first_embed)
+            log(f"✅ Proxy OK: {p}")
             working_proxy = p
             break
         except Exception as e:
-            print(f"❌ Proxy {p} gagal: {e}")
+            log(f"❌ Proxy {p} gagal: {e}")
 
     if not working_proxy:
-        print("⛔ Tidak ada proxy yang berhasil, hentikan proses.")
+        log("⛔ Tidak ada proxy yang berhasil, hentikan proses.")
         return
 
     es = Embedsports(proxy=working_proxy)
@@ -199,7 +198,7 @@ async def main(limit_matches=20, apply_time_filter=True):
         url = stream.get("file") or stream.get("url")
         if url:
             results[key] = url
-            print(f"[+] API {key} → {url}")
+            log(f"[+] API {key} → {url}")
             continue
 
         embed = stream.get("embedUrl")
@@ -211,14 +210,18 @@ async def main(limit_matches=20, apply_time_filter=True):
             try:
                 link = es.get_link(embed)
                 results[key] = link
-                print(f"[+] Embedsports {key} → {link}")
+                log(f"[+] Embedsports {key} → {link}")
             except Exception as e:
-                print(f"⚠️ gagal extract {key} dari {embed}: {e}")
+                log(f"⚠️ gagal extract {key} dari {embed}: {e}")
         else:
-            print(f"❌ Embed {key} host {host} belum didukung")
+            log(f"❌ Embed {key} host {host} belum didukung")
 
     # Step 4: simpan hasil ke map5.json
     with open("map5.json", "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
 
-    print(f"\n✅ Disimpan {len(results)} stream ke map5.json")
+    log(f"\n✅ Disimpan {len(results)} stream ke map5.json")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
