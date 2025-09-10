@@ -2,12 +2,13 @@ import asyncio
 import requests
 import json
 from concurrent.futures import ThreadPoolExecutor
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-import time
 import datetime
 from zoneinfo import ZoneInfo
 from pathlib import Path
+from urllib.parse import urlparse
+import re
+import base64
+from Crypto.Cipher import AES
 
 # Path ke file config
 CONFIG_FILE = Path.home() / "sterame3data_file.txt"
@@ -25,10 +26,60 @@ PROXY_LIST_URL = config_globals.get("PROXY_LIST_URL")
 
 EXEMPT_CATEGORIES = ["fight", "motor-sports", "tennis"]
 
-# --------------- Utils -----------------
+# ----------------- Embedsports Extractor -----------------
+class Embedsports:
+    def __init__(self, proxy=None):
+        self.base = "https://embedsports.top"
+        self.session = requests.Session()
+        self.session.headers.update({
+            "Origin": self.base,
+            "Referer": self.base,
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+        })
+        if proxy:
+            self.session.proxies.update({
+                "http": proxy,
+                "https": proxy,
+            })
 
+    def _pkcs7_unpad(self, data: bytes) -> bytes:
+        pad_len = data[-1]
+        return data[:-pad_len]
+
+    def _decrypt(self, ciphertext_b64, key_b64, iv_b64):
+        key = base64.b64decode(key_b64)
+        iv = base64.b64decode(iv_b64)
+        ct = base64.b64decode(ciphertext_b64)
+        cipher = AES.new(key, AES.MODE_CBC, iv)
+        decrypted = cipher.decrypt(ct)
+        return self._pkcs7_unpad(decrypted).decode("utf-8")
+
+    def get_link(self, embed_url: str) -> str:
+        m = re.search(r"/embed/([^/]+)/([^/]+)/(\d+)", embed_url)
+        if not m:
+            raise ValueError("embed_url tidak valid")
+
+        stream_sc, stream_id, stream_no = m.groups()
+        payload = {
+            "streamId": stream_id,
+            "streamNo": int(stream_no),
+            "streamType": "live",
+            "streamSc": stream_sc,
+        }
+
+        resp = self.session.post(self.base + "/fetch", json=payload, timeout=15)
+        resp.raise_for_status()
+        data = resp.json()
+
+        if "data" not in data or "key" not in data or "iv" not in data:
+            raise ValueError("respon tidak lengkap dari embedsports")
+
+        return self._decrypt(data["data"], data["key"], data["iv"])
+
+
+# --------------- Utils -----------------
 def load_proxies():
-    """Ambil list proxy """
+    """Ambil list proxy"""
     try:
         resp = requests.get(PROXY_LIST_URL, timeout=15)
         resp.raise_for_status()
@@ -38,6 +89,19 @@ def load_proxies():
     except Exception as e:
         print(f"⚠️ Gagal ambil proxy list: {e}")
         return []
+
+
+def test_proxy(proxy):
+    """Cek apakah proxy bisa akses embedsports.top"""
+    try:
+        url = "https://embedsports.top"
+        r = requests.get(url, proxies={"http": proxy, "https": proxy}, timeout=10)
+        if r.status_code == 200:
+            print(f"✅ Proxy OK: {proxy}")
+            return True
+    except Exception:
+        pass
+    return False
 
 
 def fetch_stream(source_type, source_id):
@@ -52,70 +116,7 @@ def fetch_stream(source_type, source_id):
         return []
 
 
-def extract_m3u8(embed_url, wait_time=15, proxy=None):
-    """Buka embed_url pakai Selenium + proxy, cari .m3u8"""
-    chrome_options = Options()
-    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-    chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--headless=new")
-
-    # set proxy jika ada
-    if proxy:
-        if proxy.startswith("http") or proxy.startswith("socks"):
-            chrome_options.add_argument(f"--proxy-server={proxy}")
-        else:
-            chrome_options.add_argument(f"--proxy-server=http://{proxy}")
-        print(f"🌍 pakai proxy: {proxy}")
-
-    # disable WebRTC / STUN
-    chrome_options.add_argument("--disable-webrtc")
-    chrome_options.add_argument("--disable-features=WebRtcHideLocalIpsWithMdns")
-    chrome_options.add_argument("--force-webrtc-ip-handling-policy=disable_non_proxied_udp")
-
-    chrome_options.set_capability("goog:loggingPrefs", {"performance": "ALL"})
-
-    driver = webdriver.Chrome(options=chrome_options)
-    m3u8_url = None
-    try:
-        print(f"\n🌐 buka {embed_url}")
-        driver.get(embed_url)
-        time.sleep(wait_time)
-
-        logs = driver.get_log("performance")
-        for entry in logs:
-            try:
-                msg = json.loads(entry["message"])
-                params = msg.get("message", {}).get("params", {})
-                url = params.get("request", {}).get("url", "")
-                if ".m3u8" in url:
-                    print(f"🎯 ketemu m3u8: {url}")
-                    m3u8_url = url
-                    break
-            except Exception:
-                continue
-    finally:
-        driver.quit()
-
-    return m3u8_url
-
-
-def find_working_proxy(embed_url, proxies):
-    """Cari 1 proxy yang sukses buka embed_url"""
-    for proxy in proxies:
-        print(f"🔎 coba proxy {proxy}")
-        try:
-            url = extract_m3u8(embed_url, wait_time=10, proxy=proxy)
-            if url:
-                print(f"✅ Proxy OK: {proxy}")
-                return proxy
-        except Exception as e:
-            print(f"❌ proxy {proxy} error: {e}")
-    print("⚠️ Tidak ada proxy yang berhasil")
-    return None
-
 # --------------- Main Logic -----------------
-
 async def main(limit_matches=20, apply_time_filter=True):
     res = requests.get(MATCHES_URL, headers=HEADERS, timeout=15)
     matches = res.json()
@@ -138,7 +139,6 @@ async def main(limit_matches=20, apply_time_filter=True):
     print(f"📊 Total match terpilih: {len(filtered_matches)}")
 
     results = {}
-    embed_tasks = {}
 
     # Step 1: parallel fetch stream metadata
     with ThreadPoolExecutor(max_workers=10) as executor:
@@ -150,7 +150,17 @@ async def main(limit_matches=20, apply_time_filter=True):
         ]
         streams_list = await asyncio.gather(*tasks)
 
-    # Step 2: proses hasil API
+    # Step 2: pilih proxy yang jalan
+    proxies = load_proxies()
+    working_proxy = None
+    for p in proxies:
+        if test_proxy(p):
+            working_proxy = p
+            break
+
+    es = Embedsports(proxy=working_proxy) if working_proxy else Embedsports()
+
+    # Step 3: proses hasil API + embed resolver
     for (src, streams) in zip(
         [s for m in filtered_matches[:limit_matches] for s in m.get("sources", [])],
         streams_list,
@@ -162,40 +172,30 @@ async def main(limit_matches=20, apply_time_filter=True):
 
         stream = streams[0]
         stream_no = stream.get("streamNo", 1)
-
         key = f"{source_type}/{source_id}/{stream_no}"
+
         url = stream.get("file") or stream.get("url")
         if url:
             results[key] = url
             print(f"[+] API {key} → {url}")
+            continue
+
+        embed = stream.get("embedUrl")
+        if not embed:
+            continue
+
+        host = urlparse(embed).hostname or ""
+        if "embedsports.top" in host:
+            try:
+                link = es.get_link(embed)
+                results[key] = link
+                print(f"[+] Embedsports {key} → {link}")
+            except Exception as e:
+                print(f"⚠️ gagal extract {key} dari {embed}: {e}")
         else:
-            embed = stream.get("embedUrl")
-            if embed:
-                embed_tasks[key] = embed
+            print(f"❌ Embed {key} host {host} belum didukung")
 
-    # Step 3: tentukan proxy yang valid
-    proxies = load_proxies()
-    working_proxy = None
-    if embed_tasks and proxies:
-        test_url = list(embed_tasks.values())[0]
-        working_proxy = find_working_proxy(test_url, proxies)
-
-    # Step 4: extract semua embed pakai proxy yang sudah valid
-    if working_proxy:
-        with ThreadPoolExecutor(max_workers=2) as executor:
-            loop = asyncio.get_running_loop()
-            tasks = [
-                loop.run_in_executor(executor, extract_m3u8, embed_url, 15, working_proxy)
-                for embed_url in embed_tasks.values()
-            ]
-            results_list = await asyncio.gather(*tasks)
-
-        for key, url in zip(embed_tasks.keys(), results_list):
-            if url:
-                results[key] = url
-                print(f"[+] Embed {key} → {url}")
-
-    # Step 5: simpan hasil ke map5.json
+    # Step 4: simpan hasil ke map5.json
     with open("map5.json", "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
 
