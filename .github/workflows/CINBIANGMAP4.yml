@@ -2,8 +2,7 @@ name: UPDATE MAP4.JSON
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 * * * *'  # ⏰ Jalankan setiap 1 jam
+
 
 permissions:
   contents: write
