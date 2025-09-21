@@ -4,6 +4,7 @@ from pathlib import Path
 from datetime import datetime
 from playwright.sync_api import sync_playwright
 from deep_translator import GoogleTranslator
+from zoneinfo import ZoneInfo
 
 # ==========================
 # Load Config dari congordata_file.txt
@@ -114,7 +115,7 @@ lines = ["#EXTM3U"]
 for a in anchors:
     try:
         anchor_id = a.get("anchorId")
-        dt = datetime.now()
+        dt = datetime.now(ZoneInfo("Asia/Jakarta"))
 
         title = (a.get("title") or "").strip()
         competition_name = (a.get("competitionName") or "").strip()
