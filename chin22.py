@@ -11,27 +11,39 @@ from deep_translator import GoogleTranslator
 CONGORDATA_FILE = Path.home() / "congordata_file.txt"
 
 config = {}
+current_key = None
+list_accumulator = []
+
 with open(CONGORDATA_FILE, "r", encoding="utf-8") as f:
-    for line in f:
-        line = line.strip()
+    for raw_line in f:
+        line = raw_line.strip()
         if not line or line.startswith("#"):
             continue
+
+        if current_key:  # sedang dalam list multiline
+            if line.startswith("]"):
+                config[current_key] = list_accumulator
+                current_key, list_accumulator = None, []
+            else:
+                val = line.strip().strip(",").strip('"').strip("'")
+                if val:
+                    list_accumulator.append(val)
+            continue
+
         if "=" in line:
             key, val = line.split("=", 1)
             key, val = key.strip(), val.strip()
-            # Jika value adalah list Python, gunakan eval
-            if val.startswith("[") and val.endswith("]"):
-                try:
-                    config[key] = eval(val)
-                except Exception:
-                    config[key] = val
-            # Jika string pakai kutip
-            elif (val.startswith('"') and val.endswith('"')) or (val.startswith("'") and val.endswith("'")):
+
+            if val.startswith("["):  # list multiline
+                current_key = key
+                list_accumulator = []
+                continue
+
+            if (val.startswith('"') and val.endswith('"')) or (val.startswith("'") and val.endswith("'")):
                 config[key] = val.strip('"\'')
             else:
                 config[key] = val
 
-# Ambil variabel dari config
 UA = config.get("UA")
 REFERRER = config.get("REFERRER")
 WORKER_URL = config.get("WORKER_URL")
