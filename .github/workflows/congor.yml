@@ -1,0 +1,61 @@
+name: 🕐 Generate CONGOR.m3u tiap jam
+
+on:
+  schedule:
+    - cron: "0 * * * *"   # tiap jam (menit 0)
+  workflow_dispatch:       # bisa juga manual run
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repo (utama)
+        uses: actions/checkout@v4
+
+      - name: 📁 Ambil file konfigurasi dari repo privat
+        shell: bash
+        run: |
+          git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} configrepo
+          cp configrepo/congordata_file.txt $HOME/congordata_file.txt
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 📦 Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install playwright deep-translator
+          playwright install chromium
+
+      - name: 🚀 Jalankan script Python
+        run: python chin22.py
+
+      - name: 📤 Push output ke repo privat jika ada perubahan
+        shell: bash
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+
+          git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} repo-output
+
+          # 🚫 Skip kalau CONGOR.m3u kosong
+          if [ ! -s CONGOR.m3u ]; then
+            echo "⚠️ CONGOR.m3u kosong, tidak ada push & file lama aman."
+            exit 0
+          fi
+
+          # ✅ Hanya copy kalau ada isi
+          cp CONGOR.m3u repo-output/
+
+          cd repo-output
+          git add CONGOR.m3u
+
+          if git diff --cached --quiet; then
+            echo "✅ Tidak ada perubahan pada CONGOR.m3u, skip push."
+          else
+            git commit -m "🔄 auto: update CONGOR.m3u"
+            git push
+          fi
