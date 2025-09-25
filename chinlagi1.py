@@ -1,6 +1,6 @@
 from pathlib import Path
 from playwright.sync_api import sync_playwright
-import requests, sys
+import json
 from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any
 
@@ -19,7 +19,7 @@ REFERER = config_vars.get("REFERER")
 BASE_URL = config_vars.get("BASE_URL")
 WORKER_TEMPLATE = config_vars.get("WORKER_TEMPLATE")
 DEFAULT_LOGO = config_vars.get("DEFAULT_LOGO")
-PROXY_LIST_URL = config_vars.get("PROXY_LIST_URL")
+
 
 OUT_FILE = "chinlagi1_matches.m3u"
 
@@ -29,19 +29,6 @@ try:
     JAKARTA = ZoneInfo("Asia/Jakarta")
 except Exception:
     JAKARTA = timezone(timedelta(hours=7))
-
-
-# --------------------------
-# Proxy helpers
-# --------------------------
-def get_proxy_list(url: str):
-    try:
-        res = requests.get(url, timeout=10)
-        res.raise_for_status()
-        return res.text.strip().splitlines()
-    except Exception as e:
-        print(f"[!] Gagal ambil proxy list: {e}", file=sys.stderr)
-        return []
 
 
 def extract_matches(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -59,7 +46,7 @@ def extract_matches(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
             if kickoff is not None:
                 try:
                     kickoff_ts = int(kickoff)
-                    if kickoff_ts > 1_000_000_000_000:  # ms → s
+                    if kickoff_ts > 1_000_000_000_000:  # ms -> s
                         kickoff_ts //= 1000
                 except Exception:
                     kickoff_ts = None
@@ -101,68 +88,40 @@ def write_m3u(matches: List[Dict[str, Any]], path: str = OUT_FILE):
 
 
 def main():
-    proxy_list = get_proxy_list(PROXY_LIST_URL)
-    if not proxy_list:
-        print("[!] Tidak ada proxy yang bisa dipakai.", file=sys.stderr)
-        return
-
     all_matches = []
     with sync_playwright() as p:
-        working_proxy = None
+        browser = p.chromium.launch(headless=True)
+        context = browser.new_context(
+            user_agent=UA,
+            extra_http_headers={"referer": REFERER}
+        )
+        page = context.new_page()
 
-        # coba proxy satu per satu
-        for proxy in proxy_list:
-            print(f"[•] Coba pakai proxy: {proxy}", file=sys.stderr)
-            browser = None
-            context = None
-            try:
-                browser = p.chromium.launch(headless=True, proxy={"server": proxy})
-                context = browser.new_context(
-                    user_agent=UA,
-                    extra_http_headers={"referer": REFERER},
-                )
+        for sid in range(1, 5):
+            for params in (
+                {"sid": sid, "sort": "tournament", "inplay": "true", "language": "id-id"},
+                {"sid": sid, "sort": "tournament", "inplay": "false", "date": "24h", "language": "id-id"},
+            ):
+                qs = "&".join(f"{k}={params[k]}" for k in params)
+                url = f"{BASE_URL}?{qs}"
+                try:
+                    js = f"""
+                        () => fetch("{url}", {{
+                            credentials: 'include',
+                            headers: {{ 'Accept': 'application/json, text/javascript, */*' }}
+                        }}).then(r => r.ok ? r.json() : r.status + '::' + r.statusText)
+                    """
+                    result = page.evaluate(js)
+                    if isinstance(result, str) and result.startswith("403"):
+                        print(f"[WARN] fetch returned {result} for {url}")
+                        continue
+                    if isinstance(result, dict):
+                        matches = extract_matches(result)
+                        all_matches.extend(matches)
+                except Exception as e:
+                    print(f"[ERROR] request failed for {url}: {e}")
 
-                # test langsung ke API
-                test_url = f"{BASE_URL}?sid=1&sort=tournament&inplay=true&language=id-id"
-                resp = context.request.get(test_url)
-                if not resp.ok:
-                    print(f"[WARN] Proxy {proxy} gagal tes awal ({resp.status})")
-                    continue
-                result = resp.json()
-                if not isinstance(result, dict) or "data" not in result:
-                    print(f"[WARN] Proxy {proxy} tes awal tidak valid")
-                    continue
-
-                working_proxy = proxy
-                print(f"[✓] Proxy {proxy} valid, lanjut semua request.")
-                # ambil semua data
-                for sid in range(1, 5):
-                    for params in (
-                        {"sid": sid, "sort": "tournament", "inplay": "true", "language": "id-id"},
-                        {"sid": sid, "sort": "tournament", "inplay": "false", "date": "24h", "language": "id-id"},
-                    ):
-                        qs = "&".join(f"{k}={params[k]}" for k in params)
-                        url = f"{BASE_URL}?{qs}"
-                        try:
-                            resp = context.request.get(url)
-                            if not resp.ok:
-                                print(f"[WARN] {resp.status} {resp.status_text()} for {url}")
-                                continue
-                            result = resp.json()
-                            matches = extract_matches(result)
-                            all_matches.extend(matches)
-                        except Exception as e:
-                            print(f"[ERROR] request failed for {url}: {e}")
-
-                break  # keluar loop proxy, sudah ada yang jalan
-
-            except Exception as e:
-                print(f"[×] Proxy gagal: {proxy} → {e}", file=sys.stderr)
-            finally:
-                if context:
-                    context.close()
-                if browser:
-                    browser.close()
+        browser.close()
 
     # dedupe by iid
     uniq = {}
