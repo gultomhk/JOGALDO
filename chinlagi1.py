@@ -95,6 +95,8 @@ def main():
             extra_http_headers={"referer": REFERER}
         )
         page = context.new_page()
+        # ⬇️ load referer dulu supaya ada origin/cookie
+        page.goto(REFERER, wait_until="domcontentloaded")
 
         for sid in range(1, 5):
             for params in (
