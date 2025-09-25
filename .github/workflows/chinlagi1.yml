@@ -1,0 +1,61 @@
+name: ⏰ Chinlagi1 Auto Runner
+
+on:
+  schedule:
+    - cron: "0 * * * *"   # jalan tiap 1 jam sekali (menit ke-0)
+  workflow_dispatch:       # bisa manual trigger juga
+
+jobs:
+  run-chinlagi1:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repo (untuk akses workflow ini)
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 📦 Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install playwright
+          playwright install chromium
+
+      - name: 📁 Ambil file konfigurasi dari repo privat
+        shell: bash
+        run: |
+          git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} configrepo
+          cp configrepo/chinlagi1data_file.txt $HOME/chinlagi1data_file.txt
+
+      - name: 🚀 Jalankan script Python
+        run: python chinlagi1.py
+
+      - name: 📤 Push output ke repo privat jika ada perubahan
+        shell: bash
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+
+          git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} repo-output
+
+          # 🚫 Skip kalau chinlagi1_matches.m3u kosong
+          if [ ! -s chinlagi1_matches.m3u ]; then
+            echo "⚠️ chinlagi1_matches.m3u kosong, tidak ada push & file lama aman."
+            exit 0
+          fi
+
+          # ✅ Hanya copy kalau ada isi
+          cp chinlagi1_matches.m3u repo-output/
+
+          cd repo-output
+          git add chinlagi1_matches.m3u
+
+          if git diff --cached --quiet; then
+            echo "✅ Tidak ada perubahan pada chinlagi1_matches.m3u, skip push."
+          else
+            git commit -m "🔄 auto: update chinlagi1_matches.m3u"
+            git push
+          fi
