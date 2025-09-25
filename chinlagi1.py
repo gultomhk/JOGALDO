@@ -1,5 +1,5 @@
 from pathlib import Path
-from playwright.sync_api import sync_playwright
+import requests
 import json
 from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any
@@ -16,10 +16,9 @@ with open(CHINLAGI1DATA_FILE, "r", encoding="utf-8") as f:
 
 UA = config_vars.get("UA")
 REFERER = config_vars.get("REFERER")
-BASE_URL = config_vars.get("BASE_URL")
 WORKER_TEMPLATE = config_vars.get("WORKER_TEMPLATE")
 DEFAULT_LOGO = config_vars.get("DEFAULT_LOGO")
-
+WORKER_MATCHES = config_vars.get("WORKER_MATCHES")  # tambahkan di file config
 
 OUT_FILE = "chinlagi1_matches.m3u"
 
@@ -86,39 +85,21 @@ def write_m3u(matches: List[Dict[str, Any]], path: str = OUT_FILE):
         f.write("\n".join(lines))
     print(f"[OK] Saved {len(matches)} entries to {path}")
 
+
 def main():
     all_matches = []
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        context = browser.new_context(
-            user_agent=UA,
-            extra_http_headers={"referer": REFERER}
-        )
-        page = context.new_page()
 
-        for sid in range(1, 5):
-            for params in (
-                {"sid": sid, "sort": "tournament", "inplay": "true", "language": "id-id"},
-                {"sid": sid, "sort": "tournament", "inplay": "false", "date": "24h", "language": "id-id"},
-            ):
-                qs = "&".join(f"{k}={params[k]}" for k in params)
-                url = f"{BASE_URL}?{qs}"
-                try:
-                    resp = context.request.get(url, headers={
-                        "Accept": "application/json, text/javascript, */*",
-                        "Referer": REFERER,
-                        "User-Agent": UA,
-                    })
-                    if resp.ok:
-                        result = resp.json()
-                        matches = extract_matches(result)
-                        all_matches.extend(matches)
-                    else:
-                        print(f"[WARN] {resp.status} {resp.status_text} for {url}")
-                except Exception as e:
-                    print(f"[ERROR] request failed for {url}: {e}")
-
-        browser.close()
+    try:
+        resp = requests.get(WORKER_MATCHES, headers={"User-Agent": UA, "Referer": REFERER}, timeout=15)
+        if resp.status_code != 200:
+            print(f"[ERROR] Worker returned {resp.status_code}")
+            return
+        data = resp.json()
+        matches = extract_matches(data)
+        all_matches.extend(matches)
+    except Exception as e:
+        print(f"[ERROR] Failed to fetch matches from Worker: {e}")
+        return
 
     # dedupe by iid
     uniq = {}
