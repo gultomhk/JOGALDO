@@ -86,7 +86,6 @@ def write_m3u(matches: List[Dict[str, Any]], path: str = OUT_FILE):
         f.write("\n".join(lines))
     print(f"[OK] Saved {len(matches)} entries to {path}")
 
-
 def main():
     all_matches = []
     with sync_playwright() as p:
@@ -105,19 +104,17 @@ def main():
                 qs = "&".join(f"{k}={params[k]}" for k in params)
                 url = f"{BASE_URL}?{qs}"
                 try:
-                    js = f"""
-                        () => fetch("{url}", {{
-                            credentials: 'include',
-                            headers: {{ 'Accept': 'application/json, text/javascript, */*' }}
-                        }}).then(r => r.ok ? r.json() : r.status + '::' + r.statusText)
-                    """
-                    result = page.evaluate(js)
-                    if isinstance(result, str) and result.startswith("403"):
-                        print(f"[WARN] fetch returned {result} for {url}")
-                        continue
-                    if isinstance(result, dict):
+                    resp = context.request.get(url, headers={
+                        "Accept": "application/json, text/javascript, */*",
+                        "Referer": REFERER,
+                        "User-Agent": UA,
+                    })
+                    if resp.ok:
+                        result = resp.json()
                         matches = extract_matches(result)
                         all_matches.extend(matches)
+                    else:
+                        print(f"[WARN] {resp.status} {resp.status_text} for {url}")
                 except Exception as e:
                     print(f"[ERROR] request failed for {url}: {e}")
 
