@@ -86,16 +86,60 @@ def write_m3u(matches: List[Dict[str, Any]], path: str = OUT_FILE):
     print(f"[OK] Saved {len(matches)} entries to {path}")
 
 
+def normalize_matches(raw) -> List[Dict[str, Any]]:
+    """Normalize Worker JSON (list) atau API JSON (dict) jadi format standar."""
+    out = []
+    if isinstance(raw, list):
+        # format dari Worker JSON
+        for m in raw:
+            iid = m.get("iid")
+            home = m.get("home")
+            away = m.get("away")
+            league = m.get("league", "")
+            kickoff_ts = None
+            ts = m.get("startTime")
+            if ts:
+                try:
+                    kickoff_ts = int(ts)
+                    if kickoff_ts > 1_000_000_000_000:  # ms -> s
+                        kickoff_ts //= 1000
+                except Exception:
+                    kickoff_ts = None
+            time_str = ""
+            if kickoff_ts:
+                try:
+                    dt = datetime.fromtimestamp(kickoff_ts, tz=timezone.utc).astimezone(JAKARTA)
+                    time_str = dt.strftime("%d/%m-%H.%M")
+                except Exception:
+                    pass
+            title = f"{time_str} {home or ''} vs {away or ''} ({league})".strip()
+            out.append({
+                "iid": str(iid) if iid is not None else None,
+                "home": home or "",
+                "away": away or "",
+                "kickoff": kickoff_ts,
+                "title": title,
+                "logo": DEFAULT_LOGO,
+            })
+    elif isinstance(raw, dict):
+        # fallback: format API tournament/info
+        out.extend(extract_matches(raw))
+    return out
+
+
 def main():
     all_matches = []
-
     try:
-        resp = requests.get(WORKER_MATCHES, headers={"User-Agent": UA, "Referer": REFERER}, timeout=15)
+        resp = requests.get(
+            WORKER_MATCHES,
+            headers={"User-Agent": UA, "Referer": REFERER},
+            timeout=15
+        )
         if resp.status_code != 200:
             print(f"[ERROR] Worker returned {resp.status_code}")
             return
-        data = resp.json()
-        matches = extract_matches(data)
+        raw = resp.json()
+        matches = normalize_matches(raw)
         all_matches.extend(matches)
     except Exception as e:
         print(f"[ERROR] Failed to fetch matches from Worker: {e}")
@@ -114,7 +158,7 @@ def main():
         else:
             uniq[iid] = m
 
-    # filter: buang yang kickoff sudah lewat lebih dari 2 jam
+    # filter kickoff > 2 jam lewat
     now = datetime.now(JAKARTA)
     filtered = []
     for m in uniq.values():
