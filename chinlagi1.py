@@ -92,8 +92,18 @@ def main():
         browser = p.chromium.launch(headless=True)
         context = browser.new_context(
             user_agent=UA,
-            extra_http_headers={"referer": REFERER}
+            extra_http_headers={
+                "referer": REFERER,
+                "origin": REFERER,
+                "accept": "application/json, text/javascript, */*; q=0.01",
+                "accept-language": "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
+                "x-requested-with": "XMLHttpRequest",
+            }
         )
+
+        # buka dulu referer biar cookie/session ke-load
+        page = context.new_page()
+        page.goto(REFERER, timeout=60000)
 
         for sid in range(1, 5):
             for params in (
