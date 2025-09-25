@@ -3,6 +3,7 @@ from playwright.sync_api import sync_playwright
 import json
 from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any
+import time
 
 # ==========================
 # Load Config dari chinlagi1data_file.txt
@@ -86,16 +87,94 @@ def write_m3u(matches: List[Dict[str, Any]], path: str = OUT_FILE):
     print(f"[OK] Saved {len(matches)} entries to {path}")
 
 
+def fetch_with_retry(page, url: str, max_retries: int = 3) -> Dict[str, Any]:
+    """Fetch dengan retry mechanism"""
+    for attempt in range(max_retries):
+        try:
+            # Gunakan approach yang lebih reliable
+            js_code = """
+            async () => {
+                try {
+                    const response = await fetch('%s', {
+                        method: 'GET',
+                        credentials: 'include',
+                        headers: {
+                            'Accept': 'application/json, text/javascript, */*',
+                            'User-Agent': '%s',
+                            'Referer': '%s'
+                        },
+                        mode: 'cors'
+                    });
+                    
+                    if (!response.ok) {
+                        return {error: `HTTP ${response.status}: ${response.statusText}`};
+                    }
+                    
+                    const data = await response.json();
+                    return {success: true, data: data};
+                } catch (error) {
+                    return {error: error.toString()};
+                }
+            }
+            """ % (url, UA, REFERER)
+            
+            result = page.evaluate(js_code)
+            
+            if result.get('success'):
+                return result['data']
+            else:
+                print(f"[ATTEMPT {attempt + 1}] Fetch failed: {result.get('error')}")
+                if attempt < max_retries - 1:
+                    time.sleep(2)  # Tunggu 2 detik sebelum retry
+                    
+        except Exception as e:
+            print(f"[ATTEMPT {attempt + 1}] Exception: {e}")
+            if attempt < max_retries - 1:
+                time.sleep(2)
+    
+    return {}
+
+
 def main():
     all_matches = []
+    
+    print(f"[INFO] Using User-Agent: {UA[:50]}...")
+    print(f"[INFO] Using Referer: {REFERER}")
+    
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
+        # Tambahkan options untuk better compatibility
+        browser = p.chromium.launch(
+            headless=True,
+            args=[
+                '--disable-web-security',
+                '--disable-features=IsolateOrigins,site-per-process',
+                '--allow-running-insecure-content',
+                '--disable-blink-features=AutomationControlled'
+            ]
+        )
+        
         context = browser.new_context(
             user_agent=UA,
-            extra_http_headers={"referer": REFERER}
+            viewport={"width": 1920, "height": 1080},
+            extra_http_headers={
+                "referer": REFERER,
+                "accept": "application/json, text/javascript, */*",
+                "accept-language": "id-ID,id;q=0.9,en;q=0.8",
+            }
         )
+        
+        # Set extra headers untuk page
         page = context.new_page()
+        
+        # Navigate ke referer dulu untuk set cookies
+        try:
+            print("[INFO] Setting up browser context...")
+            page.goto(REFERER, wait_until="networkidle", timeout=30000)
+            time.sleep(3)
+        except Exception as e:
+            print(f"[WARN] Could not navigate to referer: {e}")
 
+        urls_to_fetch = []
         for sid in range(1, 5):
             for params in (
                 {"sid": sid, "sort": "tournament", "inplay": "true", "language": "id-id"},
@@ -103,24 +182,30 @@ def main():
             ):
                 qs = "&".join(f"{k}={params[k]}" for k in params)
                 url = f"{BASE_URL}?{qs}"
-                try:
-                    js = f"""
-                        () => fetch("{url}", {{
-                            credentials: 'include',
-                            headers: {{ 'Accept': 'application/json, text/javascript, */*' }}
-                        }}).then(r => r.ok ? r.json() : r.status + '::' + r.statusText)
-                    """
-                    result = page.evaluate(js)
-                    if isinstance(result, str) and result.startswith("403"):
-                        print(f"[WARN] fetch returned {result} for {url}")
-                        continue
-                    if isinstance(result, dict):
-                        matches = extract_matches(result)
-                        all_matches.extend(matches)
-                except Exception as e:
-                    print(f"[ERROR] request failed for {url}: {e}")
+                urls_to_fetch.append(url)
+
+        total_urls = len(urls_to_fetch)
+        for i, url in enumerate(urls_to_fetch, 1):
+            print(f"[{i}/{total_urls}] Fetching: {url.split('?')[0]}...")
+            
+            result = fetch_with_retry(page, url)
+            
+            if result:
+                matches = extract_matches(result)
+                all_matches.extend(matches)
+                print(f"[OK] Found {len(matches)} matches")
+            else:
+                print(f"[ERROR] Failed to fetch data from {url}")
+            
+            # Delay antar request
+            if i < total_urls:
+                time.sleep(1)
 
         browser.close()
+
+    if not all_matches:
+        print("[ERROR] No matches fetched at all!")
+        return
 
     # dedupe by iid
     uniq = {}
@@ -152,6 +237,7 @@ def main():
         print("[WARN] No matches found after filtering.")
     else:
         write_m3u(final)
+        print(f"[SUCCESS] Total {len(final)} matches processed")
 
 
 if __name__ == "__main__":
