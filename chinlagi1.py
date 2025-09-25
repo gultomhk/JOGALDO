@@ -1,5 +1,5 @@
 from pathlib import Path
-from playwright.sync_api import sync_playwright
+import requests
 import json
 from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any
@@ -88,39 +88,27 @@ def write_m3u(matches: List[Dict[str, Any]], path: str = OUT_FILE):
 
 def main():
     all_matches = []
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        context = browser.new_context(
-            user_agent=UA,
-            extra_http_headers={"referer": REFERER}
-        )
-        page = context.new_page()
+    headers = {
+        "User-Agent": UA,
+        "Referer": REFERER,
+        "Origin": REFERER,
+        "Accept": "application/json, text/javascript, */*; q=0.01"
+    }
 
-        for sid in range(1, 5):
-            for params in (
-                {"sid": sid, "sort": "tournament", "inplay": "true", "language": "id-id"},
-                {"sid": sid, "sort": "tournament", "inplay": "false", "date": "24h", "language": "id-id"},
-            ):
-                qs = "&".join(f"{k}={params[k]}" for k in params)
-                url = f"{BASE_URL}?{qs}"
-                try:
-                    js = f"""
-                        () => fetch("{url}", {{
-                            credentials: 'include',
-                            headers: {{ 'Accept': 'application/json, text/javascript, */*' }}
-                        }}).then(r => r.ok ? r.json() : r.status + '::' + r.statusText)
-                    """
-                    result = page.evaluate(js)
-                    if isinstance(result, str) and result.startswith("403"):
-                        print(f"[WARN] fetch returned {result} for {url}")
-                        continue
-                    if isinstance(result, dict):
-                        matches = extract_matches(result)
-                        all_matches.extend(matches)
-                except Exception as e:
-                    print(f"[ERROR] request failed for {url}: {e}")
-
-        browser.close()
+    for sid in range(1, 5):
+        for params in (
+            {"sid": sid, "sort": "tournament", "inplay": "true", "language": "id-id"},
+            {"sid": sid, "sort": "tournament", "inplay": "false", "date": "24h", "language": "id-id"},
+        ):
+            try:
+                r = requests.get(BASE_URL, params=params, headers=headers, timeout=15)
+                r.raise_for_status()
+                result = r.json()
+                matches = extract_matches(result)
+                all_matches.extend(matches)
+                print(f"[OK] sid={sid}, inplay={params['inplay']}, got {len(matches)} matches")
+            except Exception as e:
+                print(f"[ERROR] sid={sid}, inplay={params['inplay']} -> {e}")
 
     # dedupe by iid
     uniq = {}
