@@ -1,9 +1,8 @@
 from pathlib import Path
 from playwright.sync_api import sync_playwright
-import json
+import requests, sys
 from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any
-import time
 
 # ==========================
 # Load Config dari chinlagi1data_file.txt
@@ -20,6 +19,7 @@ REFERER = config_vars.get("REFERER")
 BASE_URL = config_vars.get("BASE_URL")
 WORKER_TEMPLATE = config_vars.get("WORKER_TEMPLATE")
 DEFAULT_LOGO = config_vars.get("DEFAULT_LOGO")
+PROXY_LIST_URL = config_vars.get("PROXY_LIST_URL")
 
 OUT_FILE = "chinlagi1_matches.m3u"
 
@@ -29,6 +29,19 @@ try:
     JAKARTA = ZoneInfo("Asia/Jakarta")
 except Exception:
     JAKARTA = timezone(timedelta(hours=7))
+
+
+# --------------------------
+# Proxy helpers
+# --------------------------
+def get_proxy_list(url: str):
+    try:
+        res = requests.get(url, timeout=10)
+        res.raise_for_status()
+        return res.text.strip().splitlines()
+    except Exception as e:
+        print(f"[!] Gagal ambil proxy list: {e}", file=sys.stderr)
+        return []
 
 
 def extract_matches(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -46,7 +59,7 @@ def extract_matches(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
             if kickoff is not None:
                 try:
                     kickoff_ts = int(kickoff)
-                    if kickoff_ts > 1_000_000_000_000:  # ms -> s
+                    if kickoff_ts > 1_000_000_000_000:  # ms → s
                         kickoff_ts //= 1000
                 except Exception:
                     kickoff_ts = None
@@ -87,125 +100,73 @@ def write_m3u(matches: List[Dict[str, Any]], path: str = OUT_FILE):
     print(f"[OK] Saved {len(matches)} entries to {path}")
 
 
-def fetch_with_retry(page, url: str, max_retries: int = 3) -> Dict[str, Any]:
-    """Fetch dengan retry mechanism"""
-    for attempt in range(max_retries):
-        try:
-            # Gunakan approach yang lebih reliable
-            js_code = """
-            async () => {
-                try {
-                    const response = await fetch('%s', {
-                        method: 'GET',
-                        credentials: 'include',
-                        headers: {
-                            'Accept': 'application/json, text/javascript, */*',
-                            'User-Agent': '%s',
-                            'Referer': '%s'
-                        },
-                        mode: 'cors'
-                    });
-                    
-                    if (!response.ok) {
-                        return {error: `HTTP ${response.status}: ${response.statusText}`};
-                    }
-                    
-                    const data = await response.json();
-                    return {success: true, data: data};
-                } catch (error) {
-                    return {error: error.toString()};
-                }
-            }
-            """ % (url, UA, REFERER)
-            
-            result = page.evaluate(js_code)
-            
-            if result.get('success'):
-                return result['data']
-            else:
-                print(f"[ATTEMPT {attempt + 1}] Fetch failed: {result.get('error')}")
-                if attempt < max_retries - 1:
-                    time.sleep(2)  # Tunggu 2 detik sebelum retry
-                    
-        except Exception as e:
-            print(f"[ATTEMPT {attempt + 1}] Exception: {e}")
-            if attempt < max_retries - 1:
-                time.sleep(2)
-    
-    return {}
-
-
 def main():
-    all_matches = []
-    
-    print(f"[INFO] Using User-Agent: {UA[:50]}...")
-    print(f"[INFO] Using Referer: {REFERER}")
-    
-    with sync_playwright() as p:
-        # Tambahkan options untuk better compatibility
-        browser = p.chromium.launch(
-            headless=True,
-            args=[
-                '--disable-web-security',
-                '--disable-features=IsolateOrigins,site-per-process',
-                '--allow-running-insecure-content',
-                '--disable-blink-features=AutomationControlled'
-            ]
-        )
-        
-        context = browser.new_context(
-            user_agent=UA,
-            viewport={"width": 1920, "height": 1080},
-            extra_http_headers={
-                "referer": REFERER,
-                "accept": "application/json, text/javascript, */*",
-                "accept-language": "id-ID,id;q=0.9,en;q=0.8",
-            }
-        )
-        
-        # Set extra headers untuk page
-        page = context.new_page()
-        
-        # Navigate ke referer dulu untuk set cookies
-        try:
-            print("[INFO] Setting up browser context...")
-            page.goto(REFERER, wait_until="networkidle", timeout=30000)
-            time.sleep(3)
-        except Exception as e:
-            print(f"[WARN] Could not navigate to referer: {e}")
-
-        urls_to_fetch = []
-        for sid in range(1, 5):
-            for params in (
-                {"sid": sid, "sort": "tournament", "inplay": "true", "language": "id-id"},
-                {"sid": sid, "sort": "tournament", "inplay": "false", "date": "24h", "language": "id-id"},
-            ):
-                qs = "&".join(f"{k}={params[k]}" for k in params)
-                url = f"{BASE_URL}?{qs}"
-                urls_to_fetch.append(url)
-
-        total_urls = len(urls_to_fetch)
-        for i, url in enumerate(urls_to_fetch, 1):
-            print(f"[{i}/{total_urls}] Fetching: {url.split('?')[0]}...")
-            
-            result = fetch_with_retry(page, url)
-            
-            if result:
-                matches = extract_matches(result)
-                all_matches.extend(matches)
-                print(f"[OK] Found {len(matches)} matches")
-            else:
-                print(f"[ERROR] Failed to fetch data from {url}")
-            
-            # Delay antar request
-            if i < total_urls:
-                time.sleep(1)
-
-        browser.close()
-
-    if not all_matches:
-        print("[ERROR] No matches fetched at all!")
+    proxy_list = get_proxy_list(PROXY_LIST_URL)
+    if not proxy_list:
+        print("[!] Tidak ada proxy yang bisa dipakai.", file=sys.stderr)
         return
+
+    all_matches = []
+    with sync_playwright() as p:
+        working_proxy = None
+
+        # coba proxy satu per satu
+        for proxy in proxy_list:
+            print(f"[•] Coba pakai proxy: {proxy}", file=sys.stderr)
+            browser = None
+            context = None
+            try:
+                browser = p.chromium.launch(headless=True, proxy={"server": proxy})
+                context = browser.new_context(
+                    user_agent=UA,
+                    extra_http_headers={"referer": REFERER},
+                )
+
+                # load referer sekali supaya ada cookie/origin
+                page = context.new_page()
+                page.goto(REFERER, wait_until="domcontentloaded")
+
+                # test dengan 1 request dulu
+                test_url = f"{BASE_URL}?sid=1&sort=tournament&inplay=true&language=id-id"
+                resp = context.request.get(test_url)
+                if not resp.ok:
+                    print(f"[WARN] Proxy {proxy} gagal tes awal ({resp.status})")
+                    continue
+                result = resp.json()
+                if not isinstance(result, dict) or "data" not in result:
+                    print(f"[WARN] Proxy {proxy} tes awal tidak valid")
+                    continue
+
+                working_proxy = proxy
+                print(f"[✓] Proxy {proxy} valid, lanjut semua request.")
+                # ambil semua data
+                for sid in range(1, 5):
+                    for params in (
+                        {"sid": sid, "sort": "tournament", "inplay": "true", "language": "id-id"},
+                        {"sid": sid, "sort": "tournament", "inplay": "false", "date": "24h", "language": "id-id"},
+                    ):
+                        qs = "&".join(f"{k}={params[k]}" for k in params)
+                        url = f"{BASE_URL}?{qs}"
+                        try:
+                            resp = context.request.get(url)
+                            if not resp.ok:
+                                print(f"[WARN] {resp.status} {resp.status_text()} for {url}")
+                                continue
+                            result = resp.json()
+                            matches = extract_matches(result)
+                            all_matches.extend(matches)
+                        except Exception as e:
+                            print(f"[ERROR] request failed for {url}: {e}")
+
+                break  # keluar loop proxy, sudah ada yang jalan
+
+            except Exception as e:
+                print(f"[×] Proxy gagal: {proxy} → {e}", file=sys.stderr)
+            finally:
+                if context:
+                    context.close()
+                if browser:
+                    browser.close()
 
     # dedupe by iid
     uniq = {}
@@ -237,7 +198,6 @@ def main():
         print("[WARN] No matches found after filtering.")
     else:
         write_m3u(final)
-        print(f"[SUCCESS] Total {len(final)} matches processed")
 
 
 if __name__ == "__main__":
