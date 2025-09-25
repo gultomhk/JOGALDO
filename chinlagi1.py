@@ -122,11 +122,7 @@ def main():
                     extra_http_headers={"referer": REFERER},
                 )
 
-                # load referer sekali supaya ada cookie/origin
-                page = context.new_page()
-                page.goto(REFERER, wait_until="domcontentloaded")
-
-                # test dengan 1 request dulu
+                # test langsung ke API
                 test_url = f"{BASE_URL}?sid=1&sort=tournament&inplay=true&language=id-id"
                 resp = context.request.get(test_url)
                 if not resp.ok:
