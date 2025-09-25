@@ -92,18 +92,9 @@ def main():
         browser = p.chromium.launch(headless=True)
         context = browser.new_context(
             user_agent=UA,
-            extra_http_headers={
-                "referer": REFERER,
-                "origin": REFERER,
-                "accept": "application/json, text/javascript, */*; q=0.01",
-                "accept-language": "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
-                "x-requested-with": "XMLHttpRequest",
-            }
+            extra_http_headers={"referer": REFERER}
         )
-
-        # buka dulu referer biar cookie/session ke-load
         page = context.new_page()
-        page.goto(REFERER, timeout=60000)
 
         for sid in range(1, 5):
             for params in (
@@ -113,13 +104,19 @@ def main():
                 qs = "&".join(f"{k}={params[k]}" for k in params)
                 url = f"{BASE_URL}?{qs}"
                 try:
-                    response = context.request.get(url)
-                    if not response.ok:
-                        print(f"[WARN] HTTP {response.status} for {url}")
+                    js = f"""
+                        () => fetch("{url}", {{
+                            credentials: 'include',
+                            headers: {{ 'Accept': 'application/json, text/javascript, */*' }}
+                        }}).then(r => r.ok ? r.json() : r.status + '::' + r.statusText)
+                    """
+                    result = page.evaluate(js)
+                    if isinstance(result, str) and result.startswith("403"):
+                        print(f"[WARN] fetch returned {result} for {url}")
                         continue
-                    result = response.json()
-                    matches = extract_matches(result)
-                    all_matches.extend(matches)
+                    if isinstance(result, dict):
+                        matches = extract_matches(result)
+                        all_matches.extend(matches)
                 except Exception as e:
                     print(f"[ERROR] request failed for {url}: {e}")
 
