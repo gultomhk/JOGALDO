@@ -10,28 +10,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Checkout repo (untuk akses workflow ini)
+      # 1️⃣ Checkout repo workflow
+      - name: 📥 Checkout repo
         uses: actions/checkout@v4
 
+      # 2️⃣ Setup Python
       - name: 🐍 Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
+      # 3️⃣ Install dependencies
       - name: 📦 Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install requests
-              
-      - name: 📁 Ambil file konfigurasi dari repo privat
+
+      # 4️⃣ Ambil file konfigurasi dari repo privat
+      - name: 📁 Ambil file konfigurasi
         shell: bash
         run: |
           git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} configrepo
           cp configrepo/chinlagi1data_file.txt $HOME/chinlagi1data_file.txt
 
+      # 5️⃣ Jalankan script Python (generate .m3u dan .json)
       - name: 🚀 Jalankan script Python
         run: python chinlagi1.py
 
+      # 6️⃣ Push M3U ke repo privat
       - name: 📤 Push M3U ke repo privat
         shell: bash
         run: |
@@ -54,23 +60,21 @@ jobs:
             fi
           fi
 
-      - name: 📤 Push JSON mentah ke repo publik (root repo)
+      # 7️⃣ Push JSON ke repo publik
+      - name: 📤 Push JSON ke repo publik
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "github-actions@github.com"
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
 
-          # clone repo publik ke folder sementara
-          git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PUBLIC }}@github.com/${{ secrets.REPO_PUBLIC }} repo-pub-temp
-          cd repo-pub-temp
-
-          # copy JSON ke root repo
-          cp $GITHUB_WORKSPACE/chinlagi1_raw.json .
-
+          git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ secrets.REPO_PUBLIC }} repo-pub
+          cp chinlagi1_raw.json repo-pub/
+          cd repo-pub
           git add chinlagi1_raw.json
-
           if git diff --cached --quiet; then
-            echo "✅ Tidak ada perubahan, skip push ke publik"
+            echo "✅ Tidak ada perubahan, skip push JSON ke publik."
           else
             git commit -m "🔄 auto: update chinlagi1_raw.json"
             git push
