@@ -25,12 +25,9 @@ jobs:
             libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libxss1 libgbm1 libx11-dev \
             libasound2t64
 
-          # install Google Chrome stable (ensure latest)
-          wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --dearmor -o /usr/share/keyrings/google-linux.gpg
-          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-linux.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | \
-            sudo tee /etc/apt/sources.list.d/google-chrome.list
-          sudo apt-get update
-          sudo apt-get install -y google-chrome-stable
+          # 📦 Download dan install Google Chrome stable (.deb)
+          wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo apt-get install -y ./google-chrome-stable_current_amd64.deb
 
       - name: 📁 Ambil file konfigurasi dari repo privat
         shell: bash
