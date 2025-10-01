@@ -19,7 +19,7 @@ UA = config_vars.get("UA")
 REFERER = config_vars.get("REFERER")
 WORKER_TEMPLATE = config_vars.get("WORKER_TEMPLATE")
 DEFAULT_LOGO = config_vars.get("DEFAULT_LOGO")
-BASE_URL = config_vars.get("BASE_URL")
+WORKER_MATCHES = config_vars.get("WORKER_MATCHES")
 
 OUT_FILE = "CHIN2_matches.m3u"
 
