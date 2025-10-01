@@ -1,5 +1,6 @@
 import asyncio
 import json
+import urllib.request
 from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any
 from pathlib import Path
@@ -20,6 +21,7 @@ REFERER = config_vars.get("REFERER")
 WORKER_TEMPLATE = config_vars.get("WORKER_TEMPLATE")
 DEFAULT_LOGO = config_vars.get("DEFAULT_LOGO")
 BASE_URL = config_vars.get("BASE_URL")
+PROXY_URL = config_vars.get("PROXY_URL")
 
 OUT_FILE = "CHIN2_matches.m3u"
 
@@ -28,6 +30,15 @@ try:
     JAKARTA = ZoneInfo("Asia/Jakarta")
 except Exception:
     JAKARTA = timezone(timedelta(hours=7))
+
+proxy_list = []
+if PROXY_URL:
+    try:
+        with urllib.request.urlopen(PROXY_URL) as resp:
+            proxy_list = [x.strip() for x in resp.read().decode().splitlines() if x.strip()]
+        print(f"[INFO] Loaded {len(proxy_list)} proxies from {PROXY_URL}")
+    except Exception as e:
+        print(f"[WARN] gagal ambil proxy list: {e}")
 
 
 def extract_matches(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -86,6 +97,63 @@ def write_m3u(matches: List[Dict[str, Any]], path: str = OUT_FILE):
     print(f"[OK] Saved {len(matches)} entries to {path}")
 
 
+async def fetch_with_proxy(page, url: str):
+    global working_proxy
+
+    # Kalau sudah ada proxy yang sukses → coba pakai dulu
+    if working_proxy:
+        result = await try_fetch(page, url, working_proxy)
+        if result and result.get("data"):
+            return result
+        else:
+            print(f"[WARN] Proxy {working_proxy} gagal, reset.")
+            working_proxy = None  # reset kalau gagal
+
+    # Kalau belum ada atau gagal → cari proxy baru
+    for proxy in proxy_list:
+        result = await try_fetch(page, url, proxy)
+        if result and result.get("data"):
+            working_proxy = proxy  # simpan yang berhasil
+            print(f"[OK] Gunakan proxy {proxy} untuk seterusnya")
+            return result
+    return None
+
+
+async def try_fetch(page, url, proxy):
+    try:
+        js = f"""
+            async () => {{
+                const ctrl = new AbortController();
+                const id = setTimeout(() => ctrl.abort(), 10000);
+                try {{
+                    const r = await fetch("{url}", {{
+                        method: "GET",
+                        headers: {{
+                            "User-Agent": "{UA}",
+                            "Referer": "{REFERER}"
+                        }},
+                        signal: ctrl.signal
+                    }});
+                    clearTimeout(id);
+                    const text = await r.text();
+                    try {{
+                        return JSON.parse(text);
+                    }} catch(e) {{
+                        return {{__error:"parse-fail", raw:text}};
+                    }}
+                }} catch(err) {{
+                    return null;
+                }}
+            }}
+        """
+        result = await page.evaluate(js)
+        if result and result.get("data"):
+            return result
+    except Exception:
+        return None
+    return None
+
+
 async def main():
     all_matches = []
     async with async_playwright() as p:
@@ -96,12 +164,6 @@ async def main():
         )
         page = await context.new_page()
 
-        try:
-            await page.goto(REFERER, wait_until="networkidle", timeout=15000)
-            print("[INFO] Referer page loaded")
-        except Exception:
-            print("[WARN] gagal buka referer page, lanjut saja")
-
         for sid in range(1, 5):
             for params in (
                 {"sid": sid, "sort": "tournament", "inplay": "true", "language": "id-id"},
@@ -109,37 +171,16 @@ async def main():
             ):
                 qs = "&".join(f"{k}={params[k]}" for k in params)
                 url = f"{BASE_URL}?{qs}"
-                try:
-                    js = f"""
-                        async () => {{
-                            const r = await fetch("{url}", {{
-                                method: "GET",
-                                headers: {{
-                                    "User-Agent": "{UA}",
-                                    "Referer": "{REFERER}"
-                                }},
-                                credentials: "include"
-                            }});
-                            const text = await r.text();
-                            try {{
-                                return JSON.parse(text);
-                            }} catch(e) {{
-                                return {{__error:"parse-fail", raw:text}};
-                            }}
-                        }}
-                    """
-                    result = await page.evaluate(js)
-                    if isinstance(result, dict) and result.get("data"):
-                        matches = extract_matches(result)
-                        all_matches.extend(matches)
-                        print(f"[OK] {url}")
-                    else:
-                        print(f"[WARN] no data for {url}")
-                except Exception as e:
-                    print(f"[ERROR] {url}: {e}")
+                result = await fetch_with_proxy(page, url)
+                if result:
+                    matches = extract_matches(result)
+                    all_matches.extend(matches)
+                else:
+                    print(f"[FAIL] cannot fetch {url}")
 
         await browser.close()
 
+    # filter unik & sort
     uniq = {}
     for m in all_matches:
         iid = m.get("iid")
