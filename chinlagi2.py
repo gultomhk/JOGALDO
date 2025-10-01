@@ -4,8 +4,7 @@ from typing import List, Dict, Any
 from datetime import datetime, timezone, timedelta
 from playwright.async_api import async_playwright
 import httpx
-from pathlib import Path 
-
+from pathlib import Path
 
 # ==========================
 # Load Config
@@ -72,6 +71,16 @@ def extract_matches(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
                 "title": title,
                 "logo": (m.get("logo") or "") or DEFAULT_LOGO,
             })
+    # fallback minimal
+    if not out:
+        out.append({
+            "iid": None,
+            "home": "NoMatch",
+            "away": "NoMatch",
+            "kickoff": None,
+            "title": "No Match Available",
+            "logo": DEFAULT_LOGO
+        })
     return out
 
 def write_m3u(matches: List[Dict[str, Any]], path: str = OUT_FILE):
@@ -92,10 +101,13 @@ def write_m3u(matches: List[Dict[str, Any]], path: str = OUT_FILE):
     print(f"[OK] Saved {len(matches)} entries to {path}")
 
 async def fetch_proxy_list() -> List[str]:
-    async with httpx.AsyncClient(timeout=10) as client:
-        r = await client.get(PROXY_LIST_URL)
-        proxies = [line.strip() for line in r.text.splitlines() if line.strip() and not line.startswith("#")]
-        return proxies
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            r = await client.get(PROXY_LIST_URL)
+            proxies = [line.strip() for line in r.text.splitlines() if line.strip() and not line.startswith("#")]
+            return proxies
+    except:
+        return []
 
 async def try_fetch_page(page, url):
     js = f"""
@@ -111,13 +123,15 @@ async def try_fetch_page(page, url):
 
 async def main():
     proxies = await fetch_proxy_list()
+    if not proxies:
+        proxies = [None]  # fallback no proxy
     results = []
 
     async with async_playwright() as p:
         for proxy in proxies:
-            print(f"[INFO] mencoba proxy: {proxy}")
+            print(f"[INFO] mencoba proxy: {proxy or 'default'}")
             try:
-                browser = await p.chromium.launch(headless=True, proxy={"server": proxy})
+                browser = await p.chromium.launch(headless=True, proxy={"server": proxy} if proxy else None)
                 context = await browser.new_context(user_agent=UA)
                 page = await context.new_page()
 
@@ -145,16 +159,17 @@ async def main():
             except Exception as e:
                 print(f"[WARN] Proxy {proxy} gagal: {e}")
 
-    # simpan hasil JSON
-    with open("result.json", "w", encoding="utf-8") as f:
-        json.dump(results, f, ensure_ascii=False, indent=2)
-    print("[DONE] result.json tersimpan")
+    # simpan hasil JSON (selalu ada output)
+    output_json_path = "result_raw.json"
+    with open(output_json_path, "w", encoding="utf-8") as f:
+        json.dump(results or [{"msg": "No data fetched"}], f, ensure_ascii=False, indent=2)
+    print(f"[DONE] {output_json_path} tersimpan, {len(results)} item")
 
     # --- generate M3U dari hasil ---
     all_matches = []
     for item in results:
-        data = item.get("data")
-        if isinstance(data, dict) and data.get("data"):
+        data = item.get("data") or {}
+        if isinstance(data, dict):
             matches = extract_matches(data)
             all_matches.extend(matches)
 
@@ -175,6 +190,14 @@ async def main():
     if final_matches:
         write_m3u(final_matches)
     else:
-        print("[WARN] Tidak ada match valid untuk M3U")
+        print("[WARN] Tidak ada match valid untuk M3U, menulis dummy entry")
+        write_m3u([{
+            "iid": None,
+            "home": "NoMatch",
+            "away": "NoMatch",
+            "kickoff": None,
+            "title": "No Match Available",
+            "logo": DEFAULT_LOGO
+        }])
 
 asyncio.run(main())
