@@ -1,19 +1,22 @@
+# chinlagi_uc.py
 import asyncio
 import json
 import urllib.request
-from datetime import datetime, timezone, timedelta
-from typing import List, Dict, Any
-from pathlib import Path
-from playwright.async_api import async_playwright
 import sys
+from datetime import datetime, timezone, timedelta
+from pathlib import Path
+from typing import List, Dict, Any
+
+import undetected_chromedriver as uc
+from selenium.webdriver.common.by import By
 
 # ==========================
-# Auto flush log supaya realtime di console/CI
+# Auto flush log
 # ==========================
 print = lambda *args, **kwargs: (__builtins__.print(*args, **kwargs), sys.stdout.flush())
 
 # ==========================
-# Load Config dari chinlagi2data_file.txt
+# Load Config
 # ==========================
 CHINLAGI2DATA_FILE = Path.home() / "chinlagi2data_file.txt"
 
@@ -49,7 +52,7 @@ if PROXY_URL:
     except Exception as e:
         print(f"[WARN] gagal ambil proxy list: {e}")
 
-working_proxy = None  # <--- inisialisasi global
+working_proxy = None  # cache proxy sukses
 
 
 def extract_matches(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -108,30 +111,10 @@ def write_m3u(matches: List[Dict[str, Any]], path: str = OUT_FILE):
     print(f"[OK] Saved {len(matches)} entries to {path}")
 
 
-async def fetch_with_proxy(page, url: str):
-    global working_proxy
-
-    if working_proxy:
-        result = await try_fetch(page, url, working_proxy)
-        if result and result.get("data"):
-            return result
-        else:
-            print(f"[WARN] Proxy {working_proxy} gagal, reset.")
-            working_proxy = None
-
-    for proxy in proxy_list:
-        result = await try_fetch(page, url, proxy)
-        if result and result.get("data"):
-            working_proxy = proxy
-            print(f"[OK] Gunakan proxy {proxy}")
-            return result
-    return None
-
-
-async def try_fetch(page, url, proxy):
+def fetch_with_uc(driver, url: str):
     try:
         js = f"""
-            async () => {{
+            async function run() {{
                 const ctrl = new AbortController();
                 const id = setTimeout(() => ctrl.abort(), 10000);
                 try {{
@@ -154,47 +137,47 @@ async def try_fetch(page, url, proxy):
                     return null;
                 }}
             }}
+            return run();
         """
-        result = await page.evaluate(js)
-        if result and result.get("data"):
-            return result
-    except Exception:
+        result = driver.execute_script(js)
+        return result
+    except Exception as e:
+        print("[ERR]", e)
         return None
-    return None
 
 
-async def main():
+def main():
     all_matches = []
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        context = await browser.new_context(
-            user_agent=UA,
-            extra_http_headers={"referer": REFERER}
-        )
-        page = await context.new_page()
 
-        try:
-            await page.goto(REFERER, wait_until="networkidle", timeout=15000)
-            print("[INFO] Referer page loaded")
-        except Exception:
-            print("[WARN] gagal buka referer page, lanjut saja")
+    options = uc.ChromeOptions()
+    options.add_argument(f"user-agent={UA}")
+    options.add_argument(f"--referer={REFERER}")
+    options.headless = True
 
-        for sid in range(1, 5):
-            for params in (
-                {"sid": sid, "sort": "tournament", "inplay": "true", "language": "id-id"},
-                {"sid": sid, "sort": "tournament", "inplay": "false", "date": "24h", "language": "id-id"},
-            ):
-                qs = "&".join(f"{k}={params[k]}" for k in params)
-                url = f"{BASE_URL}?{qs}"
-                result = await fetch_with_proxy(page, url)
-                if result:
-                    matches = extract_matches(result)
-                    all_matches.extend(matches)
-                    print(f"[OK] {url}")
-                else:
-                    print(f"[FAIL] cannot fetch {url}")
+    driver = uc.Chrome(options=options)
 
-        await browser.close()
+    try:
+        driver.get(REFERER)
+        print("[INFO] Referer page loaded")
+    except Exception:
+        print("[WARN] gagal buka referer page, lanjut saja")
+
+    for sid in range(1, 5):
+        for params in (
+            {"sid": sid, "sort": "tournament", "inplay": "true", "language": "id-id"},
+            {"sid": sid, "sort": "tournament", "inplay": "false", "date": "24h", "language": "id-id"},
+        ):
+            qs = "&".join(f"{k}={params[k]}" for k in params)
+            url = f"{BASE_URL}?{qs}"
+            result = fetch_with_uc(driver, url)
+            if result and result.get("data"):
+                matches = extract_matches(result)
+                all_matches.extend(matches)
+                print(f"[OK] {url}")
+            else:
+                print(f"[FAIL] cannot fetch {url}")
+
+    driver.quit()
 
     uniq = {}
     for m in all_matches:
@@ -226,4 +209,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
