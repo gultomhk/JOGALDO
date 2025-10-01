@@ -21,6 +21,7 @@ DEFAULT_LOGO = config_vars.get("DEFAULT_LOGO")
 WORKER_MATCHES = config_vars.get("WORKER_MATCHES")  # tambahkan di file config
 
 OUT_FILE = "chinlagi1_matches.m3u"
+RAW_JSON_FILE = "chinlagi1_raw.json"  # <-- simpan JSON mentah
 
 # Jakarta tz
 try:
@@ -129,6 +130,7 @@ def normalize_matches(raw) -> List[Dict[str, Any]]:
 
 def main():
     all_matches = []
+    raw = None
     try:
         resp = requests.get(
             WORKER_MATCHES,
@@ -139,6 +141,11 @@ def main():
             print(f"[ERROR] Worker returned {resp.status_code}")
             return
         raw = resp.json()
+        # simpan JSON mentah
+        with open(RAW_JSON_FILE, "w", encoding="utf-8") as f:
+            json.dump(raw, f, ensure_ascii=False, indent=2)
+            print(f"[OK] Saved raw JSON to {RAW_JSON_FILE}")
+
         matches = normalize_matches(raw)
         all_matches.extend(matches)
     except Exception as e:
