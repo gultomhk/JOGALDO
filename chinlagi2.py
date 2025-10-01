@@ -1,9 +1,8 @@
-import asyncio
+from pathlib import Path
+import requests
 import json
 from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any
-from pathlib import Path
-from playwright.async_api import async_playwright
 
 
 # ==========================
