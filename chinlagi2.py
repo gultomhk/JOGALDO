@@ -1,19 +1,10 @@
-# chinlagi_uc.py
 import asyncio
 import json
-import urllib.request
-import sys
-from datetime import datetime, timezone, timedelta
-from pathlib import Path
 from typing import List, Dict, Any
-import random
-import undetected_chromedriver as uc
-from selenium.webdriver.common.by import By
+from datetime import datetime, timezone, timedelta
+from playwright.async_api import async_playwright
+import httpx
 
-# ==========================
-# Auto flush log
-# ==========================
-print = lambda *args, **kwargs: (__builtins__.print(*args, **kwargs), sys.stdout.flush())
 
 # ==========================
 # Load Config
@@ -30,9 +21,12 @@ REFERER = config_vars.get("REFERER")
 WORKER_TEMPLATE = config_vars.get("WORKER_TEMPLATE")
 DEFAULT_LOGO = config_vars.get("DEFAULT_LOGO")
 BASE_URL = config_vars.get("BASE_URL")
-PROXY_URL = config_vars.get("PROXY_URL")
+PROXY_LIST_URL = config_vars.get("PROXY_LIST_URL")
 
-OUT_FILE = "CHIN2_matches.m3u"
+URLS = [
+    f"{BASE_URL}?sid=1&sort=tournament&inplay=true&language=id-id",
+    f"{BASE_URL}?sid=1&sort=tournament&inplay=false&date=24h&language=id-id",
+]
 
 try:
     from zoneinfo import ZoneInfo
@@ -40,20 +34,7 @@ try:
 except Exception:
     JAKARTA = timezone(timedelta(hours=7))
 
-# ==========================
-# Load proxy list
-# ==========================
-proxy_list = []
-if PROXY_URL:
-    try:
-        with urllib.request.urlopen(PROXY_URL) as resp:
-            proxy_list = [x.strip() for x in resp.read().decode().splitlines() if x.strip()]
-        print(f"[INFO] Loaded {len(proxy_list)} proxies from {PROXY_URL}")
-    except Exception as e:
-        print(f"[WARN] gagal ambil proxy list: {e}")
-
-working_proxy = None  # cache proxy sukses
-
+OUT_FILE = "CHIN2_matches.m3u"
 
 def extract_matches(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
     out = []
@@ -72,18 +53,18 @@ def extract_matches(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
                     kickoff_ts = int(kickoff)
                     if kickoff_ts > 1_000_000_000_000:
                         kickoff_ts //= 1000
-                except Exception:
-                    kickoff_ts = None
+                except:
+                    pass
             time_str = ""
             if kickoff_ts:
                 try:
                     dt = datetime.fromtimestamp(kickoff_ts, tz=timezone.utc).astimezone(JAKARTA)
                     time_str = dt.strftime("%d/%m-%H.%M")
-                except Exception:
-                    time_str = ""
+                except:
+                    pass
             title = f"{time_str} {home or ''} vs {away or ''} ({tname})".strip()
             out.append({
-                "iid": str(iid) if iid is not None else None,
+                "iid": str(iid) if iid else None,
                 "home": home or "",
                 "away": away or "",
                 "kickoff": kickoff_ts,
@@ -91,7 +72,6 @@ def extract_matches(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
                 "logo": (m.get("logo") or "") or DEFAULT_LOGO,
             })
     return out
-
 
 def write_m3u(matches: List[Dict[str, Any]], path: str = OUT_FILE):
     lines = ["#EXTM3U"]
@@ -110,91 +90,74 @@ def write_m3u(matches: List[Dict[str, Any]], path: str = OUT_FILE):
         f.write("\n".join(lines))
     print(f"[OK] Saved {len(matches)} entries to {path}")
 
+async def fetch_proxy_list() -> List[str]:
+    async with httpx.AsyncClient(timeout=10) as client:
+        r = await client.get(PROXY_LIST_URL)
+        proxies = [line.strip() for line in r.text.splitlines() if line.strip() and not line.startswith("#")]
+        return proxies
 
-def fetch_with_uc(driver, url: str):
-    try:
-        js = f"""
-            const url = "{url}";
-            const UA = "{UA}";
-            const REF = "{REFERER}";
-            const callback = arguments[0];
+async def try_fetch_page(page, url):
+    js = f"""
+    fetch("{url}", {{
+        method: "GET",
+        headers: {{
+            "Referer": "{REFERER}",
+            "User-Agent": "{UA}"
+        }}
+    }}).then(r => r.text()).catch(e => "__fetch_fail__")
+    """
+    return await page.evaluate(js)
 
-            (async () => {{
-                try {{
-                    const ctrl = new AbortController();
-                    const id = setTimeout(() => ctrl.abort(), 10000);
+async def main():
+    proxies = await fetch_proxy_list()
+    results = []
 
-                    const res = await fetch(url, {{
-                        method: "GET",
-                        headers: {{
-                            "User-Agent": UA,
-                            "Referer": REF
-                        }},
-                        signal: ctrl.signal
-                    }});
+    async with async_playwright() as p:
+        for proxy in proxies:
+            print(f"[INFO] mencoba proxy: {proxy}")
+            try:
+                browser = await p.chromium.launch(headless=True, proxy={"server": proxy})
+                context = await browser.new_context(user_agent=UA)
+                page = await context.new_page()
 
-                    clearTimeout(id);
-                    const text = await res.text();
+                try:
+                    await page.goto(REFERER, timeout=15000)
+                    print("[INFO] Referer page loaded")
+                except:
+                    print("[WARN] gagal buka referer page")
 
-                    try {{
-                        const json = JSON.parse(text);
-                        callback(json);
-                    }} catch(e) {{
-                        callback({{"__error":"parse-fail","raw":text}});
-                    }}
-                }} catch(err) {{
-                    callback(null);
-                }}
-            }})();
-        """
-        result = driver.execute_async_script(js)
-        return result
-    except Exception as e:
-        print("[ERR fetch_with_uc]", e)
-        return None
+                for url in URLS:
+                    raw = await try_fetch_page(page, url)
+                    if raw == "__fetch_fail__":
+                        print(f"[ERROR] {url} via {proxy} fetch gagal")
+                        continue
+                    try:
+                        data = json.loads(raw)
+                        results.append({"url": url, "data": data, "proxy": proxy})
+                        print(f"[OK] {url} via {proxy}")
+                    except Exception as e:
+                        print(f"[ERROR] {url} via {proxy}: {e}")
 
-def main():
+                await browser.close()
+                if results:
+                    break
+            except Exception as e:
+                print(f"[WARN] Proxy {proxy} gagal: {e}")
+
+    # simpan hasil JSON
+    with open("result.json", "w", encoding="utf-8") as f:
+        json.dump(results, f, ensure_ascii=False, indent=2)
+    print("[DONE] result.json tersimpan")
+
+    # --- generate M3U dari hasil ---
     all_matches = []
+    for item in results:
+        data = item.get("data")
+        if isinstance(data, dict) and data.get("data"):
+            matches = extract_matches(data)
+            all_matches.extend(matches)
 
-    options = uc.ChromeOptions()
-    options.add_argument(f"user-agent={UA}")
-    options.add_argument("--headless=new")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-
-    # ==== Tambahan: set proxy ====
-    chosen_proxy = None
-    if proxy_list:
-        chosen_proxy = random.choice(proxy_list)   # ambil proxy acak
-        options.add_argument(f"--proxy-server=http://{chosen_proxy}")
-        print(f"[INFO] Using proxy: {chosen_proxy}")
-
-    # Fix: gunakan version_main=140 agar match Chrome stable di GitHub Actions
-    driver = uc.Chrome(options=options, version_main=140)
-
-    try:
-        driver.get(REFERER)
-        print("[INFO] Referer page loaded")
-    except Exception:
-        print("[WARN] gagal buka referer page, lanjut saja")
-
-    for sid in range(1, 5):
-        for params in (
-            {"sid": sid, "sort": "tournament", "inplay": "true", "language": "id-id"},
-            {"sid": sid, "sort": "tournament", "inplay": "false", "date": "24h", "language": "id-id"},
-        ):
-            qs = "&".join(f"{k}={params[k]}" for k in params)
-            url = f"{BASE_URL}?{qs}"
-            result = fetch_with_uc(driver, url)
-            if result and result.get("data"):
-                matches = extract_matches(result)
-                all_matches.extend(matches)
-                print(f"[OK] {url}")
-            else:
-                print(f"[FAIL] cannot fetch {url}")
-
-    driver.quit()
-
+    # filter unik berdasarkan iid
     uniq = {}
     for m in all_matches:
         iid = m.get("iid")
@@ -207,22 +170,10 @@ def main():
         else:
             uniq[iid] = m
 
-    now = datetime.now(JAKARTA)
-    filtered = []
-    for m in uniq.values():
-        kickoff_ts = m.get("kickoff")
-        if kickoff_ts:
-            event_time = datetime.fromtimestamp(kickoff_ts, tz=JAKARTA)
-            if event_time < (now - timedelta(hours=2)):
-                continue
-        filtered.append(m)
-
-    final = sorted(filtered, key=lambda x: (x.get("kickoff") is None, x.get("kickoff") or 0))
-    if not final:
-        print("[WARN] No matches found after filtering.")
+    final_matches = list(uniq.values())
+    if final_matches:
+        write_m3u(final_matches)
     else:
-        write_m3u(final)
+        print("[WARN] Tidak ada match valid untuk M3U")
 
-
-if __name__ == "__main__":
-    main()
+asyncio.run(main())
