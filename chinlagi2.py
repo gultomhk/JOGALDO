@@ -108,19 +108,28 @@ def write_m3u(matches: List[Dict[str, Any]], path: str = OUT_FILE):
     print(f"[OK] Saved {len(matches)} entries to {path}")
 
 
-async def try_fetch(p, url, proxy):
-    """Launch browser dengan proxy tertentu"""
+async def fetch_with_proxy(page, url: str):
+    global working_proxy
+
+    if working_proxy:
+        result = await try_fetch(page, url, working_proxy)
+        if result and result.get("data"):
+            return result
+        else:
+            print(f"[WARN] Proxy {working_proxy} gagal, reset.")
+            working_proxy = None
+
+    for proxy in proxy_list:
+        result = await try_fetch(page, url, proxy)
+        if result and result.get("data"):
+            working_proxy = proxy
+            print(f"[OK] Gunakan proxy {proxy}")
+            return result
+    return None
+
+
+async def try_fetch(page, url, proxy):
     try:
-        print(f"[DEBUG] Launching browser with proxy={proxy}")
-        browser = await p.chromium.launch(
-            headless=True,
-            proxy={"server": proxy} if proxy else None
-        )
-        context = await browser.new_context(
-            user_agent=UA,
-            extra_http_headers={"referer": REFERER}
-        )
-        page = await context.new_page()
         js = f"""
             async () => {{
                 const ctrl = new AbortController();
@@ -147,42 +156,29 @@ async def try_fetch(p, url, proxy):
             }}
         """
         result = await page.evaluate(js)
-        await browser.close()
         if result and result.get("data"):
-            print(f"[OK] Fetch sukses dengan proxy={proxy}")
-        else:
-            print(f"[FAIL] Tidak ada data dengan proxy={proxy}")
-        return result if result and result.get("data") else None
-    except Exception as e:
-        print(f"[ERR] proxy {proxy} gagal: {e}")
+            return result
+    except Exception:
         return None
-
-
-async def fetch_with_proxy(p, url: str):
-    global working_proxy
-
-    if working_proxy:
-        print(f"[TRY] pakai proxy {working_proxy}")
-        result = await try_fetch(p, url, working_proxy)
-        if result:
-            return result
-        else:
-            print(f"[WARN] Proxy {working_proxy} gagal, reset.")
-            working_proxy = None
-
-    for proxy in proxy_list:
-        print(f"[TRY] proxy {proxy}")
-        result = await try_fetch(p, url, proxy)
-        if result:
-            working_proxy = proxy
-            print(f"[OK] Gunakan proxy {proxy} untuk seterusnya")
-            return result
     return None
 
 
 async def main():
     all_matches = []
     async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        context = await browser.new_context(
+            user_agent=UA,
+            extra_http_headers={"referer": REFERER}
+        )
+        page = await context.new_page()
+
+        try:
+            await page.goto(REFERER, wait_until="networkidle", timeout=15000)
+            print("[INFO] Referer page loaded")
+        except Exception:
+            print("[WARN] gagal buka referer page, lanjut saja")
+
         for sid in range(1, 5):
             for params in (
                 {"sid": sid, "sort": "tournament", "inplay": "true", "language": "id-id"},
@@ -190,14 +186,15 @@ async def main():
             ):
                 qs = "&".join(f"{k}={params[k]}" for k in params)
                 url = f"{BASE_URL}?{qs}"
-                print(f"\n[FETCH] {url}")
-                result = await fetch_with_proxy(p, url)
+                result = await fetch_with_proxy(page, url)
                 if result:
                     matches = extract_matches(result)
-                    print(f"[INFO] Dapat {len(matches)} match dari {url}")
                     all_matches.extend(matches)
+                    print(f"[OK] {url}")
                 else:
                     print(f"[FAIL] cannot fetch {url}")
+
+        await browser.close()
 
     uniq = {}
     for m in all_matches:
