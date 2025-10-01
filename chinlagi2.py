@@ -114,35 +114,43 @@ def write_m3u(matches: List[Dict[str, Any]], path: str = OUT_FILE):
 def fetch_with_uc(driver, url: str):
     try:
         js = f"""
-            async function run() {{
-                const ctrl = new AbortController();
-                const id = setTimeout(() => ctrl.abort(), 10000);
+            const url = "{url}";
+            const UA = "{UA}";
+            const REF = "{REFERER}";
+            const callback = arguments[0];
+
+            (async () => {{
                 try {{
-                    const r = await fetch("{url}", {{
+                    const ctrl = new AbortController();
+                    const id = setTimeout(() => ctrl.abort(), 10000);
+
+                    const res = await fetch(url, {{
                         method: "GET",
                         headers: {{
-                            "User-Agent": "{UA}",
-                            "Referer": "{REFERER}"
+                            "User-Agent": UA,
+                            "Referer": REF
                         }},
                         signal: ctrl.signal
                     }});
+
                     clearTimeout(id);
-                    const text = await r.text();
+                    const text = await res.text();
+
                     try {{
-                        return JSON.parse(text);
+                        const json = JSON.parse(text);
+                        callback(json);
                     }} catch(e) {{
-                        return {{__error:"parse-fail", raw:text}};
+                        callback({{"__error":"parse-fail","raw":text}});
                     }}
                 }} catch(err) {{
-                    return null;
+                    callback(null);
                 }}
-            }}
-            return run();
+            }})();
         """
-        result = driver.execute_script(js)
+        result = driver.execute_async_script(js)
         return result
     except Exception as e:
-        print("[ERR]", e)
+        print("[ERR fetch_with_uc]", e)
         return None
 
 
