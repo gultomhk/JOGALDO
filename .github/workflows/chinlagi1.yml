@@ -61,20 +61,15 @@ jobs:
           fi
 
       # 7️⃣ Push JSON ke repo publik
-      - name: 📤 Push JSON ke repo publik
+      - name: Commit & Push changes if any
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        shell: bash
+         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-
-          git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ secrets.REPO_PUBLIC }} repo-pub
-          cp chinlagi1_raw.json repo-pub/
-          cd repo-pub
           git add chinlagi1_raw.json
           if git diff --cached --quiet; then
-            echo "✅ Tidak ada perubahan, skip push JSON ke publik."
+             echo "✅ Tidak ada perubahan, skip push."
           else
             git commit -m "🔄 auto: update chinlagi1_raw.json"
             git push
