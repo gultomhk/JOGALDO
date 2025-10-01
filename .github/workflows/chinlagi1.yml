@@ -32,29 +32,46 @@ jobs:
       - name: 🚀 Jalankan script Python
         run: python chinlagi1.py
 
-      - name: 📤 Push output ke repo privat jika ada perubahan
+      - name: 📤 Push M3U ke repo privat
         shell: bash
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
 
-          git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} repo-output
+          git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} repo-priv
 
-          # 🚫 Skip kalau chinlagi1_matches.m3u kosong
           if [ ! -s chinlagi1_matches.m3u ]; then
-            echo "⚠️ chinlagi1_matches.m3u kosong, tidak ada push & file lama aman."
-            exit 0
+            echo "⚠️ M3U kosong, skip push ke privat"
+          else
+            cp chinlagi1_matches.m3u repo-priv/
+            cd repo-priv
+            git add chinlagi1_matches.m3u
+            if git diff --cached --quiet; then
+              echo "✅ Tidak ada perubahan, skip push ke privat"
+            else
+              git commit -m "🔄 auto: update chinlagi1_matches.m3u"
+              git push
+            fi
           fi
 
-          # ✅ Hanya copy kalau ada isi
-          cp chinlagi1_matches.m3u repo-output/
+      - name: 📤 Push JSON mentah ke repo publik (root repo)
+        shell: bash
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
 
-          cd repo-output
-          git add chinlagi1_matches.m3u
+          # clone repo publik ke folder sementara
+          git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PUBLIC }}@github.com/${{ secrets.REPO_PUBLIC }} repo-pub-temp
+          cd repo-pub-temp
+
+          # copy JSON ke root repo
+          cp $GITHUB_WORKSPACE/chinlagi1_raw.json .
+
+          git add chinlagi1_raw.json
 
           if git diff --cached --quiet; then
-            echo "✅ Tidak ada perubahan pada chinlagi1_matches.m3u, skip push."
+            echo "✅ Tidak ada perubahan, skip push ke publik"
           else
-            git commit -m "🔄 auto: update chinlagi1_matches.m3u"
+            git commit -m "🔄 auto: update chinlagi1_raw.json"
             git push
           fi
