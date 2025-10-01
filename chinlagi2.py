@@ -159,10 +159,12 @@ def main():
 
     options = uc.ChromeOptions()
     options.add_argument(f"user-agent={UA}")
-    options.add_argument(f"--referer={REFERER}")
-    options.headless = True
+    options.add_argument("--headless=new")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
 
-    driver = uc.Chrome(options=options)
+    # Fix: gunakan version_main=140 agar match Chrome stable di GitHub Actions
+    driver = uc.Chrome(options=options, version_main=140)
 
     try:
         driver.get(REFERER)
