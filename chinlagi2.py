@@ -153,7 +153,6 @@ def fetch_with_uc(driver, url: str):
         print("[ERR fetch_with_uc]", e)
         return None
 
-
 def main():
     all_matches = []
 
@@ -162,6 +161,13 @@ def main():
     options.add_argument("--headless=new")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
+
+    # ==== Tambahan: set proxy ====
+    chosen_proxy = None
+    if proxy_list:
+        chosen_proxy = random.choice(proxy_list)   # ambil proxy acak
+        options.add_argument(f"--proxy-server=http://{chosen_proxy}")
+        print(f"[INFO] Using proxy: {chosen_proxy}")
 
     # Fix: gunakan version_main=140 agar match Chrome stable di GitHub Actions
     driver = uc.Chrome(options=options, version_main=140)
