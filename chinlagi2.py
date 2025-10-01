@@ -5,6 +5,12 @@ from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any
 from pathlib import Path
 from playwright.async_api import async_playwright
+import sys
+
+# ==========================
+# Auto flush log supaya realtime di console/CI
+# ==========================
+print = lambda *args, **kwargs: (__builtins__.print(*args, **kwargs), sys.stdout.flush())
 
 # ==========================
 # Load Config dari chinlagi2data_file.txt
@@ -31,6 +37,9 @@ try:
 except Exception:
     JAKARTA = timezone(timedelta(hours=7))
 
+# ==========================
+# Load proxy list
+# ==========================
 proxy_list = []
 if PROXY_URL:
     try:
@@ -40,7 +49,7 @@ if PROXY_URL:
     except Exception as e:
         print(f"[WARN] gagal ambil proxy list: {e}")
 
-working_proxy = None
+working_proxy = None  # <--- inisialisasi global
 
 
 def extract_matches(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -102,6 +111,7 @@ def write_m3u(matches: List[Dict[str, Any]], path: str = OUT_FILE):
 async def try_fetch(p, url, proxy):
     """Launch browser dengan proxy tertentu"""
     try:
+        print(f"[DEBUG] Launching browser with proxy={proxy}")
         browser = await p.chromium.launch(
             headless=True,
             proxy={"server": proxy} if proxy else None
@@ -138,6 +148,10 @@ async def try_fetch(p, url, proxy):
         """
         result = await page.evaluate(js)
         await browser.close()
+        if result and result.get("data"):
+            print(f"[OK] Fetch sukses dengan proxy={proxy}")
+        else:
+            print(f"[FAIL] Tidak ada data dengan proxy={proxy}")
         return result if result and result.get("data") else None
     except Exception as e:
         print(f"[ERR] proxy {proxy} gagal: {e}")
@@ -180,6 +194,7 @@ async def main():
                 result = await fetch_with_proxy(p, url)
                 if result:
                     matches = extract_matches(result)
+                    print(f"[INFO] Dapat {len(matches)} match dari {url}")
                     all_matches.extend(matches)
                 else:
                     print(f"[FAIL] cannot fetch {url}")
