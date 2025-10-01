@@ -18,22 +18,11 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: 🛠 Install apt dependencies (Chrome + libs)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y wget gnupg ca-certificates unzip fonts-liberation \
-            libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libxss1 libgbm1 libx11-dev \
-            libasound2t64
-
-          # 📦 Download dan install Google Chrome stable (.deb)
-          wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-          sudo apt-get install -y ./google-chrome-stable_current_amd64.deb
-
-      - name: 📦 Install Python dependencies
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install requests typing_extensions playwright undetected-chromedriver selenium
-          playwright install --with-deps chromium
+          pip install httpx playwright
+          playwright install chromium
 
       - name: 📁 Ambil file konfigurasi dari repo privat
         shell: bash
