@@ -18,7 +18,7 @@ UA = config_vars.get("UA")
 REFERER = config_vars.get("REFERER")
 WORKER_TEMPLATE = config_vars.get("WORKER_TEMPLATE")
 DEFAULT_LOGO = config_vars.get("DEFAULT_LOGO")
-WORKER_MATCHES = config_vars.get("WORKER_MATCHES")  # tambahkan di file config
+WORKER_MATCHES = config_vars.get("WORKER_MATCHES")
 
 OUT_FILE = "chinlagi1_matches.m3u"
 RAW_JSON_FILE = "chinlagi1_raw.json"  # <-- simpan JSON mentah
@@ -46,7 +46,7 @@ def extract_matches(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
             if kickoff is not None:
                 try:
                     kickoff_ts = int(kickoff)
-                    if kickoff_ts > 1_000_000_000_000:  # ms -> s
+                    if kickoff_ts > 1_000_000_000_000:
                         kickoff_ts //= 1000
                 except Exception:
                     kickoff_ts = None
@@ -91,7 +91,6 @@ def normalize_matches(raw) -> List[Dict[str, Any]]:
     """Normalize Worker JSON (list) atau API JSON (dict) jadi format standar."""
     out = []
     if isinstance(raw, list):
-        # format dari Worker JSON
         for m in raw:
             iid = m.get("iid")
             home = m.get("home")
@@ -102,7 +101,7 @@ def normalize_matches(raw) -> List[Dict[str, Any]]:
             if ts:
                 try:
                     kickoff_ts = int(ts)
-                    if kickoff_ts > 1_000_000_000_000:  # ms -> s
+                    if kickoff_ts > 1_000_000_000_000:
                         kickoff_ts //= 1000
                 except Exception:
                     kickoff_ts = None
@@ -123,7 +122,6 @@ def normalize_matches(raw) -> List[Dict[str, Any]]:
                 "logo": DEFAULT_LOGO,
             })
     elif isinstance(raw, dict):
-        # fallback: format API tournament/info
         out.extend(extract_matches(raw))
     return out
 
@@ -139,15 +137,24 @@ def main():
         )
         if resp.status_code != 200:
             print(f"[ERROR] Worker returned {resp.status_code}")
+            # tetap simpan JSON mentah jika ada
+            try:
+                raw_text = resp.text
+                with open(RAW_JSON_FILE, "w", encoding="utf-8") as f:
+                    f.write(raw_text)
+                    print(f"[OK] Saved raw text to {RAW_JSON_FILE} despite status {resp.status_code}")
+            except:
+                pass
             return
+
         raw = resp.json()
-        # simpan JSON mentah
         with open(RAW_JSON_FILE, "w", encoding="utf-8") as f:
             json.dump(raw, f, ensure_ascii=False, indent=2)
             print(f"[OK] Saved raw JSON to {RAW_JSON_FILE}")
 
         matches = normalize_matches(raw)
         all_matches.extend(matches)
+
     except Exception as e:
         print(f"[ERROR] Failed to fetch matches from Worker: {e}")
         return
