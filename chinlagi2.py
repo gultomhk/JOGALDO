@@ -40,6 +40,8 @@ if PROXY_URL:
     except Exception as e:
         print(f"[WARN] gagal ambil proxy list: {e}")
 
+working_proxy = None
+
 
 def extract_matches(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
     out = []
