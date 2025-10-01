@@ -6,7 +6,7 @@ on:
   workflow_dispatch:       # bisa manual trigger juga
 
 jobs:
-  run-chinlagi1:
+  run-chinlagi2:
     runs-on: ubuntu-latest
 
     steps:
