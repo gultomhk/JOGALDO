@@ -24,6 +24,7 @@ BASE_URL = config_vars.get("BASE_URL")
 
 OUT_FILE = "CHIN2_matches.m3u"
 
+# Jakarta tz
 try:
     from zoneinfo import ZoneInfo
     JAKARTA = ZoneInfo("Asia/Jakarta")
@@ -46,7 +47,7 @@ def extract_matches(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
             if kickoff is not None:
                 try:
                     kickoff_ts = int(kickoff)
-                    if kickoff_ts > 1_000_000_000_000:
+                    if kickoff_ts > 1_000_000_000_000:  # ms -> s
                         kickoff_ts //= 1000
                 except Exception:
                     kickoff_ts = None
@@ -87,60 +88,66 @@ def write_m3u(matches: List[Dict[str, Any]], path: str = OUT_FILE):
     print(f"[OK] Saved {len(matches)} entries to {path}")
 
 
-async def main():
-    all_matches = []
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        context = await browser.new_context(
-            user_agent=UA,
-            extra_http_headers={"referer": REFERER}
-        )
-        page = await context.new_page()
-
-        try:
-            await page.goto(REFERER, wait_until="networkidle", timeout=15000)
-            print("[INFO] Referer page loaded")
-        except Exception:
-            print("[WARN] gagal buka referer page, lanjut saja")
-
-        for sid in range(1, 5):
-            for params in (
-                {"sid": sid, "sort": "tournament", "inplay": "true", "language": "id-id"},
-                {"sid": sid, "sort": "tournament", "inplay": "false", "date": "24h", "language": "id-id"},
-            ):
-                qs = "&".join(f"{k}={params[k]}" for k in params)
-                url = f"{BASE_URL}?{qs}"
+def normalize_matches(raw) -> List[Dict[str, Any]]:
+    """Normalize Worker JSON (list) atau API JSON (dict) jadi format standar."""
+    out = []
+    if isinstance(raw, list):
+        # format dari Worker JSON
+        for m in raw:
+            iid = m.get("iid")
+            home = m.get("home")
+            away = m.get("away")
+            league = m.get("league", "")
+            kickoff_ts = None
+            ts = m.get("startTime")
+            if ts:
                 try:
-                    js = f"""
-                        async () => {{
-                            const r = await fetch("{url}", {{
-                                method: "GET",
-                                headers: {{
-                                    "User-Agent": "{UA}",
-                                    "Referer": "{REFERER}"
-                                }},
-                                credentials: "include"
-                            }});
-                            const text = await r.text();
-                            try {{
-                                return JSON.parse(text);
-                            }} catch(e) {{
-                                return {{__error:"parse-fail", raw:text}};
-                            }}
-                        }}
-                    """
-                    result = await page.evaluate(js)
-                    if isinstance(result, dict) and result.get("data"):
-                        matches = extract_matches(result)
-                        all_matches.extend(matches)
-                        print(f"[OK] {url}")
-                    else:
-                        print(f"[WARN] no data for {url}")
-                except Exception as e:
-                    print(f"[ERROR] {url}: {e}")
+                    kickoff_ts = int(ts)
+                    if kickoff_ts > 1_000_000_000_000:  # ms -> s
+                        kickoff_ts //= 1000
+                except Exception:
+                    kickoff_ts = None
+            time_str = ""
+            if kickoff_ts:
+                try:
+                    dt = datetime.fromtimestamp(kickoff_ts, tz=timezone.utc).astimezone(JAKARTA)
+                    time_str = dt.strftime("%d/%m-%H.%M")
+                except Exception:
+                    pass
+            title = f"{time_str} {home or ''} vs {away or ''} ({league})".strip()
+            out.append({
+                "iid": str(iid) if iid is not None else None,
+                "home": home or "",
+                "away": away or "",
+                "kickoff": kickoff_ts,
+                "title": title,
+                "logo": DEFAULT_LOGO,
+            })
+    elif isinstance(raw, dict):
+        # fallback: format API tournament/info
+        out.extend(extract_matches(raw))
+    return out
 
-        await browser.close()
 
+def main():
+    all_matches = []
+    try:
+        resp = requests.get(
+            WORKER_MATCHES,
+            headers={"User-Agent": UA, "Referer": REFERER},
+            timeout=15
+        )
+        if resp.status_code != 200:
+            print(f"[ERROR] Worker returned {resp.status_code}")
+            return
+        raw = resp.json()
+        matches = normalize_matches(raw)
+        all_matches.extend(matches)
+    except Exception as e:
+        print(f"[ERROR] Failed to fetch matches from Worker: {e}")
+        return
+
+    # dedupe by iid
     uniq = {}
     for m in all_matches:
         iid = m.get("iid")
@@ -153,6 +160,7 @@ async def main():
         else:
             uniq[iid] = m
 
+    # filter kickoff > 2 jam lewat
     now = datetime.now(JAKARTA)
     filtered = []
     for m in uniq.values():
@@ -164,6 +172,7 @@ async def main():
         filtered.append(m)
 
     final = sorted(filtered, key=lambda x: (x.get("kickoff") is None, x.get("kickoff") or 0))
+
     if not final:
         print("[WARN] No matches found after filtering.")
     else:
@@ -171,4 +180,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
