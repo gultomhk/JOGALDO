@@ -6,15 +6,426 @@
       "data": {
         "tournaments": [
           {
-            "cid": 81,
-            "count": 2,
+            "cid": 11,
+            "count": 3,
+            "favorite": false,
+            "matches": [
+              {
+                "anchors": [
+                  {
+                    "houseId": "102633",
+                    "liveStatus": 2,
+                    "visitHistory": 0,
+                    "playStreamAddress": "https://live5.vv1y9.com/live/102633.flv?txSecret=943ee61161ba889d9b71bbe920208a19&txTime=198F62905D1",
+                    "playStreamAddress2": "https://live5.vv1y9.com/live/102633.m3u8?txSecret=943ee61161ba889d9b71bbe920208a19&txTime=198F62905D1",
+                    "userImage": "https://anchor51.oss-accelerate.aliyuncs.com/business/image/2633/xTFJt2IcR_yceSzs3vSqjw.jpg",
+                    "houseName": "來來的直播间",
+                    "houseImage": "https://anchor51.oss-accelerate.aliyuncs.com/business/image/2633/u0Um8viZT2q9c2C-tWH0HQ.jpg",
+                    "nickName": "來來",
+                    "anchorTypeName": "足球",
+                    "countryType": "CN",
+                    "anchorTitle": "",
+                    "anchorSportId": 1,
+                    "houseIntroduction": "",
+                    "languageType": "zh",
+                    "fansCount": 2,
+                    "vendors": [
+                      "vd003",
+                      "vd005",
+                      "vd008",
+                      "vd009",
+                      "vd010",
+                      "vd012"
+                    ],
+                    "lang": "zh-cn"
+                  }
+                ],
+                "away": {
+                  "cid": 11,
+                  "id": 641,
+                  "jersey": {
+                    "base": "ffffff",
+                    "shirtType": "short_sleeves",
+                    "sleeve": "ffffff",
+                    "sleeveDetails": "000000",
+                    "style": "",
+                    "styleColor": "ffffff"
+                  },
+                  "name": "CR Vasco da Gama RJ"
+                },
+                "chatMid": 0,
+                "cid": 11,
+                "countdown": 0,
+                "gifMid": 0,
+                "graphMid": 0,
+                "home": {
+                  "cid": 11,
+                  "id": 5894,
+                  "jersey": {
+                    "base": "03403c",
+                    "shirtType": "short_sleeves",
+                    "sleeve": "03403c",
+                    "sleeveDetails": "ffffff",
+                    "style": "",
+                    "styleColor": "03403c"
+                  },
+                  "name": "SE Palmeiras SP"
+                },
+                "iid": 3944345,
+                "inplay": true,
+                "kickoffTime": 1759356000,
+                "marketInfo": {
+                  "ad": false,
+                  "cr": false,
+                  "ot": false,
+                  "otcr": false,
+                  "otRedCard": false,
+                  "pk": false,
+                  "redCard": false
+                },
+                "mids": {
+                  "amid": 0,
+                  "bmid": 0,
+                  "cmid": 0,
+                  "dmid": 0,
+                  "fmid": 0,
+                  "jmid": 0
+                },
+                "name": "SE Palmeiras SP-vs-CR Vasco da Gama RJ",
+                "nv": false,
+                "round": {
+                  "roundGroup": "",
+                  "roundGroupName": "",
+                  "roundName": "Brasileiro Serie A",
+                  "roundNumber": "26",
+                  "roundType": "group"
+                },
+                "scoreId": "",
+                "series": "",
+                "sid": 1,
+                "state": "",
+                "streaming": 3,
+                "tid": 49,
+                "tnName": "Brazil Serie A",
+                "tnPriority": 9999999,
+                "vd": "b",
+                "video": true,
+                "videos": [
+                  {
+                    "source": "A1",
+                    "type": "url",
+                    "info": "https://live1.wh0d4fc4.com/live/58052977_ff12e285639c3fd29afe542b19ab7004_autoChange.m3u8?auth_key=1759367730-0-0-0edec7c47d50d5d06643d821f29728d7"
+                  },
+                  {
+                    "source": "A2",
+                    "type": "url",
+                    "info": "https://live1.uvdcov1t.com/live/58052977_ff12e285639c3fd29afe542b19ab7004_autoChange.m3u8?auth_key=1759371450-0-0-1a5adf52da8822b23b522f84d31e4897"
+                  },
+                  {
+                    "source": "A3",
+                    "type": "url",
+                    "info": "https://live1.59cexx5o.com/live/58052977_ff12e285639c3fd29afe542b19ab7004_autoChange.m3u8?auth_key=1759371448-0-0-4821a0cfdf9b124262a0e4c75359ec79"
+                  },
+                  {
+                    "source": "A7",
+                    "type": "url",
+                    "info": "https://live1.ybsvmsij.com/live/58052977_ff12e285639c3fd29afe542b19ab7004_autoChange.m3u8?auth_key=1759371448-0-0-4821a0cfdf9b124262a0e4c75359ec79"
+                  }
+                ],
+                "eps": [
+                  "b",
+                  "c",
+                  "j"
+                ],
+                "gifs": [
+                  {
+                    "source": "b",
+                    "type": "id",
+                    "info": "58052977"
+                  },
+                  {
+                    "source": "s",
+                    "type": "url",
+                    "info": "https://d2g2l5ezakyq7v.cloudfront.net/#/football?lang=cn&z=3944345"
+                  },
+                  {
+                    "source": "s",
+                    "type": "url",
+                    "info": "https://d2g2l5ezakyq7v.cloudfront.net/#/football?lang=en&z=3944345"
+                  },
+                  {
+                    "source": "c",
+                    "type": "id",
+                    "info": "11937216"
+                  }
+                ],
+                "detail": null
+              },
+              {
+                "anchors": [],
+                "away": {
+                  "cid": 11,
+                  "id": 7135,
+                  "jersey": {
+                    "base": "022e67",
+                    "shirtType": "short_sleeves",
+                    "sleeve": "022e67",
+                    "sleeveDetails": "c00017",
+                    "style": "",
+                    "styleColor": "022e67"
+                  },
+                  "name": "Red Bull Bragantino SP"
+                },
+                "chatMid": 0,
+                "cid": 11,
+                "countdown": 0,
+                "gifMid": 0,
+                "graphMid": 0,
+                "home": {
+                  "cid": 11,
+                  "id": 7042,
+                  "jersey": {
+                    "base": "ffff00",
+                    "shirtType": "short_sleeves",
+                    "sleeve": "ffff00",
+                    "sleeveDetails": "076450",
+                    "style": "",
+                    "styleColor": "ffff00"
+                  },
+                  "name": "Mirassol FC SP"
+                },
+                "iid": 3944347,
+                "inplay": true,
+                "kickoffTime": 1759356000,
+                "marketInfo": {
+                  "ad": false,
+                  "cr": false,
+                  "ot": false,
+                  "otcr": false,
+                  "otRedCard": false,
+                  "pk": false,
+                  "redCard": false
+                },
+                "mids": {
+                  "amid": 0,
+                  "bmid": 0,
+                  "cmid": 0,
+                  "dmid": 0,
+                  "fmid": 0,
+                  "jmid": 0
+                },
+                "name": "Mirassol FC SP-vs-Red Bull Bragantino SP",
+                "nv": false,
+                "round": {
+                  "roundGroup": "",
+                  "roundGroupName": "",
+                  "roundName": "Brasileiro Serie A",
+                  "roundNumber": "26",
+                  "roundType": "group"
+                },
+                "scoreId": "",
+                "series": "",
+                "sid": 1,
+                "state": "",
+                "streaming": 3,
+                "tid": 49,
+                "tnName": "Brazil Serie A",
+                "tnPriority": 9999999,
+                "vd": "b",
+                "video": true,
+                "videos": [
+                  {
+                    "source": "A1",
+                    "type": "url",
+                    "info": "https://live.wh0d4fc4.com/live/58052981_5bdf9ea51bbd997bce2500271634f533_autoChange.m3u8?auth_key=1759367730-0-0-90083c27ed298eedf7d72c62d55f3bdb"
+                  },
+                  {
+                    "source": "A2",
+                    "type": "url",
+                    "info": "https://live.uvdcov1t.com/live/58052981_5bdf9ea51bbd997bce2500271634f533_autoChange.m3u8?auth_key=1759371449-0-0-b48efbd5323185fdbab334682de991b1"
+                  },
+                  {
+                    "source": "A3",
+                    "type": "url",
+                    "info": "https://live.59cexx5o.com/live/58052981_5bdf9ea51bbd997bce2500271634f533_autoChange.m3u8?auth_key=1759371448-0-0-08f584a8a6d00991cf226278bdadd08d"
+                  },
+                  {
+                    "source": "A7",
+                    "type": "url",
+                    "info": "https://live.ybsvmsij.com/live/58052981_5bdf9ea51bbd997bce2500271634f533_autoChange.m3u8?auth_key=1759371448-0-0-08f584a8a6d00991cf226278bdadd08d"
+                  }
+                ],
+                "eps": [
+                  "b",
+                  "c",
+                  "j"
+                ],
+                "gifs": [
+                  {
+                    "source": "b",
+                    "type": "id",
+                    "info": "58052981"
+                  },
+                  {
+                    "source": "s",
+                    "type": "url",
+                    "info": "https://d2g2l5ezakyq7v.cloudfront.net/#/football?lang=cn&z=3944347"
+                  },
+                  {
+                    "source": "s",
+                    "type": "url",
+                    "info": "https://d2g2l5ezakyq7v.cloudfront.net/#/football?lang=en&z=3944347"
+                  },
+                  {
+                    "source": "c",
+                    "type": "id",
+                    "info": "11937218"
+                  }
+                ],
+                "detail": null
+              },
+              {
+                "anchors": [],
+                "away": {
+                  "cid": 11,
+                  "id": 1120,
+                  "jersey": {
+                    "base": "ffffff",
+                    "shirtType": "short_sleeves",
+                    "sleeve": "ffffff",
+                    "sleeveDetails": "b14354",
+                    "style": "",
+                    "styleColor": "ffffff"
+                  },
+                  "name": "Fluminense FC RJ"
+                },
+                "chatMid": 0,
+                "cid": 11,
+                "countdown": 0,
+                "gifMid": 0,
+                "graphMid": 0,
+                "home": {
+                  "cid": 11,
+                  "id": 6665,
+                  "jersey": {
+                    "base": "ff0000",
+                    "shirtType": "short_sleeves",
+                    "sleeve": "ff0000",
+                    "sleeveDetails": "d6b266",
+                    "style": "",
+                    "styleColor": "ff0000"
+                  },
+                  "name": "SC Recife PE"
+                },
+                "iid": 3944349,
+                "inplay": true,
+                "kickoffTime": 1759356000,
+                "marketInfo": {
+                  "ad": false,
+                  "cr": false,
+                  "ot": false,
+                  "otcr": false,
+                  "otRedCard": false,
+                  "pk": false,
+                  "redCard": false
+                },
+                "mids": {
+                  "amid": 0,
+                  "bmid": 0,
+                  "cmid": 0,
+                  "dmid": 0,
+                  "fmid": 0,
+                  "jmid": 0
+                },
+                "name": "SC Recife PE-vs-Fluminense FC RJ",
+                "nv": false,
+                "round": {
+                  "roundGroup": "",
+                  "roundGroupName": "",
+                  "roundName": "Brasileiro Serie A",
+                  "roundNumber": "26",
+                  "roundType": "group"
+                },
+                "scoreId": "",
+                "series": "",
+                "sid": 1,
+                "state": "",
+                "streaming": 3,
+                "tid": 49,
+                "tnName": "Brazil Serie A",
+                "tnPriority": 9999999,
+                "vd": "b",
+                "video": true,
+                "videos": [
+                  {
+                    "source": "A1",
+                    "type": "url",
+                    "info": "https://live2.wh0d4fc4.com/live/58052991_8e26e149fb71a370f1aecc07e0248929_autoChange.m3u8?auth_key=1759367730-0-0-d16cfc98c96e4ceb0b6c4733c9aeb378"
+                  },
+                  {
+                    "source": "A2",
+                    "type": "url",
+                    "info": "https://live2.uvdcov1t.com/live/58052991_8e26e149fb71a370f1aecc07e0248929_autoChange.m3u8?auth_key=1759371450-0-0-4856921247c747bc875b91ba4efd470d"
+                  },
+                  {
+                    "source": "A3",
+                    "type": "url",
+                    "info": "https://live2.59cexx5o.com/live/58052991_8e26e149fb71a370f1aecc07e0248929_autoChange.m3u8?auth_key=1759371448-0-0-4f20eb1fc7068d6b98133086c622e0ea"
+                  },
+                  {
+                    "source": "A7",
+                    "type": "url",
+                    "info": "https://live2.ybsvmsij.com/live/58052991_8e26e149fb71a370f1aecc07e0248929_autoChange.m3u8?auth_key=1759371450-0-0-4856921247c747bc875b91ba4efd470d"
+                  }
+                ],
+                "eps": [
+                  "b",
+                  "c",
+                  "j"
+                ],
+                "gifs": [
+                  {
+                    "source": "b",
+                    "type": "id",
+                    "info": "58052991"
+                  },
+                  {
+                    "source": "s",
+                    "type": "url",
+                    "info": "https://d2g2l5ezakyq7v.cloudfront.net/#/football?lang=cn&z=3944349"
+                  },
+                  {
+                    "source": "s",
+                    "type": "url",
+                    "info": "https://d2g2l5ezakyq7v.cloudfront.net/#/football?lang=en&z=3944349"
+                  },
+                  {
+                    "source": "c",
+                    "type": "id",
+                    "info": "11937223"
+                  }
+                ],
+                "detail": null
+              }
+            ],
+            "name": "Brazil Serie A",
+            "priority": 9999999,
+            "sid": 1,
+            "tid": 49,
+            "score": 0,
+            "mainOrder": 0,
+            "subOrder": 0
+          },
+          {
+            "cid": 25,
+            "count": 1,
             "favorite": false,
             "matches": [
               {
                 "anchors": [],
                 "away": {
-                  "cid": 81,
-                  "id": 309602,
+                  "cid": 25,
+                  "id": 473,
                   "jersey": {
                     "base": "ffffff",
                     "shirtType": "short_sleeves",
@@ -23,152 +434,29 @@
                     "style": "",
                     "styleColor": "ffffff"
                   },
-                  "name": "Mexico U20"
+                  "name": "Club Guarani"
                 },
                 "chatMid": 0,
-                "cid": 81,
+                "cid": 25,
                 "countdown": 0,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
-                  "cid": 81,
-                  "id": 277016,
-                  "jersey": {
-                    "base": "ff0000",
-                    "shirtType": "",
-                    "sleeve": "ccff00",
-                    "sleeveDetails": "",
-                    "style": "",
-                    "styleColor": "ff0000"
-                  },
-                  "name": "Spain U20"
-                },
-                "iid": 3938267,
-                "inplay": true,
-                "kickoffTime": 1759348800,
-                "marketInfo": {
-                  "ad": false,
-                  "cr": false,
-                  "ot": false,
-                  "otcr": false,
-                  "otRedCard": false,
-                  "pk": false,
-                  "redCard": false
-                },
-                "mids": {
-                  "amid": 0,
-                  "bmid": 0,
-                  "cmid": 0,
-                  "dmid": 0,
-                  "fmid": 0,
-                  "jmid": 0
-                },
-                "name": "Spain U20-vs-Mexico U20",
-                "nv": false,
-                "round": {
-                  "roundGroup": "C",
-                  "roundGroupName": "",
-                  "roundName": "U20 World Cup, Group C",
-                  "roundNumber": "2",
-                  "roundType": "group"
-                },
-                "scoreId": "",
-                "series": "",
-                "sid": 1,
-                "state": "",
-                "streaming": 3,
-                "tid": 28346,
-                "tnName": "2025 FIFA World Cup U20(in Chile)",
-                "tnPriority": 9999999,
-                "vd": "b",
-                "video": true,
-                "videos": [
-                  {
-                    "source": "A1",
-                    "type": "url",
-                    "info": "https://live.wh0d4fc4.com/live/60900281_500aa22f453c0369ab1f87b3f7a3cc22_autoChange.m3u8?auth_key=1759363944-0-0-621720307fb01bd671a91af12d158fa0"
-                  },
-                  {
-                    "source": "A2",
-                    "type": "url",
-                    "info": "https://live.uvdcov1t.com/live/60900281_500aa22f453c0369ab1f87b3f7a3cc22_autoChange.m3u8?auth_key=1759367789-0-0-d2fe9bf97848febbedbfceb42d5f3e2f"
-                  },
-                  {
-                    "source": "A3",
-                    "type": "url",
-                    "info": "https://live.59cexx5o.com/live/60900281_500aa22f453c0369ab1f87b3f7a3cc22_autoChange.m3u8?auth_key=1759367788-0-0-a9076f0d2d06870db9c59bf153adc71a"
-                  },
-                  {
-                    "source": "A7",
-                    "type": "url",
-                    "info": "https://live.ybsvmsij.com/live/60900281_500aa22f453c0369ab1f87b3f7a3cc22_autoChange.m3u8?auth_key=1759367791-0-0-53b8e065ffdfb46fc8d25764f1c0d254"
-                  }
-                ],
-                "eps": [
-                  "b",
-                  "c",
-                  "j"
-                ],
-                "gifs": [
-                  {
-                    "source": "b",
-                    "type": "id",
-                    "info": "60900281"
-                  },
-                  {
-                    "source": "s",
-                    "type": "url",
-                    "info": "https://d2g2l5ezakyq7v.cloudfront.net/#/football?lang=cn&z=3938267"
-                  },
-                  {
-                    "source": "s",
-                    "type": "url",
-                    "info": "https://d2g2l5ezakyq7v.cloudfront.net/#/football?lang=en&z=3938267"
-                  },
-                  {
-                    "source": "c",
-                    "type": "id",
-                    "info": "12396321"
-                  }
-                ],
-                "detail": null
-              },
-              {
-                "anchors": [],
-                "away": {
-                  "cid": 81,
-                  "id": 345573,
+                  "cid": 25,
+                  "id": 1089,
                   "jersey": {
                     "base": "ffffff",
-                    "shirtType": "",
-                    "sleeve": "cc0000",
+                    "shirtType": "short_sleeves",
+                    "sleeve": "000000",
                     "sleeveDetails": "",
                     "style": "",
                     "styleColor": "ffffff"
                   },
-                  "name": "Cuba U20"
+                  "name": "Club Libertad"
                 },
-                "chatMid": 0,
-                "cid": 81,
-                "countdown": 0,
-                "gifMid": 0,
-                "graphMid": 0,
-                "home": {
-                  "cid": 81,
-                  "id": 270463,
-                  "jersey": {
-                    "base": "0184de",
-                    "shirtType": "short_sleeves",
-                    "sleeve": "0184de",
-                    "sleeveDetails": "0184de",
-                    "style": "",
-                    "styleColor": "0184de"
-                  },
-                  "name": "Italy U20"
-                },
-                "iid": 3938273,
+                "iid": 3964161,
                 "inplay": true,
-                "kickoffTime": 1759348800,
+                "kickoffTime": 1759356000,
                 "marketInfo": {
                   "ad": false,
                   "cr": false,
@@ -186,22 +474,22 @@
                   "fmid": 0,
                   "jmid": 0
                 },
-                "name": "Italy U20-vs-Cuba U20",
-                "nv": false,
+                "name": "Club Libertad-vs-Club Guarani",
+                "nv": true,
                 "round": {
-                  "roundGroup": "D",
+                  "roundGroup": "",
                   "roundGroupName": "",
-                  "roundName": "U20 World Cup, Group D",
-                  "roundNumber": "2",
-                  "roundType": "group"
+                  "roundName": "Round of 16",
+                  "roundNumber": "",
+                  "roundType": "cup"
                 },
                 "scoreId": "",
                 "series": "",
                 "sid": 1,
                 "state": "",
                 "streaming": 3,
-                "tid": 28346,
-                "tnName": "2025 FIFA World Cup U20(in Chile)",
+                "tid": 521,
+                "tnName": "Paraguay Cup",
                 "tnPriority": 9999999,
                 "vd": "b",
                 "video": true,
@@ -209,22 +497,22 @@
                   {
                     "source": "A1",
                     "type": "url",
-                    "info": "https://live1.wh0d4fc4.com/live/60900293_5c7a78beca659cd8986ca087187dffb9_autoChange.m3u8?auth_key=1759363944-0-0-10b4bbcbf1b4501551a4ed1232ef2bde"
+                    "info": "https://live.wh0d4fc4.com/live/63868707_30d90b42a46aac32ee10afa7b17b619f_autoChange.m3u8?auth_key=1759367730-0-0-3a140e7ae4bd4531b9c3d6b8e5ebe650"
                   },
                   {
                     "source": "A2",
                     "type": "url",
-                    "info": "https://live1.uvdcov1t.com/live/60900293_5c7a78beca659cd8986ca087187dffb9_autoChange.m3u8?auth_key=1759367789-0-0-a1a47240730a482f527ccaca58d0859d"
+                    "info": "https://live.uvdcov1t.com/live/63868707_30d90b42a46aac32ee10afa7b17b619f_autoChange.m3u8?auth_key=1759371450-0-0-e795ad612b6ae20e85d5d4e4774d1d0f"
                   },
                   {
                     "source": "A3",
                     "type": "url",
-                    "info": "https://live1.59cexx5o.com/live/60900293_5c7a78beca659cd8986ca087187dffb9_autoChange.m3u8?auth_key=1759367789-0-0-a1a47240730a482f527ccaca58d0859d"
+                    "info": "https://live.59cexx5o.com/live/63868707_30d90b42a46aac32ee10afa7b17b619f_autoChange.m3u8?auth_key=1759371448-0-0-9ea43293f24f24d2a9a2cd152179489a"
                   },
                   {
                     "source": "A7",
                     "type": "url",
-                    "info": "https://live1.ybsvmsij.com/live/60900293_5c7a78beca659cd8986ca087187dffb9_autoChange.m3u8?auth_key=1759367787-0-0-b3b544881e501cfd5e281c940431c9ad"
+                    "info": "https://live.ybsvmsij.com/live/63868707_30d90b42a46aac32ee10afa7b17b619f_autoChange.m3u8?auth_key=1759371446-0-0-cb50a05f8f7356da9751244fe4ed5e1b"
                   }
                 ],
                 "eps": [
@@ -236,31 +524,31 @@
                   {
                     "source": "b",
                     "type": "id",
-                    "info": "60900293"
+                    "info": "63868707"
                   },
                   {
                     "source": "s",
                     "type": "url",
-                    "info": "https://d2g2l5ezakyq7v.cloudfront.net/#/football?lang=cn&z=3938273"
+                    "info": "https://d2g2l5ezakyq7v.cloudfront.net/#/football?lang=cn&z=3964161"
                   },
                   {
                     "source": "s",
                     "type": "url",
-                    "info": "https://d2g2l5ezakyq7v.cloudfront.net/#/football?lang=en&z=3938273"
+                    "info": "https://d2g2l5ezakyq7v.cloudfront.net/#/football?lang=en&z=3964161"
                   },
                   {
                     "source": "c",
                     "type": "id",
-                    "info": "12396319"
+                    "info": "13096570"
                   }
                 ],
                 "detail": null
               }
             ],
-            "name": "2025 FIFA World Cup U20(in Chile)",
+            "name": "Paraguay Cup",
             "priority": 9999999,
             "sid": 1,
-            "tid": 28346,
+            "tid": 521,
             "score": 0,
             "mainOrder": 0,
             "subOrder": 0
@@ -446,9 +734,24 @@
                 "video": true,
                 "videos": [
                   {
+                    "source": "A1",
+                    "type": "url",
+                    "info": "https://live.wh0d4fc4.com/live/63866857_17539269631043fe482391f9dc53259f_autoChange.m3u8?auth_key=1759367730-0-0-b51636e6688026e9d5509e87936a6543"
+                  },
+                  {
+                    "source": "A2",
+                    "type": "url",
+                    "info": "https://live.uvdcov1t.com/live/63866857_17539269631043fe482391f9dc53259f_autoChange.m3u8?auth_key=1759371449-0-0-2d5256a55e35d6e91fe946338f361303"
+                  },
+                  {
                     "source": "A3",
                     "type": "url",
-                    "info": "https://live.59cexx5o.com/live/63866857_17539269631043fe482391f9dc53259f_autoChange.m3u8?auth_key=1759367787-0-0-dd644ba30c694f2e03189f4860acc8f0"
+                    "info": "https://live.59cexx5o.com/live/63866857_17539269631043fe482391f9dc53259f_autoChange.m3u8?auth_key=1759371448-0-0-e63bdd7023ae959c2fd7ae5f37a14024"
+                  },
+                  {
+                    "source": "A7",
+                    "type": "url",
+                    "info": "https://live.ybsvmsij.com/live/63866857_17539269631043fe482391f9dc53259f_autoChange.m3u8?auth_key=1759371450-0-0-e30f5710dc0d568c42fa27fc8e22d3f1"
                   }
                 ],
                 "eps": [
@@ -541,13 +844,34 @@
                 "series": "",
                 "sid": 1,
                 "state": "",
-                "streaming": 2,
+                "streaming": 3,
                 "tid": 27615,
                 "tnName": "Guatemala Primera Division",
                 "tnPriority": 9999999,
                 "vd": "b",
-                "video": false,
-                "videos": [],
+                "video": true,
+                "videos": [
+                  {
+                    "source": "A1",
+                    "type": "url",
+                    "info": "https://live.wh0d4fc4.com/live/63866859_aee38b843a67afaea84055ba30433039_autoChange.m3u8?auth_key=1759367729-0-0-7311c388b4843dddf4b80b733d1a3e68"
+                  },
+                  {
+                    "source": "A2",
+                    "type": "url",
+                    "info": "https://live.uvdcov1t.com/live/63866859_aee38b843a67afaea84055ba30433039_autoChange.m3u8?auth_key=1759371449-0-0-466b6e93d7f30a8a245217b8487d8a5f"
+                  },
+                  {
+                    "source": "A3",
+                    "type": "url",
+                    "info": "https://live.59cexx5o.com/live/63866859_aee38b843a67afaea84055ba30433039_autoChange.m3u8?auth_key=1759371448-0-0-07151ade58dfd402947f9b66308bdeeb"
+                  },
+                  {
+                    "source": "A7",
+                    "type": "url",
+                    "info": "https://live.ybsvmsij.com/live/63866859_aee38b843a67afaea84055ba30433039_autoChange.m3u8?auth_key=1759371448-0-0-07151ade58dfd402947f9b66308bdeeb"
+                  }
+                ],
                 "eps": [
                   "b",
                   "c",
@@ -587,259 +911,6 @@
             "subOrder": 0
           },
           {
-            "cid": 25,
-            "count": 1,
-            "favorite": false,
-            "matches": [
-              {
-                "anchors": [],
-                "away": {
-                  "cid": 25,
-                  "id": 253703,
-                  "jersey": {
-                    "base": "433a7e",
-                    "shirtType": "short_sleeves",
-                    "sleeve": "433a7e",
-                    "sleeveDetails": "000000",
-                    "style": "",
-                    "styleColor": "433a7e"
-                  },
-                  "name": "Club Tacuary"
-                },
-                "chatMid": 0,
-                "cid": 25,
-                "countdown": 0,
-                "gifMid": 0,
-                "graphMid": 0,
-                "home": {
-                  "cid": 25,
-                  "id": 6261,
-                  "jersey": {
-                    "base": "ffffff",
-                    "shirtType": "short_sleeves",
-                    "sleeve": "ffffff",
-                    "sleeveDetails": "004389",
-                    "style": "",
-                    "styleColor": "ffffff"
-                  },
-                  "name": "12 de Octubre de Itaugua"
-                },
-                "iid": 3964160,
-                "inplay": true,
-                "kickoffTime": 1759347000,
-                "marketInfo": {
-                  "ad": false,
-                  "cr": false,
-                  "ot": false,
-                  "otcr": false,
-                  "otRedCard": false,
-                  "pk": false,
-                  "redCard": false
-                },
-                "mids": {
-                  "amid": 0,
-                  "bmid": 0,
-                  "cmid": 0,
-                  "dmid": 0,
-                  "fmid": 0,
-                  "jmid": 0
-                },
-                "name": "12 de Octubre de Itaugua-vs-Club Tacuary",
-                "nv": false,
-                "round": {
-                  "roundGroup": "",
-                  "roundGroupName": "",
-                  "roundName": "Round of 16",
-                  "roundNumber": "",
-                  "roundType": "cup"
-                },
-                "scoreId": "",
-                "series": "",
-                "sid": 1,
-                "state": "",
-                "streaming": 3,
-                "tid": 521,
-                "tnName": "Paraguay Cup",
-                "tnPriority": 9999999,
-                "vd": "b",
-                "video": true,
-                "videos": [
-                  {
-                    "source": "A1",
-                    "type": "url",
-                    "info": "https://live.wh0d4fc4.com/live/63868705_cffcc0aa7aabf8d5a3bcd50b1fb43f90_autoChange.m3u8?auth_key=1759363943-0-0-d2dc4f8cfda5eb7488f08b88e0377ad0"
-                  },
-                  {
-                    "source": "A2",
-                    "type": "url",
-                    "info": "https://live.uvdcov1t.com/live/63868705_cffcc0aa7aabf8d5a3bcd50b1fb43f90_autoChange.m3u8?auth_key=1759367788-0-0-79565459d54c6ddda42b3a63a9ef9367"
-                  },
-                  {
-                    "source": "A3",
-                    "type": "url",
-                    "info": "https://live.59cexx5o.com/live/63868705_cffcc0aa7aabf8d5a3bcd50b1fb43f90_autoChange.m3u8?auth_key=1759367788-0-0-79565459d54c6ddda42b3a63a9ef9367"
-                  },
-                  {
-                    "source": "A7",
-                    "type": "url",
-                    "info": "https://live.ybsvmsij.com/live/63868705_cffcc0aa7aabf8d5a3bcd50b1fb43f90_autoChange.m3u8?auth_key=1759367791-0-0-ee2e32cf4b6e8d896a536c28d3821fb2"
-                  }
-                ],
-                "eps": [
-                  "b",
-                  "c",
-                  "j"
-                ],
-                "gifs": [
-                  {
-                    "source": "b",
-                    "type": "id",
-                    "info": "63868705"
-                  },
-                  {
-                    "source": "s",
-                    "type": "url",
-                    "info": "https://d2g2l5ezakyq7v.cloudfront.net/#/football?lang=cn&z=3964160"
-                  },
-                  {
-                    "source": "s",
-                    "type": "url",
-                    "info": "https://d2g2l5ezakyq7v.cloudfront.net/#/football?lang=en&z=3964160"
-                  },
-                  {
-                    "source": "c",
-                    "type": "id",
-                    "info": "13133706"
-                  }
-                ],
-                "detail": null
-              }
-            ],
-            "name": "Paraguay Cup",
-            "priority": 9999999,
-            "sid": 1,
-            "tid": 521,
-            "score": 0,
-            "mainOrder": 0,
-            "subOrder": 0
-          },
-          {
-            "cid": 51,
-            "count": 1,
-            "favorite": false,
-            "matches": [
-              {
-                "anchors": [],
-                "away": {
-                  "cid": 51,
-                  "id": 104951,
-                  "jersey": {
-                    "base": "",
-                    "shirtType": "",
-                    "sleeve": "",
-                    "sleeveDetails": "",
-                    "style": "",
-                    "styleColor": ""
-                  },
-                  "name": "AD Carmelita"
-                },
-                "chatMid": 0,
-                "cid": 51,
-                "countdown": 0,
-                "gifMid": 0,
-                "graphMid": 0,
-                "home": {
-                  "cid": 51,
-                  "id": 412408,
-                  "jersey": {
-                    "base": "",
-                    "shirtType": "",
-                    "sleeve": "",
-                    "sleeveDetails": "",
-                    "style": "",
-                    "styleColor": ""
-                  },
-                  "name": "AD Cariari Pococi"
-                },
-                "iid": 3977286,
-                "inplay": true,
-                "kickoffTime": 1759347000,
-                "marketInfo": {
-                  "ad": false,
-                  "cr": false,
-                  "ot": false,
-                  "otcr": false,
-                  "otRedCard": false,
-                  "pk": false,
-                  "redCard": false
-                },
-                "mids": {
-                  "amid": 0,
-                  "bmid": 0,
-                  "cmid": 0,
-                  "dmid": 0,
-                  "fmid": 0,
-                  "jmid": 0
-                },
-                "name": "AD Cariari Pococi-vs-AD Carmelita",
-                "nv": false,
-                "round": {
-                  "roundGroup": "",
-                  "roundGroupName": "",
-                  "roundName": "Round of 16",
-                  "roundNumber": "",
-                  "roundType": "cup"
-                },
-                "scoreId": "",
-                "series": "",
-                "sid": 1,
-                "state": "",
-                "streaming": 2,
-                "tid": 24465,
-                "tnName": "Costa Rica Cup",
-                "tnPriority": 9999999,
-                "vd": "b",
-                "video": false,
-                "videos": [],
-                "eps": [
-                  "b",
-                  "c",
-                  "j"
-                ],
-                "gifs": [
-                  {
-                    "source": "b",
-                    "type": "id",
-                    "info": "64000945"
-                  },
-                  {
-                    "source": "s",
-                    "type": "url",
-                    "info": "https://d2g2l5ezakyq7v.cloudfront.net/#/football?lang=cn&z=3977286"
-                  },
-                  {
-                    "source": "s",
-                    "type": "url",
-                    "info": "https://d2g2l5ezakyq7v.cloudfront.net/#/football?lang=en&z=3977286"
-                  },
-                  {
-                    "source": "c",
-                    "type": "id",
-                    "info": "12979308"
-                  }
-                ],
-                "detail": null
-              }
-            ],
-            "name": "Costa Rica Cup",
-            "priority": 9999999,
-            "sid": 1,
-            "tid": 24465,
-            "score": 0,
-            "mainOrder": 0,
-            "subOrder": 0
-          },
-          {
             "cid": 38,
             "count": 2,
             "favorite": false,
@@ -848,7 +919,7 @@
                 "anchors": [],
                 "away": {
                   "cid": 38,
-                  "id": 286707,
+                  "id": 7425,
                   "jersey": {
                     "base": "",
                     "shirtType": "",
@@ -857,7 +928,7 @@
                     "style": "",
                     "styleColor": ""
                   },
-                  "name": "Sportivo Rivadavia San Juan"
+                  "name": "Estudiantes de La Plata Reserves"
                 },
                 "chatMid": 0,
                 "cid": 38,
@@ -866,7 +937,7 @@
                 "graphMid": 0,
                 "home": {
                   "cid": 38,
-                  "id": 376831,
+                  "id": 315080,
                   "jersey": {
                     "base": "",
                     "shirtType": "",
@@ -875,11 +946,11 @@
                     "style": "",
                     "styleColor": ""
                   },
-                  "name": "Club Lopez Pelaez"
+                  "name": "Defensores de Belgrano Reserves"
                 },
-                "iid": 3980229,
+                "iid": 3976353,
                 "inplay": true,
-                "kickoffTime": 1759348800,
+                "kickoffTime": 1759356000,
                 "marketInfo": {
                   "ad": false,
                   "cr": false,
@@ -897,36 +968,72 @@
                   "fmid": 0,
                   "jmid": 0
                 },
-                "name": "Club Lopez Pelaez-vs-Sportivo Rivadavia San Juan",
+                "name": "Defensores de Belgrano Reserves-vs-Estudiantes de La Plata Reserves",
                 "nv": false,
                 "round": {
-                  "roundGroup": "",
+                  "roundGroup": "A",
                   "roundGroupName": "",
-                  "roundName": "",
-                  "roundNumber": "",
-                  "roundType": "unknow"
+                  "roundName": "Primera LPF, Reserves, Clausura",
+                  "roundNumber": "12",
+                  "roundType": "group"
                 },
                 "scoreId": "",
                 "series": "",
                 "sid": 1,
                 "state": "",
-                "streaming": 2,
-                "tid": 21211,
-                "tnName": "Argentina Regional League",
+                "streaming": 3,
+                "tid": 29525,
+                "tnName": "Argentina Professional Reserve League",
                 "tnPriority": 9999999,
-                "vd": "c",
-                "video": false,
-                "videos": [],
+                "vd": "b",
+                "video": true,
+                "videos": [
+                  {
+                    "source": "A1",
+                    "type": "url",
+                    "info": "https://live5.wh0d4fc4.com/live/58282613_2b209c7dc76b986119da0f823fbce095_autoChange.m3u8?auth_key=1759367731-0-0-06cb77e74afd0c9e8b1d212e2a177304"
+                  },
+                  {
+                    "source": "A2",
+                    "type": "url",
+                    "info": "https://live5.uvdcov1t.com/live/58282613_2b209c7dc76b986119da0f823fbce095_autoChange.m3u8?auth_key=1759371450-0-0-10fef4d3c1882546334521c143cc011b"
+                  },
+                  {
+                    "source": "A3",
+                    "type": "url",
+                    "info": "https://live5.59cexx5o.com/live/58282613_2b209c7dc76b986119da0f823fbce095_autoChange.m3u8?auth_key=1759371449-0-0-ab64e12dd33cd4ec4cefba780071b6c4"
+                  },
+                  {
+                    "source": "A7",
+                    "type": "url",
+                    "info": "https://live5.ybsvmsij.com/live/58282613_2b209c7dc76b986119da0f823fbce095_autoChange.m3u8?auth_key=1759371449-0-0-ab64e12dd33cd4ec4cefba780071b6c4"
+                  }
+                ],
                 "eps": [
-                  "c",
                   "b",
+                  "c",
                   "j"
                 ],
                 "gifs": [
                   {
+                    "source": "b",
+                    "type": "id",
+                    "info": "58282613"
+                  },
+                  {
+                    "source": "s",
+                    "type": "url",
+                    "info": "https://d2g2l5ezakyq7v.cloudfront.net/#/football?lang=cn&z=3976353"
+                  },
+                  {
+                    "source": "s",
+                    "type": "url",
+                    "info": "https://d2g2l5ezakyq7v.cloudfront.net/#/football?lang=en&z=3976353"
+                  },
+                  {
                     "source": "c",
                     "type": "id",
-                    "info": "13134268"
+                    "info": "12365952"
                   }
                 ],
                 "detail": null
@@ -935,7 +1042,7 @@
                 "anchors": [],
                 "away": {
                   "cid": 38,
-                  "id": 376079,
+                  "id": 367093,
                   "jersey": {
                     "base": "",
                     "shirtType": "",
@@ -944,7 +1051,7 @@
                     "style": "",
                     "styleColor": ""
                   },
-                  "name": "CA Union Villa Krause"
+                  "name": "CA Sarmiento Reserves"
                 },
                 "chatMid": 0,
                 "cid": 38,
@@ -953,7 +1060,7 @@
                 "graphMid": 0,
                 "home": {
                   "cid": 38,
-                  "id": 418257,
+                  "id": 1358,
                   "jersey": {
                     "base": "",
                     "shirtType": "",
@@ -962,11 +1069,11 @@
                     "style": "",
                     "styleColor": ""
                   },
-                  "name": "Atletico Marquesado"
+                  "name": "CA River Plate Reserves"
                 },
-                "iid": 3980230,
+                "iid": 3976354,
                 "inplay": true,
-                "kickoffTime": 1759348800,
+                "kickoffTime": 1759356000,
                 "marketInfo": {
                   "ad": false,
                   "cr": false,
@@ -984,45 +1091,81 @@
                   "fmid": 0,
                   "jmid": 0
                 },
-                "name": "Atletico Marquesado-vs-CA Union Villa Krause",
+                "name": "CA River Plate Reserves-vs-CA Sarmiento Reserves",
                 "nv": false,
                 "round": {
-                  "roundGroup": "",
+                  "roundGroup": "B",
                   "roundGroupName": "",
-                  "roundName": "",
-                  "roundNumber": "",
-                  "roundType": "unknow"
+                  "roundName": "Primera LPF, Reserves, Clausura",
+                  "roundNumber": "12",
+                  "roundType": "group"
                 },
                 "scoreId": "",
                 "series": "",
                 "sid": 1,
                 "state": "",
-                "streaming": 2,
-                "tid": 21211,
-                "tnName": "Argentina Regional League",
+                "streaming": 3,
+                "tid": 29525,
+                "tnName": "Argentina Professional Reserve League",
                 "tnPriority": 9999999,
-                "vd": "c",
-                "video": false,
-                "videos": [],
+                "vd": "b",
+                "video": true,
+                "videos": [
+                  {
+                    "source": "A1",
+                    "type": "url",
+                    "info": "https://live.wh0d4fc4.com/live/58282631_183fd127985e6d3e581d29eb89c8d248_autoChange.m3u8?auth_key=1759367731-0-0-14bda0189d834da3bf0ffa61c42e8f6e"
+                  },
+                  {
+                    "source": "A2",
+                    "type": "url",
+                    "info": "https://live.uvdcov1t.com/live/58282631_183fd127985e6d3e581d29eb89c8d248_autoChange.m3u8?auth_key=1759371450-0-0-36e2f8341e4ba453d368fca052c15687"
+                  },
+                  {
+                    "source": "A3",
+                    "type": "url",
+                    "info": "https://live.59cexx5o.com/live/58282631_183fd127985e6d3e581d29eb89c8d248_autoChange.m3u8?auth_key=1759371449-0-0-b4ef3ed0751535205f5471df223b2ea1"
+                  },
+                  {
+                    "source": "A7",
+                    "type": "url",
+                    "info": "https://live.ybsvmsij.com/live/58282631_183fd127985e6d3e581d29eb89c8d248_autoChange.m3u8?auth_key=1759371449-0-0-b4ef3ed0751535205f5471df223b2ea1"
+                  }
+                ],
                 "eps": [
-                  "c",
                   "b",
+                  "c",
                   "j"
                 ],
                 "gifs": [
                   {
+                    "source": "b",
+                    "type": "id",
+                    "info": "58282631"
+                  },
+                  {
+                    "source": "s",
+                    "type": "url",
+                    "info": "https://d2g2l5ezakyq7v.cloudfront.net/#/football?lang=cn&z=3976354"
+                  },
+                  {
+                    "source": "s",
+                    "type": "url",
+                    "info": "https://d2g2l5ezakyq7v.cloudfront.net/#/football?lang=en&z=3976354"
+                  },
+                  {
                     "source": "c",
                     "type": "id",
-                    "info": "13134274"
+                    "info": "12365961"
                   }
                 ],
                 "detail": null
               }
             ],
-            "name": "Argentina Regional League",
+            "name": "Argentina Professional Reserve League",
             "priority": 9999999,
             "sid": 1,
-            "tid": 21211,
+            "tid": 29525,
             "score": 0,
             "mainOrder": 0,
             "subOrder": 0
@@ -1030,9 +1173,9 @@
         ]
       },
       "msg": "",
-      "time": 1759353615949
+      "time": 1759357153402
     },
-    "proxy": "103.148.195.22:8080"
+    "proxy": "103.101.193.38:1111"
   },
   {
     "url": "https://009bhtpeu4xrn-nwapi-cf.ejdabwrs30205.app/product/business/sport/tournament/info?sid=1&sort=tournament&inplay=false&date=24h&language=id-id",
@@ -1090,7 +1233,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 1165,
+                "countdown": 1106,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -1142,7 +1285,7 @@
                 "streaming": 0,
                 "tid": 390,
                 "tnName": "UEFA Europa League",
-                "tnPriority": 4000006,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -1199,7 +1342,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 1165,
+                "countdown": 1106,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -1251,7 +1394,7 @@
                 "streaming": 0,
                 "tid": 390,
                 "tnName": "UEFA Europa League",
-                "tnPriority": 4000006,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -1280,7 +1423,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 1165,
+                "countdown": 1106,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -1332,7 +1475,7 @@
                 "streaming": 0,
                 "tid": 390,
                 "tnName": "UEFA Europa League",
-                "tnPriority": 4000006,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -1361,7 +1504,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 1165,
+                "countdown": 1106,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -1413,7 +1556,7 @@
                 "streaming": 0,
                 "tid": 390,
                 "tnName": "UEFA Europa League",
-                "tnPriority": 4000006,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -1442,7 +1585,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 1165,
+                "countdown": 1106,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -1494,7 +1637,7 @@
                 "streaming": 0,
                 "tid": 390,
                 "tnName": "UEFA Europa League",
-                "tnPriority": 4000006,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -1523,7 +1666,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 1165,
+                "countdown": 1106,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -1575,7 +1718,7 @@
                 "streaming": 0,
                 "tid": 390,
                 "tnName": "UEFA Europa League",
-                "tnPriority": 4000006,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -1604,7 +1747,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 1165,
+                "countdown": 1106,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -1656,7 +1799,7 @@
                 "streaming": 0,
                 "tid": 390,
                 "tnName": "UEFA Europa League",
-                "tnPriority": 4000006,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -1685,7 +1828,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 1165,
+                "countdown": 1106,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -1737,7 +1880,7 @@
                 "streaming": 0,
                 "tid": 390,
                 "tnName": "UEFA Europa League",
-                "tnPriority": 4000006,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -1766,7 +1909,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 1165,
+                "countdown": 1106,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -1818,7 +1961,7 @@
                 "streaming": 0,
                 "tid": 390,
                 "tnName": "UEFA Europa League",
-                "tnPriority": 4000006,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -1875,7 +2018,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 1300,
+                "countdown": 1241,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -1927,7 +2070,7 @@
                 "streaming": 0,
                 "tid": 390,
                 "tnName": "UEFA Europa League",
-                "tnPriority": 4000006,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -1956,7 +2099,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 1300,
+                "countdown": 1241,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -2008,7 +2151,7 @@
                 "streaming": 0,
                 "tid": 390,
                 "tnName": "UEFA Europa League",
-                "tnPriority": 4000006,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -2037,7 +2180,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 1300,
+                "countdown": 1241,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -2089,7 +2232,7 @@
                 "streaming": 0,
                 "tid": 390,
                 "tnName": "UEFA Europa League",
-                "tnPriority": 4000006,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -2146,7 +2289,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 1300,
+                "countdown": 1241,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -2198,7 +2341,7 @@
                 "streaming": 0,
                 "tid": 390,
                 "tnName": "UEFA Europa League",
-                "tnPriority": 4000006,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -2227,7 +2370,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 1300,
+                "countdown": 1241,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -2279,7 +2422,7 @@
                 "streaming": 0,
                 "tid": 390,
                 "tnName": "UEFA Europa League",
-                "tnPriority": 4000006,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -2308,7 +2451,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 1300,
+                "countdown": 1241,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -2360,7 +2503,7 @@
                 "streaming": 0,
                 "tid": 390,
                 "tnName": "UEFA Europa League",
-                "tnPriority": 4000006,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -2389,7 +2532,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 1300,
+                "countdown": 1241,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -2441,7 +2584,7 @@
                 "streaming": 0,
                 "tid": 390,
                 "tnName": "UEFA Europa League",
-                "tnPriority": 4000006,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -2498,7 +2641,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 1300,
+                "countdown": 1241,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -2550,7 +2693,7 @@
                 "streaming": 0,
                 "tid": 390,
                 "tnName": "UEFA Europa League",
-                "tnPriority": 4000006,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -2579,7 +2722,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 1300,
+                "countdown": 1241,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -2631,7 +2774,7 @@
                 "streaming": 0,
                 "tid": 390,
                 "tnName": "UEFA Europa League",
-                "tnPriority": 4000006,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -2645,7 +2788,7 @@
               }
             ],
             "name": "UEFA Europa League",
-            "priority": 4000006,
+            "priority": 9999999,
             "sid": 1,
             "tid": 390,
             "score": 0,
@@ -2674,7 +2817,7 @@
                 },
                 "chatMid": 0,
                 "cid": 81,
-                "countdown": 100,
+                "countdown": 41,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -2726,7 +2869,7 @@
                 "streaming": 0,
                 "tid": 28346,
                 "tnName": "2025 FIFA World Cup U20(in Chile)",
-                "tnPriority": 5000035,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -2783,7 +2926,7 @@
                 },
                 "chatMid": 0,
                 "cid": 81,
-                "countdown": 100,
+                "countdown": 41,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -2835,7 +2978,7 @@
                 "streaming": 0,
                 "tid": 28346,
                 "tnName": "2025 FIFA World Cup U20(in Chile)",
-                "tnPriority": 5000035,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -2864,7 +3007,7 @@
                 },
                 "chatMid": 0,
                 "cid": 81,
-                "countdown": 1360,
+                "countdown": 1301,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -2916,7 +3059,7 @@
                 "streaming": 0,
                 "tid": 28346,
                 "tnName": "2025 FIFA World Cup U20(in Chile)",
-                "tnPriority": 5000035,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -2945,7 +3088,7 @@
                 },
                 "chatMid": 0,
                 "cid": 81,
-                "countdown": 1360,
+                "countdown": 1301,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -2997,7 +3140,7 @@
                 "streaming": 0,
                 "tid": 28346,
                 "tnName": "2025 FIFA World Cup U20(in Chile)",
-                "tnPriority": 5000035,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -3011,7 +3154,7 @@
               }
             ],
             "name": "2025 FIFA World Cup U20(in Chile)",
-            "priority": 5000035,
+            "priority": 9999999,
             "sid": 1,
             "tid": 28346,
             "score": 0,
@@ -3068,7 +3211,7 @@
                 },
                 "chatMid": 0,
                 "cid": 35,
-                "countdown": 625,
+                "countdown": 566,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -3120,7 +3263,7 @@
                 "streaming": 0,
                 "tid": 34921,
                 "tnName": "AFC Champions League 2",
-                "tnPriority": 5000061,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -3177,7 +3320,7 @@
                 },
                 "chatMid": 0,
                 "cid": 35,
-                "countdown": 760,
+                "countdown": 701,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -3229,7 +3372,7 @@
                 "streaming": 0,
                 "tid": 34921,
                 "tnName": "AFC Champions League 2",
-                "tnPriority": 5000061,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -3286,7 +3429,7 @@
                 },
                 "chatMid": 0,
                 "cid": 35,
-                "countdown": 760,
+                "countdown": 701,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -3338,7 +3481,7 @@
                 "streaming": 0,
                 "tid": 34921,
                 "tnName": "AFC Champions League 2",
-                "tnPriority": 5000061,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -3395,7 +3538,7 @@
                 },
                 "chatMid": 0,
                 "cid": 35,
-                "countdown": 760,
+                "countdown": 701,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -3447,7 +3590,7 @@
                 "streaming": 0,
                 "tid": 34921,
                 "tnName": "AFC Champions League 2",
-                "tnPriority": 5000061,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -3504,7 +3647,7 @@
                 },
                 "chatMid": 0,
                 "cid": 35,
-                "countdown": 895,
+                "countdown": 836,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -3556,7 +3699,7 @@
                 "streaming": 0,
                 "tid": 34921,
                 "tnName": "AFC Champions League 2",
-                "tnPriority": 5000061,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -3613,7 +3756,7 @@
                 },
                 "chatMid": 0,
                 "cid": 35,
-                "countdown": 895,
+                "countdown": 836,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -3665,7 +3808,7 @@
                 "streaming": 0,
                 "tid": 34921,
                 "tnName": "AFC Champions League 2",
-                "tnPriority": 5000061,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -3679,7 +3822,7 @@
               }
             ],
             "name": "AFC Champions League 2",
-            "priority": 5000061,
+            "priority": 9999999,
             "sid": 1,
             "tid": 34921,
             "score": 0,
@@ -3708,7 +3851,7 @@
                 },
                 "chatMid": 0,
                 "cid": 41,
-                "countdown": 820,
+                "countdown": 761,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -3760,7 +3903,7 @@
                 "streaming": 0,
                 "tid": 3632,
                 "tnName": "Vietnam V League 1",
-                "tnPriority": 6000032,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -3789,7 +3932,7 @@
                 },
                 "chatMid": 0,
                 "cid": 41,
-                "countdown": 820,
+                "countdown": 761,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -3841,7 +3984,7 @@
                 "streaming": 0,
                 "tid": 3632,
                 "tnName": "Vietnam V League 1",
-                "tnPriority": 6000032,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -3855,7 +3998,7 @@
               }
             ],
             "name": "Vietnam V League 1",
-            "priority": 6000032,
+            "priority": 9999999,
             "sid": 1,
             "tid": 3632,
             "score": 0,
@@ -3884,7 +4027,7 @@
                 },
                 "chatMid": 0,
                 "cid": 20,
-                "countdown": 1300,
+                "countdown": 1241,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -3936,7 +4079,7 @@
                 "streaming": 0,
                 "tid": 6781,
                 "tnName": "England League One",
-                "tnPriority": 7000010,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -3950,7 +4093,7 @@
               }
             ],
             "name": "England League One",
-            "priority": 7000010,
+            "priority": 9999999,
             "sid": 1,
             "tid": 6781,
             "score": 0,
@@ -3979,7 +4122,7 @@
                 },
                 "chatMid": 0,
                 "cid": 56,
-                "countdown": 1180,
+                "countdown": 1121,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -4031,7 +4174,7 @@
                 "streaming": 0,
                 "tid": 118,
                 "tnName": "Denmark 1. Division",
-                "tnPriority": 7000014,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -4045,7 +4188,7 @@
               }
             ],
             "name": "Denmark 1. Division",
-            "priority": 7000014,
+            "priority": 9999999,
             "sid": 1,
             "tid": 118,
             "score": 0,
@@ -4054,285 +4197,14 @@
           },
           {
             "cid": 11,
-            "count": 6,
+            "count": 4,
             "favorite": false,
             "matches": [
               {
                 "anchors": [
                   {
-                    "houseId": "102633",
-                    "liveStatus": 1,
-                    "visitHistory": 0,
-                    "playStreamAddress": "https://live5.vv1y9.com/live/102633.flv?txSecret=943ee61161ba889d9b71bbe920208a19&txTime=198F62905D1",
-                    "playStreamAddress2": "https://live5.vv1y9.com/live/102633.m3u8?txSecret=943ee61161ba889d9b71bbe920208a19&txTime=198F62905D1",
-                    "userImage": "https://anchor51.oss-accelerate.aliyuncs.com/business/image/2633/xTFJt2IcR_yceSzs3vSqjw.jpg",
-                    "houseName": "來來的直播间",
-                    "houseImage": "https://anchor51.oss-accelerate.aliyuncs.com/business/image/2633/u0Um8viZT2q9c2C-tWH0HQ.jpg",
-                    "nickName": "來來",
-                    "anchorTypeName": "足球",
-                    "countryType": "CN",
-                    "anchorTitle": "",
-                    "anchorSportId": 1,
-                    "houseIntroduction": "",
-                    "languageType": "zh",
-                    "fansCount": 2,
-                    "vendors": [
-                      "vd003",
-                      "vd005",
-                      "vd008",
-                      "vd009",
-                      "vd010",
-                      "vd012"
-                    ],
-                    "lang": "zh-cn"
-                  }
-                ],
-                "away": {
-                  "cid": 11,
-                  "id": 641,
-                  "jersey": {
-                    "base": "ffffff",
-                    "shirtType": "short_sleeves",
-                    "sleeve": "ffffff",
-                    "sleeveDetails": "000000",
-                    "style": "",
-                    "styleColor": "ffffff"
-                  },
-                  "name": "CR Vasco da Gama RJ"
-                },
-                "chatMid": 0,
-                "cid": 11,
-                "countdown": 40,
-                "gifMid": 0,
-                "graphMid": 0,
-                "home": {
-                  "cid": 11,
-                  "id": 5894,
-                  "jersey": {
-                    "base": "03403c",
-                    "shirtType": "short_sleeves",
-                    "sleeve": "03403c",
-                    "sleeveDetails": "ffffff",
-                    "style": "",
-                    "styleColor": "03403c"
-                  },
-                  "name": "SE Palmeiras SP"
-                },
-                "iid": 3944345,
-                "inplay": false,
-                "kickoffTime": 1759356000,
-                "marketInfo": {
-                  "ad": false,
-                  "cr": false,
-                  "ot": false,
-                  "otcr": false,
-                  "otRedCard": false,
-                  "pk": false,
-                  "redCard": false
-                },
-                "mids": {
-                  "amid": 0,
-                  "bmid": 0,
-                  "cmid": 0,
-                  "dmid": 0,
-                  "fmid": 0,
-                  "jmid": 0
-                },
-                "name": "SE Palmeiras SP-vs-CR Vasco da Gama RJ",
-                "nv": false,
-                "round": {
-                  "roundGroup": "",
-                  "roundGroupName": "",
-                  "roundName": "Brasileiro Serie A",
-                  "roundNumber": "26",
-                  "roundType": "group"
-                },
-                "scoreId": "",
-                "series": "",
-                "sid": 1,
-                "state": "",
-                "streaming": 0,
-                "tid": 49,
-                "tnName": "Brazil Serie A",
-                "tnPriority": 7000018,
-                "vd": "b",
-                "video": false,
-                "videos": [],
-                "eps": [
-                  "b",
-                  "c",
-                  "j"
-                ],
-                "gifs": [],
-                "detail": null
-              },
-              {
-                "anchors": [],
-                "away": {
-                  "cid": 11,
-                  "id": 7135,
-                  "jersey": {
-                    "base": "022e67",
-                    "shirtType": "short_sleeves",
-                    "sleeve": "022e67",
-                    "sleeveDetails": "c00017",
-                    "style": "",
-                    "styleColor": "022e67"
-                  },
-                  "name": "Red Bull Bragantino SP"
-                },
-                "chatMid": 0,
-                "cid": 11,
-                "countdown": 40,
-                "gifMid": 0,
-                "graphMid": 0,
-                "home": {
-                  "cid": 11,
-                  "id": 7042,
-                  "jersey": {
-                    "base": "ffff00",
-                    "shirtType": "short_sleeves",
-                    "sleeve": "ffff00",
-                    "sleeveDetails": "076450",
-                    "style": "",
-                    "styleColor": "ffff00"
-                  },
-                  "name": "Mirassol FC SP"
-                },
-                "iid": 3944347,
-                "inplay": false,
-                "kickoffTime": 1759356000,
-                "marketInfo": {
-                  "ad": false,
-                  "cr": false,
-                  "ot": false,
-                  "otcr": false,
-                  "otRedCard": false,
-                  "pk": false,
-                  "redCard": false
-                },
-                "mids": {
-                  "amid": 0,
-                  "bmid": 0,
-                  "cmid": 0,
-                  "dmid": 0,
-                  "fmid": 0,
-                  "jmid": 0
-                },
-                "name": "Mirassol FC SP-vs-Red Bull Bragantino SP",
-                "nv": false,
-                "round": {
-                  "roundGroup": "",
-                  "roundGroupName": "",
-                  "roundName": "Brasileiro Serie A",
-                  "roundNumber": "26",
-                  "roundType": "group"
-                },
-                "scoreId": "",
-                "series": "",
-                "sid": 1,
-                "state": "",
-                "streaming": 0,
-                "tid": 49,
-                "tnName": "Brazil Serie A",
-                "tnPriority": 7000018,
-                "vd": "b",
-                "video": false,
-                "videos": [],
-                "eps": [
-                  "b",
-                  "c",
-                  "j"
-                ],
-                "gifs": [],
-                "detail": null
-              },
-              {
-                "anchors": [],
-                "away": {
-                  "cid": 11,
-                  "id": 1120,
-                  "jersey": {
-                    "base": "ffffff",
-                    "shirtType": "short_sleeves",
-                    "sleeve": "ffffff",
-                    "sleeveDetails": "b14354",
-                    "style": "",
-                    "styleColor": "ffffff"
-                  },
-                  "name": "Fluminense FC RJ"
-                },
-                "chatMid": 0,
-                "cid": 11,
-                "countdown": 40,
-                "gifMid": 0,
-                "graphMid": 0,
-                "home": {
-                  "cid": 11,
-                  "id": 6665,
-                  "jersey": {
-                    "base": "ff0000",
-                    "shirtType": "short_sleeves",
-                    "sleeve": "ff0000",
-                    "sleeveDetails": "d6b266",
-                    "style": "",
-                    "styleColor": "ff0000"
-                  },
-                  "name": "SC Recife PE"
-                },
-                "iid": 3944349,
-                "inplay": false,
-                "kickoffTime": 1759356000,
-                "marketInfo": {
-                  "ad": false,
-                  "cr": false,
-                  "ot": false,
-                  "otcr": false,
-                  "otRedCard": false,
-                  "pk": false,
-                  "redCard": false
-                },
-                "mids": {
-                  "amid": 0,
-                  "bmid": 0,
-                  "cmid": 0,
-                  "dmid": 0,
-                  "fmid": 0,
-                  "jmid": 0
-                },
-                "name": "SC Recife PE-vs-Fluminense FC RJ",
-                "nv": false,
-                "round": {
-                  "roundGroup": "",
-                  "roundGroupName": "",
-                  "roundName": "Brasileiro Serie A",
-                  "roundNumber": "26",
-                  "roundType": "group"
-                },
-                "scoreId": "",
-                "series": "",
-                "sid": 1,
-                "state": "",
-                "streaming": 0,
-                "tid": 49,
-                "tnName": "Brazil Serie A",
-                "tnPriority": 7000018,
-                "vd": "b",
-                "video": false,
-                "videos": [],
-                "eps": [
-                  "b",
-                  "c",
-                  "j"
-                ],
-                "gifs": [],
-                "detail": null
-              },
-              {
-                "anchors": [
-                  {
                     "houseId": "102632",
-                    "liveStatus": 1,
+                    "liveStatus": 2,
                     "visitHistory": 0,
                     "playStreamAddress": "https://live5.vv1y9.com/live/102632.flv?txSecret=ae7523b6b734c6da752d85fac8cb483c&txTime=198F62900E7",
                     "playStreamAddress2": "https://live5.vv1y9.com/live/102632.m3u8?txSecret=ae7523b6b734c6da752d85fac8cb483c&txTime=198F62900E7",
@@ -4373,7 +4245,7 @@
                 },
                 "chatMid": 0,
                 "cid": 11,
-                "countdown": 70,
+                "countdown": 11,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -4425,7 +4297,7 @@
                 "streaming": 0,
                 "tid": 49,
                 "tnName": "Brazil Serie A",
-                "tnPriority": 7000018,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -4454,7 +4326,7 @@
                 },
                 "chatMid": 0,
                 "cid": 11,
-                "countdown": 190,
+                "countdown": 131,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -4506,7 +4378,7 @@
                 "streaming": 0,
                 "tid": 49,
                 "tnName": "Brazil Serie A",
-                "tnPriority": 7000018,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -4563,7 +4435,7 @@
                 },
                 "chatMid": 0,
                 "cid": 11,
-                "countdown": 190,
+                "countdown": 131,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -4615,7 +4487,88 @@
                 "streaming": 0,
                 "tid": 49,
                 "tnName": "Brazil Serie A",
-                "tnPriority": 7000018,
+                "tnPriority": 9999999,
+                "vd": "b",
+                "video": false,
+                "videos": [],
+                "eps": [
+                  "b",
+                  "c",
+                  "j"
+                ],
+                "gifs": [],
+                "detail": null
+              },
+              {
+                "anchors": [],
+                "away": {
+                  "cid": 11,
+                  "id": 7038,
+                  "jersey": {
+                    "base": "ffffff",
+                    "shirtType": "short_sleeves",
+                    "sleeve": "ffffff",
+                    "sleeveDetails": "",
+                    "style": "",
+                    "styleColor": "ffffff"
+                  },
+                  "name": "Ceara SC CE"
+                },
+                "chatMid": 0,
+                "cid": 11,
+                "countdown": 1421,
+                "gifMid": 0,
+                "graphMid": 0,
+                "home": {
+                  "cid": 11,
+                  "id": 6908,
+                  "jersey": {
+                    "base": "ff0000",
+                    "shirtType": "short_sleeves",
+                    "sleeve": "ff0000",
+                    "sleeveDetails": "000000",
+                    "style": "stripes",
+                    "styleColor": "ff0000"
+                  },
+                  "name": "EC Vitoria BA"
+                },
+                "iid": 3945612,
+                "inplay": false,
+                "kickoffTime": 1759442400,
+                "marketInfo": {
+                  "ad": false,
+                  "cr": false,
+                  "ot": false,
+                  "otcr": false,
+                  "otRedCard": false,
+                  "pk": false,
+                  "redCard": false
+                },
+                "mids": {
+                  "amid": 0,
+                  "bmid": 0,
+                  "cmid": 0,
+                  "dmid": 0,
+                  "fmid": 0,
+                  "jmid": 0
+                },
+                "name": "EC Vitoria BA-vs-Ceara SC CE",
+                "nv": false,
+                "round": {
+                  "roundGroup": "",
+                  "roundGroupName": "",
+                  "roundName": "Brasileiro Serie A",
+                  "roundNumber": "26",
+                  "roundType": "group"
+                },
+                "scoreId": "",
+                "series": "",
+                "sid": 1,
+                "state": "",
+                "streaming": 0,
+                "tid": 49,
+                "tnName": "Brazil Serie A",
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -4629,7 +4582,7 @@
               }
             ],
             "name": "Brazil Serie A",
-            "priority": 7000018,
+            "priority": 9999999,
             "sid": 1,
             "tid": 49,
             "score": 0,
@@ -4686,7 +4639,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 1165,
+                "countdown": 1106,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -4738,7 +4691,7 @@
                 "streaming": 0,
                 "tid": 22630,
                 "tnName": "UEFA Europa Conference League",
-                "tnPriority": 7000023,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -4767,7 +4720,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 1165,
+                "countdown": 1106,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -4819,7 +4772,7 @@
                 "streaming": 0,
                 "tid": 22630,
                 "tnName": "UEFA Europa Conference League",
-                "tnPriority": 7000023,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -4848,7 +4801,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 1165,
+                "countdown": 1106,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -4900,7 +4853,7 @@
                 "streaming": 0,
                 "tid": 22630,
                 "tnName": "UEFA Europa Conference League",
-                "tnPriority": 7000023,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -4929,7 +4882,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 1165,
+                "countdown": 1106,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -4981,7 +4934,7 @@
                 "streaming": 0,
                 "tid": 22630,
                 "tnName": "UEFA Europa Conference League",
-                "tnPriority": 7000023,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -5010,7 +4963,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 1165,
+                "countdown": 1106,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -5062,7 +5015,7 @@
                 "streaming": 0,
                 "tid": 22630,
                 "tnName": "UEFA Europa Conference League",
-                "tnPriority": 7000023,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -5091,7 +5044,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 1165,
+                "countdown": 1106,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -5143,7 +5096,7 @@
                 "streaming": 0,
                 "tid": 22630,
                 "tnName": "UEFA Europa Conference League",
-                "tnPriority": 7000023,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -5172,7 +5125,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 1165,
+                "countdown": 1106,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -5224,7 +5177,7 @@
                 "streaming": 0,
                 "tid": 22630,
                 "tnName": "UEFA Europa Conference League",
-                "tnPriority": 7000023,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -5253,7 +5206,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 1165,
+                "countdown": 1106,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -5305,7 +5258,7 @@
                 "streaming": 0,
                 "tid": 22630,
                 "tnName": "UEFA Europa Conference League",
-                "tnPriority": 7000023,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -5334,7 +5287,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 1165,
+                "countdown": 1106,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -5386,7 +5339,7 @@
                 "streaming": 0,
                 "tid": 22630,
                 "tnName": "UEFA Europa Conference League",
-                "tnPriority": 7000023,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -5415,7 +5368,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 1300,
+                "countdown": 1241,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -5467,7 +5420,7 @@
                 "streaming": 0,
                 "tid": 22630,
                 "tnName": "UEFA Europa Conference League",
-                "tnPriority": 7000023,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -5496,7 +5449,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 1300,
+                "countdown": 1241,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -5548,7 +5501,7 @@
                 "streaming": 0,
                 "tid": 22630,
                 "tnName": "UEFA Europa Conference League",
-                "tnPriority": 7000023,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -5577,7 +5530,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 1300,
+                "countdown": 1241,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -5629,7 +5582,7 @@
                 "streaming": 0,
                 "tid": 22630,
                 "tnName": "UEFA Europa Conference League",
-                "tnPriority": 7000023,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -5686,7 +5639,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 1300,
+                "countdown": 1241,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -5738,7 +5691,7 @@
                 "streaming": 0,
                 "tid": 22630,
                 "tnName": "UEFA Europa Conference League",
-                "tnPriority": 7000023,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -5767,7 +5720,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 1300,
+                "countdown": 1241,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -5819,7 +5772,7 @@
                 "streaming": 0,
                 "tid": 22630,
                 "tnName": "UEFA Europa Conference League",
-                "tnPriority": 7000023,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -5848,7 +5801,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 1300,
+                "countdown": 1241,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -5900,7 +5853,7 @@
                 "streaming": 0,
                 "tid": 22630,
                 "tnName": "UEFA Europa Conference League",
-                "tnPriority": 7000023,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -5929,7 +5882,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 1300,
+                "countdown": 1241,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -5981,7 +5934,7 @@
                 "streaming": 0,
                 "tid": 22630,
                 "tnName": "UEFA Europa Conference League",
-                "tnPriority": 7000023,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -6010,7 +5963,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 1300,
+                "countdown": 1241,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -6062,7 +6015,7 @@
                 "streaming": 0,
                 "tid": 22630,
                 "tnName": "UEFA Europa Conference League",
-                "tnPriority": 7000023,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -6091,7 +6044,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 1300,
+                "countdown": 1241,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -6143,7 +6096,7 @@
                 "streaming": 0,
                 "tid": 22630,
                 "tnName": "UEFA Europa Conference League",
-                "tnPriority": 7000023,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -6157,7 +6110,7 @@
               }
             ],
             "name": "UEFA Europa Conference League",
-            "priority": 7000023,
+            "priority": 9999999,
             "sid": 1,
             "tid": 22630,
             "score": 0,
@@ -6186,7 +6139,7 @@
                 },
                 "chatMid": 0,
                 "cid": 36,
-                "countdown": 1060,
+                "countdown": 1001,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -6238,7 +6191,7 @@
                 "streaming": 0,
                 "tid": 59,
                 "tnName": "Qatar Stars Cup",
-                "tnPriority": 7000026,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -6295,7 +6248,7 @@
                 },
                 "chatMid": 0,
                 "cid": 36,
-                "countdown": 1060,
+                "countdown": 1001,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -6347,7 +6300,7 @@
                 "streaming": 0,
                 "tid": 59,
                 "tnName": "Qatar Stars Cup",
-                "tnPriority": 7000026,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -6376,7 +6329,7 @@
                 },
                 "chatMid": 0,
                 "cid": 36,
-                "countdown": 1180,
+                "countdown": 1121,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -6428,7 +6381,7 @@
                 "streaming": 0,
                 "tid": 59,
                 "tnName": "Qatar Stars Cup",
-                "tnPriority": 7000026,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -6442,9 +6395,104 @@
               }
             ],
             "name": "Qatar Stars Cup",
-            "priority": 7000026,
+            "priority": 9999999,
             "sid": 1,
             "tid": 59,
+            "score": 0,
+            "mainOrder": 0,
+            "subOrder": 0
+          },
+          {
+            "cid": 11,
+            "count": 1,
+            "favorite": false,
+            "matches": [
+              {
+                "anchors": [],
+                "away": {
+                  "cid": 11,
+                  "id": 6659,
+                  "jersey": {
+                    "base": "ffffff",
+                    "shirtType": "short_sleeves",
+                    "sleeve": "ffffff",
+                    "sleeveDetails": "4e976d",
+                    "style": "",
+                    "styleColor": "ffffff"
+                  },
+                  "name": "Cuiaba EC MT"
+                },
+                "chatMid": 0,
+                "cid": 11,
+                "countdown": 1421,
+                "gifMid": 0,
+                "graphMid": 0,
+                "home": {
+                  "cid": 11,
+                  "id": 6358,
+                  "jersey": {
+                    "base": "ffffff",
+                    "shirtType": "short_sleeves",
+                    "sleeve": "97b8d7",
+                    "sleeveDetails": "bfa22b",
+                    "style": "stripes",
+                    "styleColor": "ffffff"
+                  },
+                  "name": "Paysandu SC PA"
+                },
+                "iid": 3955343,
+                "inplay": false,
+                "kickoffTime": 1759442400,
+                "marketInfo": {
+                  "ad": false,
+                  "cr": false,
+                  "ot": false,
+                  "otcr": false,
+                  "otRedCard": false,
+                  "pk": false,
+                  "redCard": false
+                },
+                "mids": {
+                  "amid": 0,
+                  "bmid": 0,
+                  "cmid": 0,
+                  "dmid": 0,
+                  "fmid": 0,
+                  "jmid": 0
+                },
+                "name": "Paysandu SC PA-vs-Cuiaba EC MT",
+                "nv": false,
+                "round": {
+                  "roundGroup": "",
+                  "roundGroupName": "",
+                  "roundName": "Brasileiro Serie B",
+                  "roundNumber": "30",
+                  "roundType": "group"
+                },
+                "scoreId": "",
+                "series": "",
+                "sid": 1,
+                "state": "",
+                "streaming": 0,
+                "tid": 7147,
+                "tnName": "Brazil Serie B",
+                "tnPriority": 9999999,
+                "vd": "b",
+                "video": false,
+                "videos": [],
+                "eps": [
+                  "b",
+                  "c",
+                  "j"
+                ],
+                "gifs": [],
+                "detail": null
+              }
+            ],
+            "name": "Brazil Serie B",
+            "priority": 9999999,
+            "sid": 1,
+            "tid": 7147,
             "score": 0,
             "mainOrder": 0,
             "subOrder": 0
@@ -6471,7 +6519,7 @@
                 },
                 "chatMid": 0,
                 "cid": 86,
-                "countdown": 1180,
+                "countdown": 1121,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -6523,7 +6571,7 @@
                 "streaming": 0,
                 "tid": 496,
                 "tnName": "Poland 1 Liga",
-                "tnPriority": 7000074,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -6537,7 +6585,7 @@
               }
             ],
             "name": "Poland 1 Liga",
-            "priority": 7000074,
+            "priority": 9999999,
             "sid": 1,
             "tid": 496,
             "score": 0,
@@ -6566,7 +6614,7 @@
                 },
                 "chatMid": 0,
                 "cid": 85,
-                "countdown": 1150,
+                "countdown": 1091,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -6618,7 +6666,7 @@
                 "streaming": 0,
                 "tid": 270,
                 "tnName": "Piala Rusia",
-                "tnPriority": 8000044,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -6632,7 +6680,7 @@
               }
             ],
             "name": "Piala Rusia",
-            "priority": 8000044,
+            "priority": 9999999,
             "sid": 1,
             "tid": 270,
             "score": 0,
@@ -6689,7 +6737,7 @@
                 },
                 "chatMid": 0,
                 "cid": 21,
-                "countdown": 520,
+                "countdown": 461,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -6741,7 +6789,7 @@
                 "streaming": 0,
                 "tid": 21944,
                 "tnName": "Korea WK League Women Playoff",
-                "tnPriority": 8000090,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -6770,7 +6818,7 @@
                 },
                 "chatMid": 0,
                 "cid": 21,
-                "countdown": 760,
+                "countdown": 701,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -6822,7 +6870,7 @@
                 "streaming": 0,
                 "tid": 21944,
                 "tnName": "Korea WK League Women Playoff",
-                "tnPriority": 8000090,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -6851,7 +6899,7 @@
                 },
                 "chatMid": 0,
                 "cid": 21,
-                "countdown": 760,
+                "countdown": 701,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -6903,7 +6951,7 @@
                 "streaming": 0,
                 "tid": 21944,
                 "tnName": "Korea WK League Women Playoff",
-                "tnPriority": 8000090,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -6932,7 +6980,7 @@
                 },
                 "chatMid": 0,
                 "cid": 21,
-                "countdown": 760,
+                "countdown": 701,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -6984,7 +7032,7 @@
                 "streaming": 0,
                 "tid": 21944,
                 "tnName": "Korea WK League Women Playoff",
-                "tnPriority": 8000090,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -6998,7 +7046,7 @@
               }
             ],
             "name": "Korea WK League Women Playoff",
-            "priority": 8000090,
+            "priority": 9999999,
             "sid": 1,
             "tid": 21944,
             "score": 0,
@@ -7027,7 +7075,7 @@
                 },
                 "chatMid": 0,
                 "cid": 134,
-                "countdown": 1165,
+                "countdown": 1106,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -7079,7 +7127,7 @@
                 "streaming": 0,
                 "tid": 34,
                 "tnName": "Malta Premier League",
-                "tnPriority": 8000108,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -7108,7 +7156,7 @@
                 },
                 "chatMid": 0,
                 "cid": 134,
-                "countdown": 1300,
+                "countdown": 1241,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -7160,7 +7208,7 @@
                 "streaming": 0,
                 "tid": 34,
                 "tnName": "Malta Premier League",
-                "tnPriority": 8000108,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -7174,7 +7222,7 @@
               }
             ],
             "name": "Malta Premier League",
-            "priority": 8000108,
+            "priority": 9999999,
             "sid": 1,
             "tid": 34,
             "score": 0,
@@ -7231,7 +7279,7 @@
                 },
                 "chatMid": 0,
                 "cid": 54,
-                "countdown": 310,
+                "countdown": 251,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -7283,7 +7331,7 @@
                 "streaming": 0,
                 "tid": 23493,
                 "tnName": "NAFU Campeones Cup",
-                "tnPriority": 9000035,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -7297,7 +7345,7 @@
               }
             ],
             "name": "NAFU Campeones Cup",
-            "priority": 9000035,
+            "priority": 9999999,
             "sid": 1,
             "tid": 23493,
             "score": 0,
@@ -7326,7 +7374,7 @@
                 },
                 "chatMid": 0,
                 "cid": 30,
-                "countdown": 160,
+                "countdown": 101,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -7378,7 +7426,7 @@
                 "streaming": 0,
                 "tid": 8265,
                 "tnName": "Ecuador Cup",
-                "tnPriority": 9000106,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -7392,7 +7440,7 @@
               }
             ],
             "name": "Ecuador Cup",
-            "priority": 9000106,
+            "priority": 9999999,
             "sid": 1,
             "tid": 8265,
             "score": 0,
@@ -7421,7 +7469,7 @@
                 },
                 "chatMid": 0,
                 "cid": 38,
-                "countdown": 1420,
+                "countdown": 1361,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -7473,7 +7521,7 @@
                 "streaming": 0,
                 "tid": 152,
                 "tnName": "Argentina Cup",
-                "tnPriority": 10000018,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -7487,7 +7535,7 @@
               }
             ],
             "name": "Argentina Cup",
-            "priority": 10000018,
+            "priority": 9999999,
             "sid": 1,
             "tid": 152,
             "score": 0,
@@ -7544,7 +7592,7 @@
                 },
                 "chatMid": 0,
                 "cid": 12,
-                "countdown": 160,
+                "countdown": 101,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -7596,7 +7644,7 @@
                 "streaming": 0,
                 "tid": 28518,
                 "tnName": "USA Open Cup",
-                "tnPriority": 10000050,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -7610,7 +7658,7 @@
               }
             ],
             "name": "USA Open Cup",
-            "priority": 10000050,
+            "priority": 9999999,
             "sid": 1,
             "tid": 28518,
             "score": 0,
@@ -7639,7 +7687,7 @@
                 },
                 "chatMid": 0,
                 "cid": 61,
-                "countdown": 550,
+                "countdown": 491,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -7691,7 +7739,7 @@
                 "streaming": 0,
                 "tid": 315,
                 "tnName": "India Mizoram Premier League",
-                "tnPriority": 10000101,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -7720,7 +7768,7 @@
                 },
                 "chatMid": 0,
                 "cid": 61,
-                "countdown": 730,
+                "countdown": 671,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -7772,7 +7820,7 @@
                 "streaming": 0,
                 "tid": 315,
                 "tnName": "India Mizoram Premier League",
-                "tnPriority": 10000101,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -7786,7 +7834,7 @@
               }
             ],
             "name": "India Mizoram Premier League",
-            "priority": 10000101,
+            "priority": 9999999,
             "sid": 1,
             "tid": 315,
             "score": 0,
@@ -7815,7 +7863,7 @@
                 },
                 "chatMid": 0,
                 "cid": 69,
-                "countdown": 1300,
+                "countdown": 1241,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -7867,7 +7915,7 @@
                 "streaming": 0,
                 "tid": 23847,
                 "tnName": "CONMEBOL Libertadores Women",
-                "tnPriority": 10000125,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -7896,7 +7944,7 @@
                 },
                 "chatMid": 0,
                 "cid": 69,
-                "countdown": 1300,
+                "countdown": 1241,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -7948,7 +7996,7 @@
                 "streaming": 0,
                 "tid": 23847,
                 "tnName": "CONMEBOL Libertadores Women",
-                "tnPriority": 10000125,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -7962,7 +8010,7 @@
               }
             ],
             "name": "CONMEBOL Libertadores Women",
-            "priority": 10000125,
+            "priority": 9999999,
             "sid": 1,
             "tid": 23847,
             "score": 0,
@@ -7991,7 +8039,7 @@
                 },
                 "chatMid": 0,
                 "cid": 12,
-                "countdown": 160,
+                "countdown": 101,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -8043,7 +8091,7 @@
                 "streaming": 0,
                 "tid": 3643,
                 "tnName": "USA USL Championship",
-                "tnPriority": 10000127,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -8072,7 +8120,7 @@
                 },
                 "chatMid": 0,
                 "cid": 12,
-                "countdown": 310,
+                "countdown": 251,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -8124,7 +8172,7 @@
                 "streaming": 0,
                 "tid": 3643,
                 "tnName": "USA USL Championship",
-                "tnPriority": 10000127,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -8138,7 +8186,7 @@
               }
             ],
             "name": "USA USL Championship",
-            "priority": 10000127,
+            "priority": 9999999,
             "sid": 1,
             "tid": 3643,
             "score": 0,
@@ -8167,7 +8215,7 @@
                 },
                 "chatMid": 0,
                 "cid": 77,
-                "countdown": 130,
+                "countdown": 71,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -8219,7 +8267,7 @@
                 "streaming": 0,
                 "tid": 26109,
                 "tnName": "Uruguay Cup",
-                "tnPriority": 11000003,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -8233,7 +8281,7 @@
               }
             ],
             "name": "Uruguay Cup",
-            "priority": 11000003,
+            "priority": 9999999,
             "sid": 1,
             "tid": 26109,
             "score": 0,
@@ -8262,7 +8310,7 @@
                 },
                 "chatMid": 0,
                 "cid": 293,
-                "countdown": 280,
+                "countdown": 221,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -8314,7 +8362,7 @@
                 "streaming": 0,
                 "tid": 23126,
                 "tnName": "Canada Championship",
-                "tnPriority": 11000012,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -8328,7 +8376,7 @@
               }
             ],
             "name": "Canada Championship",
-            "priority": 11000012,
+            "priority": 9999999,
             "sid": 1,
             "tid": 23126,
             "score": 0,
@@ -8357,7 +8405,7 @@
                 },
                 "chatMid": 0,
                 "cid": 16,
-                "countdown": 1120,
+                "countdown": 1061,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -8409,7 +8457,7 @@
                 "streaming": 0,
                 "tid": 6940,
                 "tnName": "Norway Toppserien Women",
-                "tnPriority": 11000030,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -8423,7 +8471,7 @@
               }
             ],
             "name": "Norway Toppserien Women",
-            "priority": 11000030,
+            "priority": 9999999,
             "sid": 1,
             "tid": 6940,
             "score": 0,
@@ -8452,7 +8500,7 @@
                 },
                 "chatMid": 0,
                 "cid": 16,
-                "countdown": 850,
+                "countdown": 791,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -8504,7 +8552,7 @@
                 "streaming": 0,
                 "tid": 8288,
                 "tnName": "Norway National League U19 Playoff",
-                "tnPriority": 11000042,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -8518,7 +8566,7 @@
               }
             ],
             "name": "Norway National League U19 Playoff",
-            "priority": 11000042,
+            "priority": 9999999,
             "sid": 1,
             "tid": 8288,
             "score": 0,
@@ -8547,7 +8595,7 @@
                 },
                 "chatMid": 0,
                 "cid": 12,
-                "countdown": 130,
+                "countdown": 71,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -8599,7 +8647,7 @@
                 "streaming": 0,
                 "tid": 25121,
                 "tnName": "USA MLS Next Pro",
-                "tnPriority": 11000085,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -8628,7 +8676,7 @@
                 },
                 "chatMid": 0,
                 "cid": 12,
-                "countdown": 280,
+                "countdown": 221,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -8680,7 +8728,7 @@
                 "streaming": 0,
                 "tid": 25121,
                 "tnName": "USA MLS Next Pro",
-                "tnPriority": 11000085,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -8694,7 +8742,7 @@
               }
             ],
             "name": "USA MLS Next Pro",
-            "priority": 11000085,
+            "priority": 9999999,
             "sid": 1,
             "tid": 25121,
             "score": 0,
@@ -8723,7 +8771,7 @@
                 },
                 "chatMid": 0,
                 "cid": 41,
-                "countdown": 700,
+                "countdown": 641,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -8775,7 +8823,7 @@
                 "streaming": 0,
                 "tid": 25021,
                 "tnName": "Vietnam V League 2",
-                "tnPriority": 12000021,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -8804,7 +8852,7 @@
                 },
                 "chatMid": 0,
                 "cid": 41,
-                "countdown": 760,
+                "countdown": 701,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -8856,7 +8904,7 @@
                 "streaming": 0,
                 "tid": 25021,
                 "tnName": "Vietnam V League 2",
-                "tnPriority": 12000021,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -8870,7 +8918,7 @@
               }
             ],
             "name": "Vietnam V League 2",
-            "priority": 12000021,
+            "priority": 9999999,
             "sid": 1,
             "tid": 25021,
             "score": 0,
@@ -8899,7 +8947,7 @@
                 },
                 "chatMid": 0,
                 "cid": 83,
-                "countdown": 910,
+                "countdown": 851,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -8951,7 +8999,7 @@
                 "streaming": 0,
                 "tid": 942,
                 "tnName": "Egypt Second Division A",
-                "tnPriority": 12000023,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -8980,7 +9028,7 @@
                 },
                 "chatMid": 0,
                 "cid": 83,
-                "countdown": 910,
+                "countdown": 851,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -9032,7 +9080,7 @@
                 "streaming": 0,
                 "tid": 942,
                 "tnName": "Egypt Second Division A",
-                "tnPriority": 12000023,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -9061,7 +9109,7 @@
                 },
                 "chatMid": 0,
                 "cid": 83,
-                "countdown": 910,
+                "countdown": 851,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -9113,7 +9161,7 @@
                 "streaming": 0,
                 "tid": 942,
                 "tnName": "Egypt Second Division A",
-                "tnPriority": 12000023,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -9142,7 +9190,7 @@
                 },
                 "chatMid": 0,
                 "cid": 83,
-                "countdown": 910,
+                "countdown": 851,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -9194,7 +9242,7 @@
                 "streaming": 0,
                 "tid": 942,
                 "tnName": "Egypt Second Division A",
-                "tnPriority": 12000023,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -9223,7 +9271,7 @@
                 },
                 "chatMid": 0,
                 "cid": 83,
-                "countdown": 910,
+                "countdown": 851,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -9275,7 +9323,7 @@
                 "streaming": 0,
                 "tid": 942,
                 "tnName": "Egypt Second Division A",
-                "tnPriority": 12000023,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -9304,7 +9352,7 @@
                 },
                 "chatMid": 0,
                 "cid": 83,
-                "countdown": 910,
+                "countdown": 851,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -9356,7 +9404,7 @@
                 "streaming": 0,
                 "tid": 942,
                 "tnName": "Egypt Second Division A",
-                "tnPriority": 12000023,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -9385,7 +9433,7 @@
                 },
                 "chatMid": 0,
                 "cid": 83,
-                "countdown": 1060,
+                "countdown": 1001,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -9437,7 +9485,7 @@
                 "streaming": 0,
                 "tid": 942,
                 "tnName": "Egypt Second Division A",
-                "tnPriority": 12000023,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -9466,7 +9514,7 @@
                 },
                 "chatMid": 0,
                 "cid": 83,
-                "countdown": 1060,
+                "countdown": 1001,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -9518,7 +9566,7 @@
                 "streaming": 0,
                 "tid": 942,
                 "tnName": "Egypt Second Division A",
-                "tnPriority": 12000023,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -9532,7 +9580,7 @@
               }
             ],
             "name": "Egypt Second Division A",
-            "priority": 12000023,
+            "priority": 9999999,
             "sid": 1,
             "tid": 942,
             "score": 0,
@@ -9561,7 +9609,7 @@
                 },
                 "chatMid": 0,
                 "cid": 38,
-                "countdown": 940,
+                "countdown": 881,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -9613,7 +9661,7 @@
                 "streaming": 0,
                 "tid": 35070,
                 "tnName": "Argentina Primera Nacional Reserves",
-                "tnPriority": 12000060,
+                "tnPriority": 9999999,
                 "vd": "c",
                 "video": false,
                 "videos": [],
@@ -9642,7 +9690,7 @@
                 },
                 "chatMid": 0,
                 "cid": 38,
-                "countdown": 1060,
+                "countdown": 1001,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -9694,7 +9742,7 @@
                 "streaming": 0,
                 "tid": 35070,
                 "tnName": "Argentina Primera Nacional Reserves",
-                "tnPriority": 12000060,
+                "tnPriority": 9999999,
                 "vd": "c",
                 "video": false,
                 "videos": [],
@@ -9723,7 +9771,7 @@
                 },
                 "chatMid": 0,
                 "cid": 38,
-                "countdown": 1120,
+                "countdown": 1061,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -9775,7 +9823,7 @@
                 "streaming": 0,
                 "tid": 35070,
                 "tnName": "Argentina Primera Nacional Reserves",
-                "tnPriority": 12000060,
+                "tnPriority": 9999999,
                 "vd": "c",
                 "video": false,
                 "videos": [],
@@ -9789,7 +9837,7 @@
               }
             ],
             "name": "Argentina Primera Nacional Reserves",
-            "priority": 12000060,
+            "priority": 9999999,
             "sid": 1,
             "tid": 35070,
             "score": 0,
@@ -9818,7 +9866,7 @@
                 },
                 "chatMid": 0,
                 "cid": 5,
-                "countdown": 1180,
+                "countdown": 1121,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -9870,7 +9918,7 @@
                 "streaming": 0,
                 "tid": 559,
                 "tnName": "Germany Regionalliga North",
-                "tnPriority": 12000078,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -9884,7 +9932,7 @@
               }
             ],
             "name": "Germany Regionalliga North",
-            "priority": 12000078,
+            "priority": 9999999,
             "sid": 1,
             "tid": 559,
             "score": 0,
@@ -9913,7 +9961,7 @@
                 },
                 "chatMid": 0,
                 "cid": 10,
-                "countdown": 160,
+                "countdown": 101,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -9965,7 +10013,7 @@
                 "streaming": 0,
                 "tid": 367,
                 "tnName": "Colombia Cup",
-                "tnPriority": 13000010,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -9994,7 +10042,7 @@
                 },
                 "chatMid": 0,
                 "cid": 10,
-                "countdown": 220,
+                "countdown": 161,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -10046,7 +10094,7 @@
                 "streaming": 0,
                 "tid": 367,
                 "tnName": "Colombia Cup",
-                "tnPriority": 13000010,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -10060,7 +10108,7 @@
               }
             ],
             "name": "Colombia Cup",
-            "priority": 13000010,
+            "priority": 9999999,
             "sid": 1,
             "tid": 367,
             "score": 0,
@@ -10089,7 +10137,7 @@
                 },
                 "chatMid": 0,
                 "cid": 38,
-                "countdown": 880,
+                "countdown": 821,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -10141,7 +10189,7 @@
                 "streaming": 0,
                 "tid": 35068,
                 "tnName": "Argentina Primera B Metropolitana Reserves",
-                "tnPriority": 13000018,
+                "tnPriority": 9999999,
                 "vd": "c",
                 "video": false,
                 "videos": [],
@@ -10170,7 +10218,7 @@
                 },
                 "chatMid": 0,
                 "cid": 38,
-                "countdown": 1120,
+                "countdown": 1061,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -10222,7 +10270,7 @@
                 "streaming": 0,
                 "tid": 35068,
                 "tnName": "Argentina Primera B Metropolitana Reserves",
-                "tnPriority": 13000018,
+                "tnPriority": 9999999,
                 "vd": "c",
                 "video": false,
                 "videos": [],
@@ -10236,7 +10284,7 @@
               }
             ],
             "name": "Argentina Primera B Metropolitana Reserves",
-            "priority": 13000018,
+            "priority": 9999999,
             "sid": 1,
             "tid": 35068,
             "score": 0,
@@ -10265,7 +10313,7 @@
                 },
                 "chatMid": 0,
                 "cid": 5,
-                "countdown": 1150,
+                "countdown": 1091,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -10317,7 +10365,7 @@
                 "streaming": 0,
                 "tid": 27284,
                 "tnName": "Germany Oberliga",
-                "tnPriority": 13000029,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -10346,7 +10394,7 @@
                 },
                 "chatMid": 0,
                 "cid": 5,
-                "countdown": 1180,
+                "countdown": 1121,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -10398,7 +10446,7 @@
                 "streaming": 0,
                 "tid": 27284,
                 "tnName": "Germany Oberliga",
-                "tnPriority": 13000029,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -10427,7 +10475,7 @@
                 },
                 "chatMid": 0,
                 "cid": 5,
-                "countdown": 1180,
+                "countdown": 1121,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -10479,7 +10527,7 @@
                 "streaming": 0,
                 "tid": 27284,
                 "tnName": "Germany Oberliga",
-                "tnPriority": 13000029,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -10508,7 +10556,7 @@
                 },
                 "chatMid": 0,
                 "cid": 5,
-                "countdown": 1210,
+                "countdown": 1151,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -10560,7 +10608,7 @@
                 "streaming": 0,
                 "tid": 27284,
                 "tnName": "Germany Oberliga",
-                "tnPriority": 13000029,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -10589,7 +10637,7 @@
                 },
                 "chatMid": 0,
                 "cid": 5,
-                "countdown": 1210,
+                "countdown": 1151,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -10641,7 +10689,7 @@
                 "streaming": 0,
                 "tid": 27284,
                 "tnName": "Germany Oberliga",
-                "tnPriority": 13000029,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -10655,7 +10703,7 @@
               }
             ],
             "name": "Germany Oberliga",
-            "priority": 13000029,
+            "priority": 9999999,
             "sid": 1,
             "tid": 27284,
             "score": 0,
@@ -10684,7 +10732,7 @@
                 },
                 "chatMid": 0,
                 "cid": 107,
-                "countdown": 100,
+                "countdown": 41,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -10736,7 +10784,7 @@
                 "streaming": 0,
                 "tid": 34690,
                 "tnName": "CONCACAF W Champions Cup Women",
-                "tnPriority": 13000048,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -10765,7 +10813,7 @@
                 },
                 "chatMid": 0,
                 "cid": 107,
-                "countdown": 220,
+                "countdown": 161,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -10817,7 +10865,7 @@
                 "streaming": 0,
                 "tid": 34690,
                 "tnName": "CONCACAF W Champions Cup Women",
-                "tnPriority": 13000048,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -10831,7 +10879,7 @@
               }
             ],
             "name": "CONCACAF W Champions Cup Women",
-            "priority": 13000048,
+            "priority": 9999999,
             "sid": 1,
             "tid": 34690,
             "score": 0,
@@ -10860,7 +10908,7 @@
                 },
                 "chatMid": 0,
                 "cid": 50,
-                "countdown": 100,
+                "countdown": 41,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -10912,7 +10960,7 @@
                 "streaming": 0,
                 "tid": 21301,
                 "tnName": "Peru Liga 1",
-                "tnPriority": 13000049,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -10941,7 +10989,7 @@
                 },
                 "chatMid": 0,
                 "cid": 50,
-                "countdown": 250,
+                "countdown": 191,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -10993,7 +11041,7 @@
                 "streaming": 0,
                 "tid": 21301,
                 "tnName": "Peru Liga 1",
-                "tnPriority": 13000049,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -11007,7 +11055,7 @@
               }
             ],
             "name": "Peru Liga 1",
-            "priority": 13000049,
+            "priority": 9999999,
             "sid": 1,
             "tid": 21301,
             "score": 0,
@@ -11015,46 +11063,46 @@
             "subOrder": 0
           },
           {
-            "cid": 52,
-            "count": 2,
+            "cid": 25,
+            "count": 1,
             "favorite": false,
             "matches": [
               {
                 "anchors": [],
                 "away": {
-                  "cid": 52,
-                  "id": 484657,
+                  "cid": 25,
+                  "id": 2538,
                   "jersey": {
-                    "base": "",
-                    "shirtType": "",
-                    "sleeve": "",
-                    "sleeveDetails": "",
+                    "base": "8a3329",
+                    "shirtType": "short_sleeves",
+                    "sleeve": "8f2d2c",
+                    "sleeveDetails": "ffffff",
                     "style": "",
-                    "styleColor": ""
+                    "styleColor": "8a3329"
                   },
-                  "name": "Deportivo Gomerano"
+                  "name": "Club Nacional Asuncion"
                 },
                 "chatMid": 0,
-                "cid": 52,
-                "countdown": 10,
+                "cid": 25,
+                "countdown": 1421,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
-                  "cid": 52,
-                  "id": 399601,
+                  "cid": 25,
+                  "id": 271834,
                   "jersey": {
-                    "base": "",
-                    "shirtType": "",
-                    "sleeve": "",
+                    "base": "303459",
+                    "shirtType": "short_sleeves",
+                    "sleeve": "303459",
                     "sleeveDetails": "",
                     "style": "",
-                    "styleColor": ""
+                    "styleColor": "303459"
                   },
-                  "name": "Aguacatan FC"
+                  "name": "Sportivo Trinidense"
                 },
-                "iid": 3981653,
+                "iid": 3964140,
                 "inplay": false,
-                "kickoffTime": 1759354200,
+                "kickoffTime": 1759442400,
                 "marketInfo": {
                   "ad": false,
                   "cr": false,
@@ -11072,23 +11120,23 @@
                   "fmid": 0,
                   "jmid": 0
                 },
-                "name": "Aguacatan FC-vs-Deportivo Gomerano",
+                "name": "Sportivo Trinidense-vs-Club Nacional Asuncion",
                 "nv": false,
                 "round": {
-                  "roundGroup": "A",
+                  "roundGroup": "",
                   "roundGroupName": "",
-                  "roundName": "Primera Division, Apertura, Group A",
-                  "roundNumber": "13",
-                  "roundType": "group"
+                  "roundName": "Round of 16",
+                  "roundNumber": "",
+                  "roundType": "cup"
                 },
                 "scoreId": "",
                 "series": "",
                 "sid": 1,
                 "state": "",
                 "streaming": 0,
-                "tid": 27615,
-                "tnName": "Guatemala Primera Division",
-                "tnPriority": 13000052,
+                "tid": 521,
+                "tnName": "Paraguay Cup",
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -11099,7 +11147,21 @@
                 ],
                 "gifs": [],
                 "detail": null
-              },
+              }
+            ],
+            "name": "Paraguay Cup",
+            "priority": 9999999,
+            "sid": 1,
+            "tid": 521,
+            "score": 0,
+            "mainOrder": 0,
+            "subOrder": 0
+          },
+          {
+            "cid": 52,
+            "count": 1,
+            "favorite": false,
+            "matches": [
               {
                 "anchors": [],
                 "away": {
@@ -11117,7 +11179,7 @@
                 },
                 "chatMid": 0,
                 "cid": 52,
-                "countdown": 220,
+                "countdown": 161,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -11169,7 +11231,7 @@
                 "streaming": 0,
                 "tid": 27615,
                 "tnName": "Guatemala Primera Division",
-                "tnPriority": 13000052,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -11183,104 +11245,9 @@
               }
             ],
             "name": "Guatemala Primera Division",
-            "priority": 13000052,
+            "priority": 9999999,
             "sid": 1,
             "tid": 27615,
-            "score": 0,
-            "mainOrder": 0,
-            "subOrder": 0
-          },
-          {
-            "cid": 25,
-            "count": 1,
-            "favorite": false,
-            "matches": [
-              {
-                "anchors": [],
-                "away": {
-                  "cid": 25,
-                  "id": 473,
-                  "jersey": {
-                    "base": "ffffff",
-                    "shirtType": "short_sleeves",
-                    "sleeve": "ffffff",
-                    "sleeveDetails": "",
-                    "style": "",
-                    "styleColor": "ffffff"
-                  },
-                  "name": "Club Guarani"
-                },
-                "chatMid": 0,
-                "cid": 25,
-                "countdown": 40,
-                "gifMid": 0,
-                "graphMid": 0,
-                "home": {
-                  "cid": 25,
-                  "id": 1089,
-                  "jersey": {
-                    "base": "ffffff",
-                    "shirtType": "short_sleeves",
-                    "sleeve": "000000",
-                    "sleeveDetails": "",
-                    "style": "",
-                    "styleColor": "ffffff"
-                  },
-                  "name": "Club Libertad"
-                },
-                "iid": 3964161,
-                "inplay": false,
-                "kickoffTime": 1759356000,
-                "marketInfo": {
-                  "ad": false,
-                  "cr": false,
-                  "ot": false,
-                  "otcr": false,
-                  "otRedCard": false,
-                  "pk": false,
-                  "redCard": false
-                },
-                "mids": {
-                  "amid": 0,
-                  "bmid": 0,
-                  "cmid": 0,
-                  "dmid": 0,
-                  "fmid": 0,
-                  "jmid": 0
-                },
-                "name": "Club Libertad-vs-Club Guarani",
-                "nv": false,
-                "round": {
-                  "roundGroup": "",
-                  "roundGroupName": "",
-                  "roundName": "Round of 16",
-                  "roundNumber": "",
-                  "roundType": "cup"
-                },
-                "scoreId": "",
-                "series": "",
-                "sid": 1,
-                "state": "",
-                "streaming": 0,
-                "tid": 521,
-                "tnName": "Paraguay Cup",
-                "tnPriority": 13000062,
-                "vd": "b",
-                "video": false,
-                "videos": [],
-                "eps": [
-                  "b",
-                  "c",
-                  "j"
-                ],
-                "gifs": [],
-                "detail": null
-              }
-            ],
-            "name": "Paraguay Cup",
-            "priority": 13000062,
-            "sid": 1,
-            "tid": 521,
             "score": 0,
             "mainOrder": 0,
             "subOrder": 0
@@ -11307,7 +11274,7 @@
                 },
                 "chatMid": 0,
                 "cid": 51,
-                "countdown": 100,
+                "countdown": 41,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -11359,7 +11326,7 @@
                 "streaming": 0,
                 "tid": 24465,
                 "tnName": "Costa Rica Cup",
-                "tnPriority": 13000065,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -11388,7 +11355,7 @@
                 },
                 "chatMid": 0,
                 "cid": 51,
-                "countdown": 280,
+                "countdown": 221,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -11440,7 +11407,7 @@
                 "streaming": 0,
                 "tid": 24465,
                 "tnName": "Costa Rica Cup",
-                "tnPriority": 13000065,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -11469,7 +11436,7 @@
                 },
                 "chatMid": 0,
                 "cid": 51,
-                "countdown": 1420,
+                "countdown": 1361,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -11521,7 +11488,7 @@
                 "streaming": 0,
                 "tid": 24465,
                 "tnName": "Costa Rica Cup",
-                "tnPriority": 13000065,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -11535,7 +11502,7 @@
               }
             ],
             "name": "Costa Rica Cup",
-            "priority": 13000065,
+            "priority": 9999999,
             "sid": 1,
             "tid": 24465,
             "score": 0,
@@ -11544,171 +11511,9 @@
           },
           {
             "cid": 38,
-            "count": 6,
+            "count": 5,
             "favorite": false,
             "matches": [
-              {
-                "anchors": [],
-                "away": {
-                  "cid": 38,
-                  "id": 7425,
-                  "jersey": {
-                    "base": "",
-                    "shirtType": "",
-                    "sleeve": "",
-                    "sleeveDetails": "",
-                    "style": "",
-                    "styleColor": ""
-                  },
-                  "name": "Estudiantes de La Plata Reserves"
-                },
-                "chatMid": 0,
-                "cid": 38,
-                "countdown": 40,
-                "gifMid": 0,
-                "graphMid": 0,
-                "home": {
-                  "cid": 38,
-                  "id": 315080,
-                  "jersey": {
-                    "base": "",
-                    "shirtType": "",
-                    "sleeve": "",
-                    "sleeveDetails": "",
-                    "style": "",
-                    "styleColor": ""
-                  },
-                  "name": "Defensores de Belgrano Reserves"
-                },
-                "iid": 3976353,
-                "inplay": false,
-                "kickoffTime": 1759356000,
-                "marketInfo": {
-                  "ad": false,
-                  "cr": false,
-                  "ot": false,
-                  "otcr": false,
-                  "otRedCard": false,
-                  "pk": false,
-                  "redCard": false
-                },
-                "mids": {
-                  "amid": 0,
-                  "bmid": 0,
-                  "cmid": 0,
-                  "dmid": 0,
-                  "fmid": 0,
-                  "jmid": 0
-                },
-                "name": "Defensores de Belgrano Reserves-vs-Estudiantes de La Plata Reserves",
-                "nv": false,
-                "round": {
-                  "roundGroup": "A",
-                  "roundGroupName": "",
-                  "roundName": "Primera LPF, Reserves, Clausura",
-                  "roundNumber": "12",
-                  "roundType": "group"
-                },
-                "scoreId": "",
-                "series": "",
-                "sid": 1,
-                "state": "",
-                "streaming": 0,
-                "tid": 29525,
-                "tnName": "Argentina Professional Reserve League",
-                "tnPriority": 13000076,
-                "vd": "b",
-                "video": false,
-                "videos": [],
-                "eps": [
-                  "b",
-                  "c",
-                  "j"
-                ],
-                "gifs": [],
-                "detail": null
-              },
-              {
-                "anchors": [],
-                "away": {
-                  "cid": 38,
-                  "id": 367093,
-                  "jersey": {
-                    "base": "",
-                    "shirtType": "",
-                    "sleeve": "",
-                    "sleeveDetails": "",
-                    "style": "",
-                    "styleColor": ""
-                  },
-                  "name": "CA Sarmiento Reserves"
-                },
-                "chatMid": 0,
-                "cid": 38,
-                "countdown": 40,
-                "gifMid": 0,
-                "graphMid": 0,
-                "home": {
-                  "cid": 38,
-                  "id": 1358,
-                  "jersey": {
-                    "base": "",
-                    "shirtType": "",
-                    "sleeve": "",
-                    "sleeveDetails": "",
-                    "style": "",
-                    "styleColor": ""
-                  },
-                  "name": "CA River Plate Reserves"
-                },
-                "iid": 3976354,
-                "inplay": false,
-                "kickoffTime": 1759356000,
-                "marketInfo": {
-                  "ad": false,
-                  "cr": false,
-                  "ot": false,
-                  "otcr": false,
-                  "otRedCard": false,
-                  "pk": false,
-                  "redCard": false
-                },
-                "mids": {
-                  "amid": 0,
-                  "bmid": 0,
-                  "cmid": 0,
-                  "dmid": 0,
-                  "fmid": 0,
-                  "jmid": 0
-                },
-                "name": "CA River Plate Reserves-vs-CA Sarmiento Reserves",
-                "nv": false,
-                "round": {
-                  "roundGroup": "B",
-                  "roundGroupName": "",
-                  "roundName": "Primera LPF, Reserves, Clausura",
-                  "roundNumber": "12",
-                  "roundType": "group"
-                },
-                "scoreId": "",
-                "series": "",
-                "sid": 1,
-                "state": "",
-                "streaming": 0,
-                "tid": 29525,
-                "tnName": "Argentina Professional Reserve League",
-                "tnPriority": 13000076,
-                "vd": "b",
-                "video": false,
-                "videos": [],
-                "eps": [
-                  "b",
-                  "c",
-                  "j"
-                ],
-                "gifs": [],
-                "detail": null
-              },
               {
                 "anchors": [],
                 "away": {
@@ -11726,7 +11531,7 @@
                 },
                 "chatMid": 0,
                 "cid": 38,
-                "countdown": 1240,
+                "countdown": 1181,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -11778,7 +11583,7 @@
                 "streaming": 0,
                 "tid": 29525,
                 "tnName": "Argentina Professional Reserve League",
-                "tnPriority": 13000076,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -11807,7 +11612,7 @@
                 },
                 "chatMid": 0,
                 "cid": 38,
-                "countdown": 1240,
+                "countdown": 1181,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -11859,7 +11664,7 @@
                 "streaming": 0,
                 "tid": 29525,
                 "tnName": "Argentina Professional Reserve League",
-                "tnPriority": 13000076,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -11888,7 +11693,7 @@
                 },
                 "chatMid": 0,
                 "cid": 38,
-                "countdown": 1240,
+                "countdown": 1181,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -11940,7 +11745,7 @@
                 "streaming": 0,
                 "tid": 29525,
                 "tnName": "Argentina Professional Reserve League",
-                "tnPriority": 13000076,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -11969,7 +11774,7 @@
                 },
                 "chatMid": 0,
                 "cid": 38,
-                "countdown": 1240,
+                "countdown": 1181,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -12021,7 +11826,88 @@
                 "streaming": 0,
                 "tid": 29525,
                 "tnName": "Argentina Professional Reserve League",
-                "tnPriority": 13000076,
+                "tnPriority": 9999999,
+                "vd": "b",
+                "video": false,
+                "videos": [],
+                "eps": [
+                  "b",
+                  "c",
+                  "j"
+                ],
+                "gifs": [],
+                "detail": null
+              },
+              {
+                "anchors": [],
+                "away": {
+                  "cid": 38,
+                  "id": 6779,
+                  "jersey": {
+                    "base": "",
+                    "shirtType": "",
+                    "sleeve": "",
+                    "sleeveDetails": "",
+                    "style": "",
+                    "styleColor": ""
+                  },
+                  "name": "Union de Santa Fe Reserves"
+                },
+                "chatMid": 0,
+                "cid": 38,
+                "countdown": 1421,
+                "gifMid": 0,
+                "graphMid": 0,
+                "home": {
+                  "cid": 38,
+                  "id": 367029,
+                  "jersey": {
+                    "base": "",
+                    "shirtType": "",
+                    "sleeve": "",
+                    "sleeveDetails": "",
+                    "style": "",
+                    "styleColor": ""
+                  },
+                  "name": "Central Cordoba SdE Reserves"
+                },
+                "iid": 3978422,
+                "inplay": false,
+                "kickoffTime": 1759442400,
+                "marketInfo": {
+                  "ad": false,
+                  "cr": false,
+                  "ot": false,
+                  "otcr": false,
+                  "otRedCard": false,
+                  "pk": false,
+                  "redCard": false
+                },
+                "mids": {
+                  "amid": 0,
+                  "bmid": 0,
+                  "cmid": 0,
+                  "dmid": 0,
+                  "fmid": 0,
+                  "jmid": 0
+                },
+                "name": "Central Cordoba SdE Reserves-vs-Union de Santa Fe Reserves",
+                "nv": false,
+                "round": {
+                  "roundGroup": "A",
+                  "roundGroupName": "",
+                  "roundName": "Primera LPF, Reserves, Clausura",
+                  "roundNumber": "12",
+                  "roundType": "group"
+                },
+                "scoreId": "",
+                "series": "",
+                "sid": 1,
+                "state": "",
+                "streaming": 0,
+                "tid": 29525,
+                "tnName": "Argentina Professional Reserve League",
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -12035,7 +11921,7 @@
               }
             ],
             "name": "Argentina Professional Reserve League",
-            "priority": 13000076,
+            "priority": 9999999,
             "sid": 1,
             "tid": 29525,
             "score": 0,
@@ -12064,7 +11950,7 @@
                 },
                 "chatMid": 0,
                 "cid": 93,
-                "countdown": 1060,
+                "countdown": 1001,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -12116,7 +12002,7 @@
                 "streaming": 0,
                 "tid": 28491,
                 "tnName": "Nigeria Premier League",
-                "tnPriority": 13000080,
+                "tnPriority": 9999999,
                 "vd": "c",
                 "video": false,
                 "videos": [],
@@ -12145,7 +12031,7 @@
                 },
                 "chatMid": 0,
                 "cid": 93,
-                "countdown": 1060,
+                "countdown": 1001,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -12197,7 +12083,7 @@
                 "streaming": 0,
                 "tid": 28491,
                 "tnName": "Nigeria Premier League",
-                "tnPriority": 13000080,
+                "tnPriority": 9999999,
                 "vd": "c",
                 "video": false,
                 "videos": [],
@@ -12211,7 +12097,7 @@
               }
             ],
             "name": "Nigeria Premier League",
-            "priority": 13000080,
+            "priority": 9999999,
             "sid": 1,
             "tid": 28491,
             "score": 0,
@@ -12240,7 +12126,7 @@
                 },
                 "chatMid": 0,
                 "cid": 75,
-                "countdown": 895,
+                "countdown": 836,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -12292,7 +12178,7 @@
                 "streaming": 0,
                 "tid": 8623,
                 "tnName": "Malaysia FA Cup",
-                "tnPriority": 13000105,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -12306,7 +12192,7 @@
               }
             ],
             "name": "Malaysia FA Cup",
-            "priority": 13000105,
+            "priority": 9999999,
             "sid": 1,
             "tid": 8623,
             "score": 0,
@@ -12315,7 +12201,7 @@
           },
           {
             "cid": 92,
-            "count": 2,
+            "count": 3,
             "favorite": false,
             "matches": [
               {
@@ -12335,7 +12221,7 @@
                 },
                 "chatMid": 0,
                 "cid": 92,
-                "countdown": 100,
+                "countdown": 41,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -12387,7 +12273,7 @@
                 "streaming": 0,
                 "tid": 27887,
                 "tnName": "Bolivia Copa Division Profesional",
-                "tnPriority": 13000109,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -12416,7 +12302,7 @@
                 },
                 "chatMid": 0,
                 "cid": 92,
-                "countdown": 1300,
+                "countdown": 1241,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -12468,7 +12354,88 @@
                 "streaming": 0,
                 "tid": 27887,
                 "tnName": "Bolivia Copa Division Profesional",
-                "tnPriority": 13000109,
+                "tnPriority": 9999999,
+                "vd": "b",
+                "video": false,
+                "videos": [],
+                "eps": [
+                  "b",
+                  "c",
+                  "j"
+                ],
+                "gifs": [],
+                "detail": null
+              },
+              {
+                "anchors": [],
+                "away": {
+                  "cid": 92,
+                  "id": 1271,
+                  "jersey": {
+                    "base": "232b3e",
+                    "shirtType": "short_sleeves",
+                    "sleeve": "232b3e",
+                    "sleeveDetails": "4bbef4",
+                    "style": "",
+                    "styleColor": "232b3e"
+                  },
+                  "name": "Club Blooming"
+                },
+                "chatMid": 0,
+                "cid": 92,
+                "countdown": 1421,
+                "gifMid": 0,
+                "graphMid": 0,
+                "home": {
+                  "cid": 92,
+                  "id": 1258,
+                  "jersey": {
+                    "base": "",
+                    "shirtType": "",
+                    "sleeve": "",
+                    "sleeveDetails": "",
+                    "style": "",
+                    "styleColor": ""
+                  },
+                  "name": "Club Aurora"
+                },
+                "iid": 3970281,
+                "inplay": false,
+                "kickoffTime": 1759442400,
+                "marketInfo": {
+                  "ad": false,
+                  "cr": false,
+                  "ot": false,
+                  "otcr": false,
+                  "otRedCard": false,
+                  "pk": false,
+                  "redCard": false
+                },
+                "mids": {
+                  "amid": 0,
+                  "bmid": 0,
+                  "cmid": 0,
+                  "dmid": 0,
+                  "fmid": 0,
+                  "jmid": 0
+                },
+                "name": "Club Aurora-vs-Club Blooming",
+                "nv": false,
+                "round": {
+                  "roundGroup": "",
+                  "roundGroupName": "",
+                  "roundName": "Copa Division Profesional",
+                  "roundNumber": "8",
+                  "roundType": "group"
+                },
+                "scoreId": "",
+                "series": "",
+                "sid": 1,
+                "state": "",
+                "streaming": 0,
+                "tid": 27887,
+                "tnName": "Bolivia Copa Division Profesional",
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -12482,7 +12449,7 @@
               }
             ],
             "name": "Bolivia Copa Division Profesional",
-            "priority": 13000109,
+            "priority": 9999999,
             "sid": 1,
             "tid": 27887,
             "score": 0,
@@ -12511,7 +12478,7 @@
                 },
                 "chatMid": 0,
                 "cid": 66,
-                "countdown": 1180,
+                "countdown": 1121,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -12563,7 +12530,7 @@
                 "streaming": 0,
                 "tid": 37918,
                 "tnName": "Austria Steiermark Landesliga",
-                "tnPriority": 13000117,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -12577,7 +12544,7 @@
               }
             ],
             "name": "Austria Steiermark Landesliga",
-            "priority": 13000117,
+            "priority": 9999999,
             "sid": 1,
             "tid": 37918,
             "score": 0,
@@ -12606,7 +12573,7 @@
                 },
                 "chatMid": 0,
                 "cid": 12,
-                "countdown": 70,
+                "countdown": 11,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -12658,7 +12625,7 @@
                 "streaming": 0,
                 "tid": 7041,
                 "tnName": "USA USL League One",
-                "tnPriority": 14000010,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -12672,7 +12639,7 @@
               }
             ],
             "name": "USA USL League One",
-            "priority": 14000010,
+            "priority": 9999999,
             "sid": 1,
             "tid": 7041,
             "score": 0,
@@ -12701,7 +12668,7 @@
                 },
                 "chatMid": 0,
                 "cid": 62,
-                "countdown": 820,
+                "countdown": 761,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -12753,7 +12720,7 @@
                 "streaming": 0,
                 "tid": 1141,
                 "tnName": "Azerbaijan First League",
-                "tnPriority": 14000023,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -12782,7 +12749,7 @@
                 },
                 "chatMid": 0,
                 "cid": 62,
-                "countdown": 820,
+                "countdown": 761,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -12834,7 +12801,7 @@
                 "streaming": 0,
                 "tid": 1141,
                 "tnName": "Azerbaijan First League",
-                "tnPriority": 14000023,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -12863,7 +12830,7 @@
                 },
                 "chatMid": 0,
                 "cid": 62,
-                "countdown": 820,
+                "countdown": 761,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -12915,7 +12882,7 @@
                 "streaming": 0,
                 "tid": 1141,
                 "tnName": "Azerbaijan First League",
-                "tnPriority": 14000023,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -12929,7 +12896,7 @@
               }
             ],
             "name": "Azerbaijan First League",
-            "priority": 14000023,
+            "priority": 9999999,
             "sid": 1,
             "tid": 1141,
             "score": 0,
@@ -12958,7 +12925,7 @@
                 },
                 "chatMid": 0,
                 "cid": 276,
-                "countdown": 1270,
+                "countdown": 1211,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -13010,7 +12977,7 @@
                 "streaming": 0,
                 "tid": 9092,
                 "tnName": "Faroe Islands 1. Deild",
-                "tnPriority": 14000040,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -13024,7 +12991,7 @@
               }
             ],
             "name": "Faroe Islands 1. Deild",
-            "priority": 14000040,
+            "priority": 9999999,
             "sid": 1,
             "tid": 9092,
             "score": 0,
@@ -13053,7 +13020,7 @@
                 },
                 "chatMid": 0,
                 "cid": 107,
-                "countdown": 160,
+                "countdown": 101,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -13105,7 +13072,7 @@
                 "streaming": 0,
                 "tid": 28752,
                 "tnName": "CONCACAF Central American Cup",
-                "tnPriority": 14000049,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -13119,7 +13086,7 @@
               }
             ],
             "name": "CONCACAF Central American Cup",
-            "priority": 14000049,
+            "priority": 9999999,
             "sid": 1,
             "tid": 28752,
             "score": 0,
@@ -13148,7 +13115,7 @@
                 },
                 "chatMid": 0,
                 "cid": 77,
-                "countdown": 1240,
+                "countdown": 1181,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -13200,7 +13167,7 @@
                 "streaming": 0,
                 "tid": 404,
                 "tnName": "Uruguay Reserve League",
-                "tnPriority": 15000016,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -13214,7 +13181,7 @@
               }
             ],
             "name": "Uruguay Reserve League",
-            "priority": 15000016,
+            "priority": 9999999,
             "sid": 1,
             "tid": 404,
             "score": 0,
@@ -13243,7 +13210,7 @@
                 },
                 "chatMid": 0,
                 "cid": 297,
-                "countdown": 850,
+                "countdown": 791,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -13295,7 +13262,7 @@
                 "streaming": 0,
                 "tid": 1261,
                 "tnName": "Singapore Premier League",
-                "tnPriority": 15000028,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -13309,7 +13276,7 @@
               }
             ],
             "name": "Singapore Premier League",
-            "priority": 15000028,
+            "priority": 9999999,
             "sid": 1,
             "tid": 1261,
             "score": 0,
@@ -13338,7 +13305,7 @@
                 },
                 "chatMid": 0,
                 "cid": 107,
-                "countdown": 160,
+                "countdown": 101,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -13390,7 +13357,7 @@
                 "streaming": 0,
                 "tid": 8804,
                 "tnName": "CONCACAF Caribbean Cup",
-                "tnPriority": 15000045,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -13419,7 +13386,7 @@
                 },
                 "chatMid": 0,
                 "cid": 107,
-                "countdown": 160,
+                "countdown": 101,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -13471,7 +13438,7 @@
                 "streaming": 0,
                 "tid": 8804,
                 "tnName": "CONCACAF Caribbean Cup",
-                "tnPriority": 15000045,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -13485,7 +13452,7 @@
               }
             ],
             "name": "CONCACAF Caribbean Cup",
-            "priority": 15000045,
+            "priority": 9999999,
             "sid": 1,
             "tid": 8804,
             "score": 0,
@@ -13514,7 +13481,7 @@
                 },
                 "chatMid": 0,
                 "cid": 73,
-                "countdown": 100,
+                "countdown": 41,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -13566,7 +13533,7 @@
                 "streaming": 0,
                 "tid": 1676,
                 "tnName": "Venezuela Cup",
-                "tnPriority": 15000046,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -13580,7 +13547,7 @@
               }
             ],
             "name": "Venezuela Cup",
-            "priority": 15000046,
+            "priority": 9999999,
             "sid": 1,
             "tid": 1676,
             "score": 0,
@@ -13609,7 +13576,7 @@
                 },
                 "chatMid": 0,
                 "cid": 11,
-                "countdown": 70,
+                "countdown": 11,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -13661,7 +13628,7 @@
                 "streaming": 0,
                 "tid": 10936,
                 "tnName": "Brazil Copa Santa Catarina",
-                "tnPriority": 17000068,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -13675,7 +13642,7 @@
               }
             ],
             "name": "Brazil Copa Santa Catarina",
-            "priority": 17000068,
+            "priority": 9999999,
             "sid": 1,
             "tid": 10936,
             "score": 0,
@@ -13704,7 +13671,7 @@
                 },
                 "chatMid": 0,
                 "cid": 280,
-                "countdown": 940,
+                "countdown": 881,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -13756,7 +13723,7 @@
                 "streaming": 0,
                 "tid": 1242,
                 "tnName": "Uganda Premier League",
-                "tnPriority": 17000070,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -13785,7 +13752,7 @@
                 },
                 "chatMid": 0,
                 "cid": 280,
-                "countdown": 1180,
+                "countdown": 1121,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -13837,7 +13804,7 @@
                 "streaming": 0,
                 "tid": 1242,
                 "tnName": "Uganda Premier League",
-                "tnPriority": 17000070,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -13851,7 +13818,7 @@
               }
             ],
             "name": "Uganda Premier League",
-            "priority": 17000070,
+            "priority": 9999999,
             "sid": 1,
             "tid": 1242,
             "score": 0,
@@ -13880,7 +13847,7 @@
                 },
                 "chatMid": 0,
                 "cid": 274,
-                "countdown": 160,
+                "countdown": 101,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -13932,7 +13899,7 @@
                 "streaming": 0,
                 "tid": 1612,
                 "tnName": "Panama Liga PROM",
-                "tnPriority": 18000192,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -13961,7 +13928,7 @@
                 },
                 "chatMid": 0,
                 "cid": 274,
-                "countdown": 220,
+                "countdown": 161,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -14013,7 +13980,7 @@
                 "streaming": 0,
                 "tid": 1612,
                 "tnName": "Panama Liga PROM",
-                "tnPriority": 18000192,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -14027,7 +13994,7 @@
               }
             ],
             "name": "Panama Liga PROM",
-            "priority": 18000192,
+            "priority": 9999999,
             "sid": 1,
             "tid": 1612,
             "score": 0,
@@ -14056,7 +14023,7 @@
                 },
                 "chatMid": 0,
                 "cid": 11,
-                "countdown": 70,
+                "countdown": 11,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -14108,7 +14075,7 @@
                 "streaming": 0,
                 "tid": 29250,
                 "tnName": "Brazil Campeonato Goiano Women",
-                "tnPriority": 19008779,
+                "tnPriority": 9999999,
                 "vd": "b",
                 "video": false,
                 "videos": [],
@@ -14122,7 +14089,7 @@
               }
             ],
             "name": "Brazil Campeonato Goiano Women",
-            "priority": 19008779,
+            "priority": 9999999,
             "sid": 1,
             "tid": 29250,
             "score": 0,
@@ -14132,8 +14099,8 @@
         ]
       },
       "msg": "",
-      "time": 1759353616713
+      "time": 1759357154281
     },
-    "proxy": "103.148.195.22:8080"
+    "proxy": "103.101.193.38:1111"
   }
 ]
