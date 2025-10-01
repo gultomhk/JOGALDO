@@ -2,6 +2,7 @@ import asyncio
 import json
 from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any
+from pathlib import Path
 from playwright.async_api import async_playwright
 
 
@@ -19,7 +20,7 @@ UA = config_vars.get("UA")
 REFERER = config_vars.get("REFERER")
 WORKER_TEMPLATE = config_vars.get("WORKER_TEMPLATE")
 DEFAULT_LOGO = config_vars.get("DEFAULT_LOGO")
-
+BASE_URL = config_vars.get("BASE_URL")
 
 OUT_FILE = "CHIN2_matches.m3u"
 
