@@ -18,13 +18,10 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
+      - name: 📦 Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install playwright
-          pip install typing_extensions
           pip install requests
-          playwright install --with-deps chromium
               
       - name: 📁 Ambil file konfigurasi dari repo privat
         shell: bash
