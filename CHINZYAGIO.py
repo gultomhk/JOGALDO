@@ -3,6 +3,7 @@ import asyncio
 from bs4 import BeautifulSoup
 from datetime import datetime
 from deep_translator import GoogleTranslator
+from pathlib import Path
 
 
 # ==========================
