@@ -30,7 +30,7 @@ WORKER_URL = config_vars.get("WORKER_URL")
 LOGO_URL = config_vars.get("LOGO_URL")
 
 TARGET_URL = BASE_URL  # langsung halaman utama
-
+OUTPUT_FILE = Path(__file__).parent / "CHINZYAGIO.m3u"
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
     "Referer": BASE_URL,
@@ -128,15 +128,17 @@ async def main():
 
         # Tulis M3U dan log
         if lines:
-            with open("CHINZYAGIO_.m3u", "w", encoding="utf-8") as f:
+            with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
                 f.write("#EXTM3U\n")
                 f.write("\n".join(lines))
             print(f"✅ Total matches parsed: {len(lines)//4}")
+            print(f"File M3U created at: {OUTPUT_FILE.resolve()}")
         else:
             # Buat file M3U minimal agar workflow tetap jalan
-            with open("CHINZYAGIO_.m3u", "w", encoding="utf-8") as f:
+            with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
                 f.write("#EXTM3U\n")
             print("⚠️ M3U kosong, skip push ke privat")
+            print(f"Minimal file created at: {OUTPUT_FILE.resolve()}")
 
 if __name__ == "__main__":
     asyncio.run(main())
