@@ -12,7 +12,7 @@ try:
     from zoneinfo import ZoneInfo
     JAKARTA = ZoneInfo("Asia/Jakarta")
 except Exception:
-    JAKARTA = timezone(timedelta(hours=7))
+    JAKARTA = timezone(timedelta(hours=6))
 
 
 # ==========================
