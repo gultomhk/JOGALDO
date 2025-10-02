@@ -114,22 +114,22 @@
                   {
                     "source": "A1",
                     "type": "url",
-                    "info": "https://live1.wh0d4fc4.com/live/62294852_78f2f4b8e9ccc13057aa78eca270ff06_autoChange.m3u8?auth_key=1759386566-0-0-04f019c4b0cd5a90ba9bb23cb88c9cbd"
+                    "info": "https://live1.wh0d4fc4.com/live/62294852_78f2f4b8e9ccc13057aa78eca270ff06_autoChange.m3u8?auth_key=1759387836-0-0-7d4c8974e7d6f17762d1b69e7b5ba955"
                   },
                   {
                     "source": "A2",
                     "type": "url",
-                    "info": "https://live1.uvdcov1t.com/live/62294852_78f2f4b8e9ccc13057aa78eca270ff06_autoChange.m3u8?auth_key=1759390195-0-0-f9570ac97a1f551edb64380f773444fb"
+                    "info": "https://live1.uvdcov1t.com/live/62294852_78f2f4b8e9ccc13057aa78eca270ff06_autoChange.m3u8?auth_key=1759391661-0-0-939061e6b65c56b01730ab548dadd9b3"
                   },
                   {
                     "source": "A3",
                     "type": "url",
-                    "info": "https://live1.59cexx5o.com/live/62294852_78f2f4b8e9ccc13057aa78eca270ff06_autoChange.m3u8?auth_key=1759390194-0-0-e8ddeae184b5260a748ab1029ae7de5b"
+                    "info": "https://live1.59cexx5o.com/live/62294852_78f2f4b8e9ccc13057aa78eca270ff06_autoChange.m3u8?auth_key=1759391659-0-0-dc8f9e6f6c7363a13c98388373006e28"
                   },
                   {
                     "source": "A7",
                     "type": "url",
-                    "info": "https://live1.ybsvmsij.com/live/62294852_78f2f4b8e9ccc13057aa78eca270ff06_autoChange.m3u8?auth_key=1759390183-0-0-40c23b459c21530982bf51d6228a0903"
+                    "info": "https://live1.ybsvmsij.com/live/62294852_78f2f4b8e9ccc13057aa78eca270ff06_autoChange.m3u8?auth_key=1759391663-0-0-53cf87552f890656a477bef8c1c01a07"
                   }
                 ],
                 "eps": [
@@ -306,403 +306,13 @@
             "score": 0,
             "mainOrder": 0,
             "subOrder": 0
-          },
-          {
-            "cid": 293,
-            "count": 1,
-            "favorite": false,
-            "matches": [
-              {
-                "anchors": [],
-                "away": {
-                  "cid": 293,
-                  "id": 389212,
-                  "jersey": {
-                    "base": "",
-                    "shirtType": "",
-                    "sleeve": "",
-                    "sleeveDetails": "",
-                    "style": "",
-                    "styleColor": ""
-                  },
-                  "name": "Vancouver FC"
-                },
-                "chatMid": 0,
-                "cid": 293,
-                "countdown": 0,
-                "gifMid": 0,
-                "graphMid": 0,
-                "home": {
-                  "cid": 293,
-                  "id": 9662,
-                  "jersey": {
-                    "base": "ffffff",
-                    "shirtType": "short_sleeves",
-                    "sleeve": "112a46",
-                    "sleeveDetails": "",
-                    "style": "",
-                    "styleColor": "ffffff"
-                  },
-                  "name": "Vancouver Whitecaps FC"
-                },
-                "iid": 3976370,
-                "inplay": true,
-                "kickoffTime": 1759370400,
-                "marketInfo": {
-                  "ad": false,
-                  "cr": false,
-                  "ot": false,
-                  "otcr": false,
-                  "otRedCard": false,
-                  "pk": false,
-                  "redCard": false
-                },
-                "mids": {
-                  "amid": 0,
-                  "bmid": 0,
-                  "cmid": 0,
-                  "dmid": 0,
-                  "fmid": 0,
-                  "jmid": 0
-                },
-                "name": "Vancouver Whitecaps FC-vs-Vancouver FC",
-                "nv": false,
-                "round": {
-                  "roundGroup": "",
-                  "roundGroupName": "",
-                  "roundName": "Final",
-                  "roundNumber": "",
-                  "roundType": "cup"
-                },
-                "scoreId": "",
-                "series": "",
-                "sid": 1,
-                "state": "",
-                "streaming": 3,
-                "tid": 23126,
-                "tnName": "Canada Championship",
-                "tnPriority": 9999999,
-                "vd": "b",
-                "video": true,
-                "videos": [
-                  {
-                    "source": "A1",
-                    "type": "url",
-                    "info": "https://live2.wh0d4fc4.com/live/64001227_737b0820b44bd9cd896cd0af755384cd_autoChange.m3u8?auth_key=1759386566-0-0-0431b0537324851e7215a870dc9476bb"
-                  },
-                  {
-                    "source": "A2",
-                    "type": "url",
-                    "info": "https://live1.uvdcov1t.com/live/64001227_737b0820b44bd9cd896cd0af755384cd_autoChange.m3u8?auth_key=1759390196-0-0-95f049653908cc08201c918ec7976892"
-                  },
-                  {
-                    "source": "A3",
-                    "type": "url",
-                    "info": "https://live1.59cexx5o.com/live/64001227_737b0820b44bd9cd896cd0af755384cd_autoChange.m3u8?auth_key=1759390194-0-0-7c0ca8634bf73fd519a57be17c23c307"
-                  },
-                  {
-                    "source": "A7",
-                    "type": "url",
-                    "info": "https://live1.ybsvmsij.com/live/64001227_737b0820b44bd9cd896cd0af755384cd_autoChange.m3u8?auth_key=1759390183-0-0-6c9931eb137d1260e8128c979d273833"
-                  }
-                ],
-                "eps": [
-                  "b",
-                  "c",
-                  "j"
-                ],
-                "gifs": [
-                  {
-                    "source": "b",
-                    "type": "id",
-                    "info": "64001227"
-                  },
-                  {
-                    "source": "s",
-                    "type": "url",
-                    "info": "https://d2g2l5ezakyq7v.cloudfront.net/#/football?lang=cn&z=3976370"
-                  },
-                  {
-                    "source": "s",
-                    "type": "url",
-                    "info": "https://d2g2l5ezakyq7v.cloudfront.net/#/football?lang=en&z=3976370"
-                  },
-                  {
-                    "source": "c",
-                    "type": "id",
-                    "info": "13100292"
-                  }
-                ],
-                "detail": null
-              }
-            ],
-            "name": "Canada Championship",
-            "priority": 9999999,
-            "sid": 1,
-            "tid": 23126,
-            "score": 0,
-            "mainOrder": 0,
-            "subOrder": 0
-          },
-          {
-            "cid": 12,
-            "count": 1,
-            "favorite": false,
-            "matches": [
-              {
-                "anchors": [],
-                "away": {
-                  "cid": 12,
-                  "id": 334582,
-                  "jersey": {
-                    "base": "",
-                    "shirtType": "",
-                    "sleeve": "",
-                    "sleeveDetails": "",
-                    "style": "",
-                    "styleColor": ""
-                  },
-                  "name": "Vancouver Whitecaps FC 2"
-                },
-                "chatMid": 0,
-                "cid": 12,
-                "countdown": 0,
-                "gifMid": 0,
-                "graphMid": 0,
-                "home": {
-                  "cid": 12,
-                  "id": 335046,
-                  "jersey": {
-                    "base": "",
-                    "shirtType": "",
-                    "sleeve": "",
-                    "sleeveDetails": "",
-                    "style": "",
-                    "styleColor": ""
-                  },
-                  "name": "The Town FC"
-                },
-                "iid": 3976369,
-                "inplay": true,
-                "kickoffTime": 1759370400,
-                "marketInfo": {
-                  "ad": false,
-                  "cr": false,
-                  "ot": false,
-                  "otcr": false,
-                  "otRedCard": false,
-                  "pk": false,
-                  "redCard": false
-                },
-                "mids": {
-                  "amid": 0,
-                  "bmid": 0,
-                  "cmid": 0,
-                  "dmid": 0,
-                  "fmid": 0,
-                  "jmid": 0
-                },
-                "name": "The Town FC-vs-Vancouver Whitecaps FC 2",
-                "nv": false,
-                "round": {
-                  "roundGroup": "Western",
-                  "roundGroupName": "",
-                  "roundName": "MLS Next Pro",
-                  "roundNumber": "1",
-                  "roundType": "group"
-                },
-                "scoreId": "",
-                "series": "",
-                "sid": 1,
-                "state": "",
-                "streaming": 2,
-                "tid": 25121,
-                "tnName": "USA MLS Next Pro",
-                "tnPriority": 9999999,
-                "vd": "c",
-                "video": false,
-                "videos": [],
-                "eps": [
-                  "c",
-                  "b",
-                  "j"
-                ],
-                "gifs": [
-                  {
-                    "source": "b",
-                    "type": "id",
-                    "info": "64182659"
-                  },
-                  {
-                    "source": "s",
-                    "type": "url",
-                    "info": "https://d2g2l5ezakyq7v.cloudfront.net/#/football?lang=cn&z=3976369"
-                  },
-                  {
-                    "source": "s",
-                    "type": "url",
-                    "info": "https://d2g2l5ezakyq7v.cloudfront.net/#/football?lang=en&z=3976369"
-                  },
-                  {
-                    "source": "c",
-                    "type": "id",
-                    "info": "12898189"
-                  }
-                ],
-                "detail": null
-              }
-            ],
-            "name": "USA MLS Next Pro",
-            "priority": 9999999,
-            "sid": 1,
-            "tid": 25121,
-            "score": 0,
-            "mainOrder": 0,
-            "subOrder": 0
-          },
-          {
-            "cid": 51,
-            "count": 1,
-            "favorite": false,
-            "matches": [
-              {
-                "anchors": [],
-                "away": {
-                  "cid": 51,
-                  "id": 105391,
-                  "jersey": {
-                    "base": "ffffff",
-                    "shirtType": "",
-                    "sleeve": "ffffff",
-                    "sleeveDetails": "",
-                    "style": "stripes",
-                    "styleColor": "ffffff"
-                  },
-                  "name": "Puntarenas FC"
-                },
-                "chatMid": 0,
-                "cid": 51,
-                "countdown": 0,
-                "gifMid": 0,
-                "graphMid": 0,
-                "home": {
-                  "cid": 51,
-                  "id": 5889,
-                  "jersey": {
-                    "base": "",
-                    "shirtType": "",
-                    "sleeve": "",
-                    "sleeveDetails": "",
-                    "style": "",
-                    "styleColor": ""
-                  },
-                  "name": "Municipal Perez Zeledon"
-                },
-                "iid": 3976958,
-                "inplay": true,
-                "kickoffTime": 1759370400,
-                "marketInfo": {
-                  "ad": false,
-                  "cr": false,
-                  "ot": false,
-                  "otcr": false,
-                  "otRedCard": false,
-                  "pk": false,
-                  "redCard": false
-                },
-                "mids": {
-                  "amid": 0,
-                  "bmid": 0,
-                  "cmid": 0,
-                  "dmid": 0,
-                  "fmid": 0,
-                  "jmid": 0
-                },
-                "name": "Municipal Perez Zeledon-vs-Puntarenas FC",
-                "nv": false,
-                "round": {
-                  "roundGroup": "",
-                  "roundGroupName": "",
-                  "roundName": "Round of 16",
-                  "roundNumber": "",
-                  "roundType": "cup"
-                },
-                "scoreId": "",
-                "series": "",
-                "sid": 1,
-                "state": "",
-                "streaming": 3,
-                "tid": 24465,
-                "tnName": "Costa Rica Cup",
-                "tnPriority": 9999999,
-                "vd": "b",
-                "video": true,
-                "videos": [
-                  {
-                    "source": "A1",
-                    "type": "url",
-                    "info": "https://live1.wh0d4fc4.com/live/64000889_b3b49becc2b717097a1184823ae0b7b3_autoChange.m3u8?auth_key=1759386566-0-0-7f6fcc4cbde60b74f96608a41497d088"
-                  },
-                  {
-                    "source": "A2",
-                    "type": "url",
-                    "info": "https://live.uvdcov1t.com/live/64000889_b3b49becc2b717097a1184823ae0b7b3_autoChange.m3u8?auth_key=1759390196-0-0-742f53d9cb96f0b001a19872a377e8b9"
-                  },
-                  {
-                    "source": "A3",
-                    "type": "url",
-                    "info": "https://live.59cexx5o.com/live/64000889_b3b49becc2b717097a1184823ae0b7b3_autoChange.m3u8?auth_key=1759390194-0-0-5f539d36afa4e7e217a2023e2942ef7e"
-                  },
-                  {
-                    "source": "A7",
-                    "type": "url",
-                    "info": "https://live.ybsvmsij.com/live/64000889_b3b49becc2b717097a1184823ae0b7b3_autoChange.m3u8?auth_key=1759390183-0-0-28d54de66131990b2478a41243923883"
-                  }
-                ],
-                "eps": [
-                  "b",
-                  "c",
-                  "j"
-                ],
-                "gifs": [
-                  {
-                    "source": "b",
-                    "type": "id",
-                    "info": "64000889"
-                  },
-                  {
-                    "source": "s",
-                    "type": "url",
-                    "info": "https://d2g2l5ezakyq7v.cloudfront.net/#/football?lang=cn&z=3976958"
-                  },
-                  {
-                    "source": "s",
-                    "type": "url",
-                    "info": "https://d2g2l5ezakyq7v.cloudfront.net/#/football?lang=en&z=3976958"
-                  },
-                  {
-                    "source": "c",
-                    "type": "id",
-                    "info": "13110442"
-                  }
-                ],
-                "detail": null
-              }
-            ],
-            "name": "Costa Rica Cup",
-            "priority": 9999999,
-            "sid": 1,
-            "tid": 24465,
-            "score": 0,
-            "mainOrder": 0,
-            "subOrder": 0
           }
         ]
       },
       "msg": "",
-      "time": 1759376011782
+      "time": 1759379109610
     },
-    "proxy": "103.10.60.178:8080"
+    "proxy": "103.163.103.163:8010"
   },
   {
     "url": "https://009bhtpeu4xrn-nwapi-cf.ejdabwrs30205.app/product/business/sport/tournament/info?sid=1&sort=tournament&inplay=false&date=24h&language=id-id",
@@ -760,7 +370,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 792,
+                "countdown": 740,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -869,7 +479,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 792,
+                "countdown": 740,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -950,7 +560,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 792,
+                "countdown": 740,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -1031,7 +641,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 792,
+                "countdown": 740,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -1112,7 +722,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 792,
+                "countdown": 740,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -1193,7 +803,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 792,
+                "countdown": 740,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -1274,7 +884,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 792,
+                "countdown": 740,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -1355,7 +965,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 792,
+                "countdown": 740,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -1436,7 +1046,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 792,
+                "countdown": 740,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -1545,7 +1155,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 927,
+                "countdown": 875,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -1626,7 +1236,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 927,
+                "countdown": 875,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -1707,7 +1317,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 927,
+                "countdown": 875,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -1816,7 +1426,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 927,
+                "countdown": 875,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -1897,7 +1507,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 927,
+                "countdown": 875,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -2006,7 +1616,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 927,
+                "countdown": 875,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -2087,7 +1697,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 927,
+                "countdown": 875,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -2196,7 +1806,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 927,
+                "countdown": 875,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -2277,7 +1887,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 927,
+                "countdown": 875,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -2372,7 +1982,7 @@
                 },
                 "chatMid": 0,
                 "cid": 81,
-                "countdown": 987,
+                "countdown": 935,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -2453,7 +2063,7 @@
                 },
                 "chatMid": 0,
                 "cid": 81,
-                "countdown": 987,
+                "countdown": 935,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -2534,7 +2144,7 @@
                 },
                 "chatMid": 0,
                 "cid": 81,
-                "countdown": 1167,
+                "countdown": 1115,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -2657,7 +2267,7 @@
                 },
                 "chatMid": 0,
                 "cid": 35,
-                "countdown": 252,
+                "countdown": 200,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -2766,7 +2376,7 @@
                 },
                 "chatMid": 0,
                 "cid": 35,
-                "countdown": 387,
+                "countdown": 335,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -2875,7 +2485,7 @@
                 },
                 "chatMid": 0,
                 "cid": 35,
-                "countdown": 387,
+                "countdown": 335,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -2984,7 +2594,7 @@
                 },
                 "chatMid": 0,
                 "cid": 35,
-                "countdown": 387,
+                "countdown": 335,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -3093,7 +2703,7 @@
                 },
                 "chatMid": 0,
                 "cid": 35,
-                "countdown": 522,
+                "countdown": 470,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -3202,7 +2812,7 @@
                 },
                 "chatMid": 0,
                 "cid": 35,
-                "countdown": 522,
+                "countdown": 470,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -3297,7 +2907,7 @@
                 },
                 "chatMid": 0,
                 "cid": 41,
-                "countdown": 447,
+                "countdown": 395,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -3378,7 +2988,7 @@
                 },
                 "chatMid": 0,
                 "cid": 41,
-                "countdown": 447,
+                "countdown": 395,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -3473,7 +3083,7 @@
                 },
                 "chatMid": 0,
                 "cid": 20,
-                "countdown": 927,
+                "countdown": 875,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -3568,7 +3178,7 @@
                 },
                 "chatMid": 0,
                 "cid": 56,
-                "countdown": 807,
+                "countdown": 755,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -3663,7 +3273,7 @@
                 },
                 "chatMid": 0,
                 "cid": 11,
-                "countdown": 1107,
+                "countdown": 1055,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -3744,7 +3354,7 @@
                 },
                 "chatMid": 0,
                 "cid": 11,
-                "countdown": 1137,
+                "countdown": 1085,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -3825,7 +3435,7 @@
                 },
                 "chatMid": 0,
                 "cid": 11,
-                "countdown": 1197,
+                "countdown": 1145,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -3948,7 +3558,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 792,
+                "countdown": 740,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -4029,7 +3639,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 792,
+                "countdown": 740,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -4110,7 +3720,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 792,
+                "countdown": 740,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -4191,7 +3801,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 792,
+                "countdown": 740,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -4272,7 +3882,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 792,
+                "countdown": 740,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -4353,7 +3963,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 792,
+                "countdown": 740,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -4434,7 +4044,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 792,
+                "countdown": 740,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -4543,7 +4153,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 792,
+                "countdown": 740,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -4624,7 +4234,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 792,
+                "countdown": 740,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -4705,7 +4315,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 927,
+                "countdown": 875,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -4786,7 +4396,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 927,
+                "countdown": 875,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -4867,7 +4477,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 927,
+                "countdown": 875,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -4976,7 +4586,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 927,
+                "countdown": 875,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -5057,7 +4667,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 927,
+                "countdown": 875,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -5138,7 +4748,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 927,
+                "countdown": 875,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -5219,7 +4829,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 927,
+                "countdown": 875,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -5300,7 +4910,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 927,
+                "countdown": 875,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -5381,7 +4991,7 @@
                 },
                 "chatMid": 0,
                 "cid": 70,
-                "countdown": 927,
+                "countdown": 875,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -5476,7 +5086,7 @@
                 },
                 "chatMid": 0,
                 "cid": 36,
-                "countdown": 687,
+                "countdown": 635,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -5585,7 +5195,7 @@
                 },
                 "chatMid": 0,
                 "cid": 36,
-                "countdown": 687,
+                "countdown": 635,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -5666,7 +5276,7 @@
                 },
                 "chatMid": 0,
                 "cid": 36,
-                "countdown": 807,
+                "countdown": 755,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -5761,7 +5371,7 @@
                 },
                 "chatMid": 0,
                 "cid": 11,
-                "countdown": 1107,
+                "countdown": 1055,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -5842,7 +5452,7 @@
                 },
                 "chatMid": 0,
                 "cid": 11,
-                "countdown": 1257,
+                "countdown": 1205,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -5937,7 +5547,7 @@
                 },
                 "chatMid": 0,
                 "cid": 86,
-                "countdown": 807,
+                "countdown": 755,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -6032,7 +5642,7 @@
                 },
                 "chatMid": 0,
                 "cid": 85,
-                "countdown": 777,
+                "countdown": 725,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -6127,7 +5737,7 @@
                 },
                 "chatMid": 0,
                 "cid": 75,
-                "countdown": 312,
+                "countdown": 260,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -6201,6 +5811,101 @@
             "subOrder": 0
           },
           {
+            "cid": 91,
+            "count": 1,
+            "favorite": false,
+            "matches": [
+              {
+                "anchors": [],
+                "away": {
+                  "cid": 91,
+                  "id": 37848,
+                  "jersey": {
+                    "base": "",
+                    "shirtType": "",
+                    "sleeve": "",
+                    "sleeveDetails": "",
+                    "style": "",
+                    "styleColor": ""
+                  },
+                  "name": "Kheybar Khorramabad FC"
+                },
+                "chatMid": 0,
+                "cid": 91,
+                "countdown": 560,
+                "gifMid": 0,
+                "graphMid": 0,
+                "home": {
+                  "cid": 91,
+                  "id": 24648,
+                  "jersey": {
+                    "base": "",
+                    "shirtType": "",
+                    "sleeve": "",
+                    "sleeveDetails": "",
+                    "style": "",
+                    "styleColor": ""
+                  },
+                  "name": "Malavan Bandar Anzali FC"
+                },
+                "iid": 3983047,
+                "inplay": false,
+                "kickoffTime": 1759412700,
+                "marketInfo": {
+                  "ad": false,
+                  "cr": false,
+                  "ot": false,
+                  "otcr": false,
+                  "otRedCard": false,
+                  "pk": false,
+                  "redCard": false
+                },
+                "mids": {
+                  "amid": 0,
+                  "bmid": 0,
+                  "cmid": 0,
+                  "dmid": 0,
+                  "fmid": 0,
+                  "jmid": 0
+                },
+                "name": "Malavan Bandar Anzali FC-vs-Kheybar Khorramabad FC",
+                "nv": false,
+                "round": {
+                  "roundGroup": "",
+                  "roundGroupName": "",
+                  "roundName": "Pro League",
+                  "roundNumber": "6",
+                  "roundType": "group"
+                },
+                "scoreId": "",
+                "series": "",
+                "sid": 1,
+                "state": "",
+                "streaming": 0,
+                "tid": 304,
+                "tnName": "Iran Persian Gulf Pro League",
+                "tnPriority": 8000076,
+                "vd": "b",
+                "video": false,
+                "videos": [],
+                "eps": [
+                  "b",
+                  "c",
+                  "j"
+                ],
+                "gifs": [],
+                "detail": null
+              }
+            ],
+            "name": "Iran Persian Gulf Pro League",
+            "priority": 8000076,
+            "sid": 1,
+            "tid": 304,
+            "score": 0,
+            "mainOrder": 0,
+            "subOrder": 0
+          },
+          {
             "cid": 21,
             "count": 4,
             "favorite": false,
@@ -6250,7 +5955,7 @@
                 },
                 "chatMid": 0,
                 "cid": 21,
-                "countdown": 147,
+                "countdown": 95,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -6331,7 +6036,7 @@
                 },
                 "chatMid": 0,
                 "cid": 21,
-                "countdown": 387,
+                "countdown": 335,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -6412,7 +6117,7 @@
                 },
                 "chatMid": 0,
                 "cid": 21,
-                "countdown": 387,
+                "countdown": 335,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -6493,7 +6198,7 @@
                 },
                 "chatMid": 0,
                 "cid": 21,
-                "countdown": 387,
+                "countdown": 335,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -6588,7 +6293,7 @@
                 },
                 "chatMid": 0,
                 "cid": 134,
-                "countdown": 792,
+                "countdown": 740,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -6669,7 +6374,7 @@
                 },
                 "chatMid": 0,
                 "cid": 134,
-                "countdown": 927,
+                "countdown": 875,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -6764,7 +6469,7 @@
                 },
                 "chatMid": 0,
                 "cid": 30,
-                "countdown": 1227,
+                "countdown": 1175,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -6859,7 +6564,7 @@
                 },
                 "chatMid": 0,
                 "cid": 38,
-                "countdown": 1047,
+                "countdown": 995,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -6954,7 +6659,7 @@
                 },
                 "chatMid": 0,
                 "cid": 16,
-                "countdown": 687,
+                "countdown": 635,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -7049,7 +6754,7 @@
                 },
                 "chatMid": 0,
                 "cid": 61,
-                "countdown": 177,
+                "countdown": 125,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -7130,7 +6835,7 @@
                 },
                 "chatMid": 0,
                 "cid": 61,
-                "countdown": 357,
+                "countdown": 305,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -7225,7 +6930,7 @@
                 },
                 "chatMid": 0,
                 "cid": 69,
-                "countdown": 927,
+                "countdown": 875,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -7306,7 +7011,7 @@
                 },
                 "chatMid": 0,
                 "cid": 69,
-                "countdown": 927,
+                "countdown": 875,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -7387,7 +7092,7 @@
                 },
                 "chatMid": 0,
                 "cid": 69,
-                "countdown": 1167,
+                "countdown": 1115,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -7468,7 +7173,7 @@
                 },
                 "chatMid": 0,
                 "cid": 69,
-                "countdown": 1167,
+                "countdown": 1115,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -7563,7 +7268,7 @@
                 },
                 "chatMid": 0,
                 "cid": 16,
-                "countdown": 747,
+                "countdown": 695,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -7658,7 +7363,7 @@
                 },
                 "chatMid": 0,
                 "cid": 16,
-                "countdown": 477,
+                "countdown": 425,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -7739,7 +7444,7 @@
                 },
                 "chatMid": 0,
                 "cid": 16,
-                "countdown": 477,
+                "countdown": 425,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -7834,7 +7539,7 @@
                 },
                 "chatMid": 0,
                 "cid": 77,
-                "countdown": 1197,
+                "countdown": 1145,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -7929,7 +7634,7 @@
                 },
                 "chatMid": 0,
                 "cid": 41,
-                "countdown": 327,
+                "countdown": 275,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -8010,7 +7715,7 @@
                 },
                 "chatMid": 0,
                 "cid": 41,
-                "countdown": 387,
+                "countdown": 335,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -8105,7 +7810,7 @@
                 },
                 "chatMid": 0,
                 "cid": 83,
-                "countdown": 537,
+                "countdown": 485,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -8186,7 +7891,7 @@
                 },
                 "chatMid": 0,
                 "cid": 83,
-                "countdown": 537,
+                "countdown": 485,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -8267,7 +7972,7 @@
                 },
                 "chatMid": 0,
                 "cid": 83,
-                "countdown": 537,
+                "countdown": 485,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -8348,7 +8053,7 @@
                 },
                 "chatMid": 0,
                 "cid": 83,
-                "countdown": 537,
+                "countdown": 485,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -8429,7 +8134,7 @@
                 },
                 "chatMid": 0,
                 "cid": 83,
-                "countdown": 537,
+                "countdown": 485,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -8510,7 +8215,7 @@
                 },
                 "chatMid": 0,
                 "cid": 83,
-                "countdown": 537,
+                "countdown": 485,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -8591,7 +8296,7 @@
                 },
                 "chatMid": 0,
                 "cid": 83,
-                "countdown": 687,
+                "countdown": 635,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -8672,7 +8377,7 @@
                 },
                 "chatMid": 0,
                 "cid": 83,
-                "countdown": 687,
+                "countdown": 635,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -8767,7 +8472,7 @@
                 },
                 "chatMid": 0,
                 "cid": 89,
-                "countdown": 447,
+                "countdown": 395,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -8862,7 +8567,7 @@
                 },
                 "chatMid": 0,
                 "cid": 38,
-                "countdown": 567,
+                "countdown": 515,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -8943,7 +8648,7 @@
                 },
                 "chatMid": 0,
                 "cid": 38,
-                "countdown": 687,
+                "countdown": 635,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -9024,7 +8729,7 @@
                 },
                 "chatMid": 0,
                 "cid": 38,
-                "countdown": 747,
+                "countdown": 695,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -9119,7 +8824,7 @@
                 },
                 "chatMid": 0,
                 "cid": 5,
-                "countdown": 807,
+                "countdown": 755,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -9214,7 +8919,7 @@
                 },
                 "chatMid": 0,
                 "cid": 10,
-                "countdown": 1287,
+                "countdown": 1235,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -9309,7 +9014,7 @@
                 },
                 "chatMid": 0,
                 "cid": 38,
-                "countdown": 507,
+                "countdown": 455,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -9390,7 +9095,7 @@
                 },
                 "chatMid": 0,
                 "cid": 38,
-                "countdown": 747,
+                "countdown": 695,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -9485,7 +9190,7 @@
                 },
                 "chatMid": 0,
                 "cid": 5,
-                "countdown": 777,
+                "countdown": 725,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -9566,7 +9271,7 @@
                 },
                 "chatMid": 0,
                 "cid": 5,
-                "countdown": 807,
+                "countdown": 755,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -9647,7 +9352,7 @@
                 },
                 "chatMid": 0,
                 "cid": 5,
-                "countdown": 807,
+                "countdown": 755,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -9728,7 +9433,7 @@
                 },
                 "chatMid": 0,
                 "cid": 5,
-                "countdown": 837,
+                "countdown": 785,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -9809,7 +9514,7 @@
                 },
                 "chatMid": 0,
                 "cid": 5,
-                "countdown": 837,
+                "countdown": 785,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -9904,7 +9609,7 @@
                 },
                 "chatMid": 0,
                 "cid": 25,
-                "countdown": 1107,
+                "countdown": 1055,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -9999,7 +9704,7 @@
                 },
                 "chatMid": 0,
                 "cid": 107,
-                "countdown": 1287,
+                "countdown": 1235,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -10094,7 +9799,7 @@
                 },
                 "chatMid": 0,
                 "cid": 50,
-                "countdown": 1257,
+                "countdown": 1205,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -10189,7 +9894,7 @@
                 },
                 "chatMid": 0,
                 "cid": 51,
-                "countdown": 1047,
+                "countdown": 995,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -10284,7 +9989,7 @@
                 },
                 "chatMid": 0,
                 "cid": 38,
-                "countdown": 867,
+                "countdown": 815,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -10365,7 +10070,7 @@
                 },
                 "chatMid": 0,
                 "cid": 38,
-                "countdown": 867,
+                "countdown": 815,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -10446,7 +10151,7 @@
                 },
                 "chatMid": 0,
                 "cid": 38,
-                "countdown": 867,
+                "countdown": 815,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -10527,7 +10232,7 @@
                 },
                 "chatMid": 0,
                 "cid": 38,
-                "countdown": 867,
+                "countdown": 815,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -10608,7 +10313,7 @@
                 },
                 "chatMid": 0,
                 "cid": 38,
-                "countdown": 1107,
+                "countdown": 1055,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -10703,7 +10408,7 @@
                 },
                 "chatMid": 0,
                 "cid": 93,
-                "countdown": 687,
+                "countdown": 635,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -10784,7 +10489,7 @@
                 },
                 "chatMid": 0,
                 "cid": 93,
-                "countdown": 687,
+                "countdown": 635,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -10879,7 +10584,7 @@
                 },
                 "chatMid": 0,
                 "cid": 75,
-                "countdown": 522,
+                "countdown": 470,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -10974,7 +10679,7 @@
                 },
                 "chatMid": 0,
                 "cid": 92,
-                "countdown": 927,
+                "countdown": 875,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -11055,7 +10760,7 @@
                 },
                 "chatMid": 0,
                 "cid": 92,
-                "countdown": 1107,
+                "countdown": 1055,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -11136,7 +10841,7 @@
                 },
                 "chatMid": 0,
                 "cid": 92,
-                "countdown": 1257,
+                "countdown": 1205,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -11231,7 +10936,7 @@
                 },
                 "chatMid": 0,
                 "cid": 66,
-                "countdown": 807,
+                "countdown": 755,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -11326,7 +11031,7 @@
                 },
                 "chatMid": 0,
                 "cid": 62,
-                "countdown": 447,
+                "countdown": 395,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -11407,7 +11112,7 @@
                 },
                 "chatMid": 0,
                 "cid": 62,
-                "countdown": 447,
+                "countdown": 395,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -11488,7 +11193,7 @@
                 },
                 "chatMid": 0,
                 "cid": 62,
-                "countdown": 447,
+                "countdown": 395,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -11583,7 +11288,7 @@
                 },
                 "chatMid": 0,
                 "cid": 276,
-                "countdown": 897,
+                "countdown": 845,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -11678,7 +11383,7 @@
                 },
                 "chatMid": 0,
                 "cid": 295,
-                "countdown": 567,
+                "countdown": 515,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -11773,7 +11478,7 @@
                 },
                 "chatMid": 0,
                 "cid": 77,
-                "countdown": 867,
+                "countdown": 815,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -11868,7 +11573,7 @@
                 },
                 "chatMid": 0,
                 "cid": 297,
-                "countdown": 477,
+                "countdown": 425,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -11963,7 +11668,7 @@
                 },
                 "chatMid": 0,
                 "cid": 280,
-                "countdown": 567,
+                "countdown": 515,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -12044,7 +11749,7 @@
                 },
                 "chatMid": 0,
                 "cid": 280,
-                "countdown": 807,
+                "countdown": 755,
                 "gifMid": 0,
                 "graphMid": 0,
                 "home": {
@@ -12120,8 +11825,8 @@
         ]
       },
       "msg": "",
-      "time": 1759376012486
+      "time": 1759379110282
     },
-    "proxy": "103.10.60.178:8080"
+    "proxy": "103.163.103.163:8010"
   }
 ]
