@@ -6,13 +6,15 @@ from deep_translator import GoogleTranslator
 from pathlib import Path
 
 # ==========================
-# Jakarta tz
+# Timezone
 # ==========================
 try:
     from zoneinfo import ZoneInfo
-    JAKARTA = ZoneInfo("Asia/Jakarta")
+    SHANGHAI = ZoneInfo("Asia/Shanghai")  # timezone asal (UTC+8)
+    JAKARTA = ZoneInfo("Asia/Jakarta")    # timezone tujuan (UTC+7)
 except Exception:
-    JAKARTA = timezone(timedelta(hours=6))
+    SHANGHAI = timezone(timedelta(hours=8))
+    JAKARTA = timezone(timedelta(hours=7))
 
 
 # ==========================
@@ -39,6 +41,7 @@ HEADERS = {
     "Connection": "keep-alive",
 }
 
+
 async def translate_zh_to_en(text):
     if not text:
         return ""
@@ -48,6 +51,7 @@ async def translate_zh_to_en(text):
         print(f"Translate error for '{text}': {e}")
         return text
 
+
 async def fetch_html(session, url):
     try:
         async with session.get(url, headers=HEADERS, ssl=False, timeout=15) as response:
@@ -56,11 +60,11 @@ async def fetch_html(session, url):
         print(f"Fetch error: {e}")
         return ""
 
+
 async def parse_matches(html):
     soup = BeautifulSoup(html, "html.parser")
     lines = []
 
-    # Cek ada <a class="clearfix"> di halaman
     a_tags = soup.select("a.clearfix")
     if not a_tags:
         print("⚠️ No matches found in the HTML.")
@@ -100,12 +104,15 @@ async def parse_matches(html):
             liga_name = ""
             event_time = ""
 
+        # Data-time UTC+8 → convert ke Jakarta UTC+7
         data_time = a_tag.get("data-time", "")
         try:
             dt_obj = datetime.strptime(f"{data_time} {event_time}", "%Y-%m-%d %H:%M")
-            dt_obj = dt_obj.replace(tzinfo=JAKARTA)  # set timezone Jakarta
+            dt_obj = dt_obj.replace(tzinfo=SHANGHAI)   # waktu asli dari web (UTC+8)
+            dt_obj = dt_obj.astimezone(JAKARTA)        # konversi ke WIB
             dt_str = dt_obj.strftime("%d/%m-%H.%M")
-        except:
+        except Exception as e:
+            print(f"⚠️ Time parse error for {data_time} {event_time}: {e}")
             dt_str = f"{data_time}-{event_time}"
 
         # Format M3U
@@ -117,6 +124,7 @@ async def parse_matches(html):
 
     return lines
 
+
 async def main():
     async with aiohttp.ClientSession() as session:
         html = await fetch_html(session, TARGET_URL)
@@ -126,7 +134,6 @@ async def main():
 
         lines = await parse_matches(html)
 
-        # Tulis M3U dan log
         if lines:
             with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
                 f.write("#EXTM3U\n")
@@ -134,11 +141,11 @@ async def main():
             print(f"✅ Total matches parsed: {len(lines)//4}")
             print(f"File M3U created at: {OUTPUT_FILE.resolve()}")
         else:
-            # Buat file M3U minimal agar workflow tetap jalan
             with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
                 f.write("#EXTM3U\n")
             print("⚠️ M3U kosong, skip push ke privat")
             print(f"Minimal file created at: {OUTPUT_FILE.resolve()}")
+
 
 if __name__ == "__main__":
     asyncio.run(main())
