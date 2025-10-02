@@ -118,13 +118,17 @@ async def main():
 
         lines = await parse_matches(html)
 
-    if lines:
-        with open("CHINZYAGIO_.m3u", "w", encoding="utf-8") as f:
-            f.write("#EXTM3U\n")
-            f.write("\n".join(lines))
-        print(f"✅ Total matches parsed: {len(lines)//4}")
-    else:
-        print("⚠️ No match entries to write.")
+        # Tulis M3U dan log
+        if lines:
+            with open("CHINZYAGIO_.m3u", "w", encoding="utf-8") as f:
+                f.write("#EXTM3U\n")
+                f.write("\n".join(lines))
+            print(f"✅ Total matches parsed: {len(lines)//4}")
+        else:
+            # Buat file M3U minimal agar workflow tetap jalan
+            with open("CHINZYAGIO_.m3u", "w", encoding="utf-8") as f:
+                f.write("#EXTM3U\n")
+            print("⚠️ M3U kosong, skip push ke privat")
 
 if __name__ == "__main__":
     asyncio.run(main())
