@@ -1,9 +1,18 @@
 import aiohttp
 import asyncio
 from bs4 import BeautifulSoup
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from deep_translator import GoogleTranslator
 from pathlib import Path
+
+# ==========================
+# Jakarta tz
+# ==========================
+try:
+    from zoneinfo import ZoneInfo
+    JAKARTA = ZoneInfo("Asia/Jakarta")
+except Exception:
+    JAKARTA = timezone(timedelta(hours=7))
 
 
 # ==========================
@@ -19,8 +28,6 @@ with open(CHINZYAIGODATA_FILE, "r", encoding="utf-8") as f:
 BASE_URL = config_vars.get("BASE_URL")
 WORKER_URL = config_vars.get("WORKER_URL")
 LOGO_URL = config_vars.get("LOGO_URL")
-
-
 
 TARGET_URL = BASE_URL  # langsung halaman utama
 
@@ -96,6 +103,7 @@ async def parse_matches(html):
         data_time = a_tag.get("data-time", "")
         try:
             dt_obj = datetime.strptime(f"{data_time} {event_time}", "%Y-%m-%d %H:%M")
+            dt_obj = dt_obj.replace(tzinfo=JAKARTA)  # set timezone Jakarta
             dt_str = dt_obj.strftime("%d/%m-%H.%M")
         except:
             dt_str = f"{data_time}-{event_time}"
