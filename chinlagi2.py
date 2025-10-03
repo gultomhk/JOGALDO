@@ -87,20 +87,21 @@ def translate_text(text: str, dictionary: dict):
 
 def main():
     print("🚀 Fetching matches from API...")
-    data = fetch_matches()
+    raw = fetch_matches()
     print("✅ Response received")
 
-    if "data" not in data:
-        print("⚠️ Unexpected JSON structure:", data.keys())
+    if not isinstance(raw, dict) or "data" not in raw:
+        print("⚠️ Unexpected JSON structure:", raw.keys() if isinstance(raw, dict) else type(raw))
         return
 
-    # Auto detect struktur
+    data = raw["data"]
+
     matches = []
-    if isinstance(data["data"], dict):
-        if "list" in data["data"]:
-            matches = data["data"]["list"]
-        elif "dataList" in data["data"]:
-            matches = data["data"]["dataList"]
+    if isinstance(data, dict):
+        if "list" in data:
+            matches = data["list"]
+        elif "dataList" in data:
+            matches = data["dataList"]
 
     print(f"📊 Found {len(matches)} matches")
 
@@ -119,7 +120,6 @@ def main():
             away = translate_text(match.get("ateam_name", ""), TEAM_TRANSLATIONS)
             league = translate_text(match.get("name", ""), LEAGUE_TRANSLATIONS)
 
-            # pakai logo tim kalau ada, fallback ke default
             logo = match.get("hteam_logo") or DEFAULT_LOGO
 
             matchtime = match.get("matchtime")
@@ -146,3 +146,6 @@ def main():
         f.writelines(lines)
 
     print(f"✅ Playlist saved to {OUT_FILE}")
+
+if __name__ == "__main__":
+    main()
