@@ -61,7 +61,7 @@ def fetch_matches():
         "ps": 100,
         "level": "",
         "name": "",
-        "langtype": "id",
+        "langtype": "zh",
         "starttime": get_today_date(),
         "pid": 4,
         "zoneId": "Asia/Bangkok",
