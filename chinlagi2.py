@@ -223,8 +223,7 @@ def main():
             home = translate_text(match.get("hteam_name", ""), TEAM_TRANSLATIONS)
             away = translate_text(match.get("ateam_name", ""), TEAM_TRANSLATIONS)
             league = translate_text(match.get("name", ""), LEAGUE_TRANSLATIONS)
-            logo = match.get("hteam_logo") or DEFAULT_LOGO
-
+           
             matchtime = match.get("matchtime") or match.get("matchtime_en")
             tstr = format_time(matchtime)
 
@@ -234,7 +233,7 @@ def main():
             worker_url = WORKER_TEMPLATE.format(id=mid)
 
             m3u_line = (
-                f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{logo}",{title}\n'
+                f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{DEFAULT_LOGO}",{title}\n'
                 f'#EXTVLCOPT:http-user-agent={UA}\n'
                 f'#EXTVLCOPT:http-referrer={REFERER}\n'
                 f"{worker_url}\n"
