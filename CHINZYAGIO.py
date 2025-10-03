@@ -16,12 +16,10 @@ except Exception:
     SHANGHAI = timezone(timedelta(hours=8))
     JAKARTA = timezone(timedelta(hours=7))
 
-
 # ==========================
-# Load Config dari chinzyaigodata_file.txt
+# Load Config
 # ==========================
 CHINZYAIGODATA_FILE = Path.home() / "chinzyaigodata_file.txt"
-
 config_vars = {}
 with open(CHINZYAIGODATA_FILE, "r", encoding="utf-8") as f:
     code = f.read()
@@ -31,7 +29,7 @@ BASE_URL = config_vars.get("BASE_URL")
 WORKER_URL = config_vars.get("WORKER_URL")
 LOGO_URL = config_vars.get("LOGO_URL")
 
-TARGET_URL = BASE_URL  # langsung halaman utama
+TARGET_URL = BASE_URL
 OUTPUT_FILE = Path(__file__).parent / "CHINZYAGIO.m3u"
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
@@ -41,8 +39,10 @@ HEADERS = {
     "Connection": "keep-alive",
 }
 
-
-async def translate_zh_to_en(text):
+# ==========================
+# Translator
+# ==========================
+async def translate_zh_to_en(text: str) -> str:
     if not text:
         return ""
     try:
@@ -51,7 +51,9 @@ async def translate_zh_to_en(text):
         print(f"Translate error for '{text}': {e}")
         return text
 
-
+# ==========================
+# Fetch HTML
+# ==========================
 async def fetch_html(session, url):
     try:
         async with session.get(url, headers=HEADERS, ssl=False, timeout=15) as response:
@@ -60,7 +62,9 @@ async def fetch_html(session, url):
         print(f"Fetch error: {e}")
         return ""
 
-
+# ==========================
+# Parse Matches
+# ==========================
 async def parse_matches(html):
     soup = BeautifulSoup(html, "html.parser")
     lines = []
@@ -104,6 +108,9 @@ async def parse_matches(html):
             liga_name = ""
             event_time = ""
 
+        # Translate liga juga
+        liga_name_en = await translate_zh_to_en(liga_name)
+
         # Data-time UTC+8 → convert ke Jakarta UTC+7
         data_time = a_tag.get("data-time", "")
         try:
@@ -116,7 +123,7 @@ async def parse_matches(html):
             dt_str = f"{data_time}-{event_time}"
 
         # Format M3U
-        title = f"{home_team_en} vs {away_team_en} ({liga_name})"
+        title = f"{home_team_en} vs {away_team_en} ({liga_name_en})"
         lines.append(f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{LOGO_URL}", {dt_str} {title}')
         lines.append(f'#EXTVLCOPT:http-user-agent={HEADERS["User-Agent"]}')
         lines.append(f'#EXTVLCOPT:http-referrer={BASE_URL}')
@@ -124,7 +131,9 @@ async def parse_matches(html):
 
     return lines
 
-
+# ==========================
+# Main
+# ==========================
 async def main():
     async with aiohttp.ClientSession() as session:
         html = await fetch_html(session, TARGET_URL)
@@ -145,7 +154,6 @@ async def main():
                 f.write("#EXTM3U\n")
             print("⚠️ M3U kosong, skip push ke privat")
             print(f"Minimal file created at: {OUTPUT_FILE.resolve()}")
-
 
 if __name__ == "__main__":
     asyncio.run(main())
