@@ -38,11 +38,14 @@ TEAM_TRANSLATIONS = {
     "蒙通联": "Muangthong United",
     "东京电击": "Tokyo Electro",
     "宇都宫皇者": "Utsunomiya Kings",
+    "高华尤夫卡": "Kryvbas KR",
+    "鲁克维尼基": "Rukh Vynnyky",
 }
 LEAGUE_TRANSLATIONS = {
     "日职联": "Japan J1 League",
     "泰超": "Thai Premier League", 
     "日篮B1": "Japan B1 League",
+    "乌克超": "Ukrainian Premier League",
 }
 
 HEADERS = {
@@ -120,26 +123,34 @@ def format_time(matchtime: str) -> str:
             continue
     return matchtime  # fallback
 
-def extract_matches_from_data(data):
-    """Extract matches from various possible data structures"""
-    matches = []
+def extract_all_matches(raw_data):
+    """Extract semua matches dari struktur data yang kompleks"""
+    all_matches = []
     
-    if isinstance(data, list):
-        # Data langsung berupa list matches
-        matches = data
-    elif isinstance(data, dict):
-        # Cari di berbagai kemungkinan key
-        possible_keys = ["list", "dataList", "matches", "data"]
-        for key in possible_keys:
-            if key in data and isinstance(data[key], list):
-                matches.extend(data[key])
-                break
-        
-        # Jika tidak ada key yang cocok, mungkin data本身就是match
-        if not matches and any(k in data for k in ["hteam_name", "ateam_name", "id", "mid"]):
-            matches = [data]
+    def extract_from_dict(data_dict):
+        matches = []
+        # Cari key yang berisi list of matches
+        for key, value in data_dict.items():
+            if isinstance(value, list):
+                # Cek jika ini list of matches (ada elemen dengan field match)
+                for item in value:
+                    if isinstance(item, dict):
+                        if any(k in item for k in ["hteam_name", "ateam_name", "id", "mid"]):
+                            matches.append(item)
+            elif isinstance(value, dict):
+                # Rekursif ke nested dict
+                matches.extend(extract_from_dict(value))
+        return matches
     
-    return matches
+    if isinstance(raw_data, list):
+        # Data langsung berupa list of matches
+        for item in raw_data:
+            if isinstance(item, dict) and any(k in item for k in ["hteam_name", "ateam_name", "id", "mid"]):
+                all_matches.append(item)
+    elif isinstance(raw_data, dict):
+        all_matches = extract_from_dict(raw_data)
+    
+    return all_matches
 
 def main():
     print("🚀 Fetching matches from API...")
@@ -150,32 +161,39 @@ def main():
         print(f"⚠️ Unexpected response type: {type(raw)}")
         return
 
-    # Extract matches dari berbagai kemungkinan struktur
-    matches = extract_matches_from_data(raw)
+    # Debug: print struktur data
+    print(f"🔍 Raw data keys: {list(raw.keys())}")
     
-    # Jika ada key "data", coba extract dari sana juga
-    if "data" in raw:
-        data_matches = extract_matches_from_data(raw["data"])
-        matches.extend(data_matches)
+    # Extract semua matches
+    all_matches = extract_all_matches(raw)
+    print(f"📊 Found {len(all_matches)} total matches in response")
 
     # Hapus duplikat berdasarkan ID
     seen_ids = set()
     unique_matches = []
-    for match in matches:
+    for match in all_matches:
         match_id = match.get("id") or match.get("mid")
         if match_id and match_id not in seen_ids:
             seen_ids.add(match_id)
             unique_matches.append(match)
 
-    print(f"📊 Found {len(unique_matches)} unique matches")
+    print(f"🎯 After deduplication: {len(unique_matches)} unique matches")
 
     if not unique_matches:
         print("⚠️ No matches found in API")
-        print("🔍 Raw response keys:", raw.keys() if isinstance(raw, dict) else "N/A")
+        print("🔍 Debug info - First few items in raw data:")
+        if isinstance(raw, dict) and 'data' in raw:
+            print(f"Data type: {type(raw['data'])}")
+            if isinstance(raw['data'], list) and len(raw['data']) > 0:
+                print(f"First data item: {raw['data'][0]}")
         return
 
     lines = []
     match_count = 0
+    
+    # Debug: Track specific match IDs
+    target_ids = ["4362065", "3861747"]
+    found_targets = []
     
     for match in unique_matches:
         try:
@@ -184,6 +202,11 @@ def main():
             if not mid:
                 print(f"⚠️ Skipped match without ID: {match.get('hteam_name', 'Unknown')} vs {match.get('ateam_name', 'Unknown')}")
                 continue
+
+            # Track target matches
+            if str(mid) in target_ids:
+                found_targets.append(str(mid))
+                print(f"🎯 FOUND TARGET MATCH: {mid} - {match.get('hteam_name')} vs {match.get('ateam_name')}")
 
             urls = extract_urls(match)
 
@@ -213,9 +236,9 @@ def main():
             status_name = match.get("status_up_name", "")
             
             if urls:
-                print(f"✅ [{match_count}] {mid}: {title} (live_urls: {len(urls)}, status: {status_name})")
+                print(f"✅ [{match_count}] {mid}: {home} vs {away} (live_urls: {len(urls)}, status: {status_name})")
             else:
-                print(f"✅ [{match_count}] {mid}: {title} (no live_urls, worker only, status: {status_name})")
+                print(f"✅ [{match_count}] {mid}: {home} vs {away} (no live_urls, worker only, status: {status_name})")
 
         except Exception as e:
             print(f"❌ Error parsing match {match.get('id') or 'Unknown'}: {e}")
@@ -225,7 +248,13 @@ def main():
         f.write("#EXTM3U\n")
         f.writelines(lines)
 
-    print(f"✅ Playlist saved to {OUT_FILE} with {match_count} matches")
+    print(f"✅ Playlist saved to {OUT_FILE} dengan {match_count} matches")
+    
+    # Debug summary
+    print(f"🔍 Target matches found: {found_targets}")
+    missing_targets = [mid for mid in target_ids if mid not in found_targets]
+    if missing_targets:
+        print(f"❌ Missing target matches: {missing_targets}")
     
 if __name__ == "__main__":
     main()
