@@ -86,7 +86,10 @@ def translate_text(text: str, dictionary: dict):
         return text
 
 def main():
+    print("🚀 Fetching matches from API...")
     data = fetch_matches()
+    print("✅ Response received")
+
     if "data" not in data:
         print("⚠️ Unexpected JSON structure:", data.keys())
         return
@@ -98,6 +101,8 @@ def main():
             matches = data["data"]["list"]
         elif "dataList" in data["data"]:
             matches = data["data"]["dataList"]
+
+    print(f"📊 Found {len(matches)} matches")
 
     if not matches:
         print("⚠️ No matches found in API")
