@@ -85,17 +85,34 @@ def translate_text(text: str, dictionary: dict):
 
 def main():
     data = fetch_matches()
-    if "data" not in data or "dataList" not in data["data"]:
+    if "data" not in data:
         print("⚠️ Unexpected JSON structure:", data.keys())
         return
 
+    # Auto detect struktur
+    matches = []
+    if isinstance(data["data"], dict):
+        if "list" in data["data"]:
+            matches = data["data"]["list"]
+        elif "dataList" in data["data"]:
+            matches = data["data"]["dataList"]
+
+    if not matches:
+        print("⚠️ No matches found in API")
+        return
+
     lines = []
-    for match in data["data"]["dataList"]:
+    for match in matches:
         try:
             mid = match.get("id")
+            if not mid:
+                continue
+
             home = translate_text(match.get("hteam_name", ""), TEAM_TRANSLATIONS)
             away = translate_text(match.get("ateam_name", ""), TEAM_TRANSLATIONS)
             league = translate_text(match.get("name", ""), LEAGUE_TRANSLATIONS)
+
+            # pakai logo tim kalau ada, fallback ke default
             logo = match.get("hteam_logo") or DEFAULT_LOGO
 
             matchtime = match.get("matchtime")
@@ -113,6 +130,7 @@ def main():
                 f"{worker_url}\n"
             )
             lines.append(m3u_line)
+
         except Exception as e:
             print("Error parsing match:", e)
 
@@ -122,6 +140,3 @@ def main():
         f.writelines(lines)
 
     print(f"✅ Playlist saved to {filename}")
-
-if __name__ == "__main__":
-    main()
