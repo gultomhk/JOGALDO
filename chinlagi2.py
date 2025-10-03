@@ -71,19 +71,6 @@ def fetch_matches():
     r.raise_for_status()
     return r.json()
 
-def format_time(matchtime: str):
-    # coba format YYYY-mm-dd HH:MM:SS dulu
-    try:
-        dt = datetime.strptime(matchtime, "%Y-%m-%d %H:%M:%S")
-        return dt.strftime("%d/%m-%H.%M")
-    except Exception:
-        # fallback format bahasa Inggris: Oct 3, 2025 17:0:0 PM
-        try:
-            dt = datetime.strptime(matchtime, "%b %d, %Y %H:%M:%S %p")
-            return dt.strftime("%d/%m-%H.%M")
-        except Exception:
-            return matchtime
-
 def translate_text(text: str, dictionary: dict):
     if not text:
         return ""
@@ -102,6 +89,19 @@ def extract_urls(match: dict):
                 if isinstance(u, dict) and u.get("url"):
                     urls.append(u.get("url"))
     return urls
+
+
+def format_time(matchtime: str) -> str:
+    """Format waktu ke dd/mm-HH.MM, fallback ke raw string kalau gagal parse"""
+    if not matchtime:
+        return "??"
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%b %d, %Y %H:%M:%S %p"):
+        try:
+            dt = datetime.strptime(matchtime, fmt)
+            return dt.strftime("%d/%m-%H.%M")
+        except ValueError:
+            continue
+    return matchtime  # fallback
 
 
 def main():
@@ -136,9 +136,9 @@ def main():
         try:
             mid = match.get("mid") or match.get("id")
             if not mid:
+                print(f"⚠️ Skipped match without ID: {match}")
                 continue
 
-            # ambil url asli kalau ada (opsional)
             urls = extract_urls(match)
 
             home = translate_text(match.get("hteam_name", ""), TEAM_TRANSLATIONS)
@@ -147,13 +147,10 @@ def main():
             logo = match.get("hteam_logo") or DEFAULT_LOGO
 
             matchtime = match.get("matchtime") or match.get("matchtime_en")
-            if not matchtime:
-                continue
             tstr = format_time(matchtime)
 
             title = f"{tstr} {home} vs {away} ({league})"
 
-            # selalu pakai worker_url
             worker_url = WORKER_TEMPLATE.format(id=mid)
 
             m3u_line = (
@@ -171,7 +168,7 @@ def main():
                 print(f"✅ Added match {mid}: {title} (no live_urls, worker only)")
 
         except Exception as e:
-            print(f"❌ Error parsing match {match.get('id')}: {e}")
+            print(f"❌ Error parsing match {match.get('id') or match}: {e}")
 
     # tulis output
     with open(OUT_FILE, "w", encoding="utf-8") as f:
