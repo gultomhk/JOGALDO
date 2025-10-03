@@ -192,6 +192,16 @@ def extract_all_matches(raw_data):
     return all_matches
 
 
+def clean_team_name(name: str) -> str:
+    """Bersihkan nama tim dari angka format ribuan dan spasi ekstra"""
+    if not name:
+        return ""
+    import re
+    # hapus koma di angka ribuan (350,000 → 350000)
+    name = re.sub(r"(\d),(\d{3})", r"\1\2", name)
+    return name.strip()
+
+
 def main():
     print("🚀 Fetching matches from API...")
     raw = fetch_matches()
@@ -220,10 +230,12 @@ def main():
 
             urls = extract_urls(match)
 
-            home = translate_text(match.get("hteam_name", ""), TEAM_TRANSLATIONS)
-            away = translate_text(match.get("ateam_name", ""), TEAM_TRANSLATIONS)
+            # Bersihkan nama tim dari angka ribuan
+            home = translate_text(clean_team_name(match.get("hteam_name", "")), TEAM_TRANSLATIONS)
+            away = translate_text(clean_team_name(match.get("ateam_name", "")), TEAM_TRANSLATIONS)
             league = translate_text(match.get("name", ""), LEAGUE_TRANSLATIONS)
-           
+
+ 
             matchtime = match.get("matchtime") or match.get("matchtime_en")
             tstr = format_time(matchtime)
 
