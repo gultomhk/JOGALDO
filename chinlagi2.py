@@ -1,3 +1,4 @@
+import time
 import requests
 from datetime import datetime
 from pathlib import Path
@@ -51,7 +52,7 @@ def get_today_date():
     tz = pytz.timezone("Asia/Bangkok")
     return datetime.now(tz).strftime("%Y-%m-%d")
 
-def fetch_matches():
+def fetch_matches(max_retries=3, backoff=5):
     params = {
         "isfanye": 1,
         "type": 0,
@@ -67,9 +68,20 @@ def fetch_matches():
         "zoneId": "Asia/Bangkok",
         "zhuboType": 1,
     }
-    r = requests.get(BASE_URL, params=params, headers=HEADERS, timeout=15)
-    r.raise_for_status()
-    return r.json()
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            r = requests.get(BASE_URL, params=params, headers=HEADERS, timeout=30)
+            r.raise_for_status()
+            return r.json()
+        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
+            print(f"⚠️ Attempt {attempt}/{max_retries} failed: {e}")
+            if attempt < max_retries:
+                print(f"⏳ Retrying in {backoff} seconds...")
+                time.sleep(backoff)
+            else:
+                print("❌ All retries failed.")
+                raise
 
 def translate_text(text: str, dictionary: dict):
     if not text:
