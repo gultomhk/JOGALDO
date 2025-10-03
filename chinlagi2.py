@@ -98,8 +98,11 @@ def extract_urls(match: dict):
     urls = []
     for key in ["live_urls", "mirror_live_urls", "global_live_urls"]:
         if key in match and isinstance(match[key], list):
-            urls.extend([u.get("url") for u in match[key] if u.get("url")])
+            for u in match[key]:
+                if isinstance(u, dict) and u.get("url"):
+                    urls.append(u.get("url"))
     return urls
+
 
 def main():
     print("🚀 Fetching matches from API...")
@@ -135,10 +138,8 @@ def main():
             if not mid:
                 continue
 
+            # ambil url asli kalau ada (opsional)
             urls = extract_urls(match)
-            if not urls:
-                print(f"⏭️ Skip {mid}, no live url")
-                continue
 
             home = translate_text(match.get("hteam_name", ""), TEAM_TRANSLATIONS)
             away = translate_text(match.get("ateam_name", ""), TEAM_TRANSLATIONS)
@@ -151,6 +152,8 @@ def main():
             tstr = format_time(matchtime)
 
             title = f"{tstr} {home} vs {away} ({league})"
+
+            # selalu pakai worker_url
             worker_url = WORKER_TEMPLATE.format(id=mid)
 
             m3u_line = (
@@ -160,7 +163,12 @@ def main():
                 f"{worker_url}\n"
             )
             lines.append(m3u_line)
-            print(f"✅ Added match {mid}: {title}")
+
+            # log tambahan
+            if urls:
+                print(f"✅ Added match {mid}: {title} (live_urls found)")
+            else:
+                print(f"✅ Added match {mid}: {title} (no live_urls, worker only)")
 
         except Exception as e:
             print(f"❌ Error parsing match {match.get('id')}: {e}")
@@ -171,6 +179,6 @@ def main():
         f.writelines(lines)
 
     print(f"✅ Playlist saved to {OUT_FILE}")
-
+    
 if __name__ == "__main__":
     main()
