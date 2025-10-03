@@ -68,7 +68,7 @@ def fetch_matches(max_retries=3, backoff=5):
         "cid": 0,
         "ishot": 1,
         "pn": 1,
-        "ps": 100,
+        "ps": 200,  # Increased to get more matches
         "level": "",
         "name": "",
         "langtype": "zh",
@@ -122,6 +122,40 @@ def format_time(matchtime: str) -> str:
         except ValueError:
             continue
     return matchtime  # fallback
+
+def get_match_status_text(match):
+    """Get readable status text for match"""
+    status = match.get("status", 1)
+    status_up = match.get("status_up", 1)
+    status_name = match.get("status_up_name", "")
+    
+    # Status mapping
+    status_map = {
+        0: "LIVE",
+        1: "UPCOMING", 
+        2: "ENDED",
+        3: "POSTPONED"
+    }
+    
+    # Basketball quarter mapping
+    quarter_map = {
+        1: "Q1",
+        2: "Q2", 
+        3: "Q3",
+        4: "Q4",
+        8: "Q4"  # Sometimes 8 means Q4
+    }
+    
+    if status == 0:  # Live match
+        if status_name.isdigit():
+            quarter = int(status_name)
+            return f"LIVE {quarter_map.get(quarter, f'Q{quarter}')}"
+        elif status_name in ["上半场", "下半场"]:
+            return f"LIVE {status_name}"
+        else:
+            return "LIVE"
+    
+    return status_map.get(status, "UPCOMING")
 
 def extract_all_matches(raw_data):
     """Extract semua matches dari struktur data yang kompleks"""
@@ -181,11 +215,6 @@ def main():
 
     if not unique_matches:
         print("⚠️ No matches found in API")
-        print("🔍 Debug info - First few items in raw data:")
-        if isinstance(raw, dict) and 'data' in raw:
-            print(f"Data type: {type(raw['data'])}")
-            if isinstance(raw['data'], list) and len(raw['data']) > 0:
-                print(f"First data item: {raw['data'][0]}")
         return
 
     lines = []
@@ -200,13 +229,13 @@ def main():
             # Cari ID dari berbagai kemungkinan field
             mid = match.get("mid") or match.get("id")
             if not mid:
-                print(f"⚠️ Skipped match without ID: {match.get('hteam_name', 'Unknown')} vs {match.get('ateam_name', 'Unknown')}")
                 continue
 
             # Track target matches
             if str(mid) in target_ids:
                 found_targets.append(str(mid))
                 print(f"🎯 FOUND TARGET MATCH: {mid} - {match.get('hteam_name')} vs {match.get('ateam_name')}")
+                print(f"   Status: {match.get('status')}, Status Name: {match.get('status_up_name')}")
 
             urls = extract_urls(match)
 
@@ -218,7 +247,10 @@ def main():
             matchtime = match.get("matchtime") or match.get("matchtime_en")
             tstr = format_time(matchtime)
 
-            title = f"{tstr} {home} vs {away} ({league})"
+            # Get status text
+            status_text = get_match_status_text(match)
+            
+            title = f"{tstr} {home} vs {away} ({league}) [{status_text}]"
 
             worker_url = WORKER_TEMPLATE.format(id=mid)
 
@@ -236,9 +268,9 @@ def main():
             status_name = match.get("status_up_name", "")
             
             if urls:
-                print(f"✅ [{match_count}] {mid}: {home} vs {away} (live_urls: {len(urls)}, status: {status_name})")
+                print(f"✅ [{match_count}] {mid}: {home} vs {away} (live_urls: {len(urls)}, status: {status_text})")
             else:
-                print(f"✅ [{match_count}] {mid}: {home} vs {away} (no live_urls, worker only, status: {status_name})")
+                print(f"✅ [{match_count}] {mid}: {home} vs {away} (no live_urls, worker only, status: {status_text})")
 
         except Exception as e:
             print(f"❌ Error parsing match {match.get('id') or 'Unknown'}: {e}")
@@ -255,6 +287,13 @@ def main():
     missing_targets = [mid for mid in target_ids if mid not in found_targets]
     if missing_targets:
         print(f"❌ Missing target matches: {missing_targets}")
+        print("🔍 Checking if missing matches exist in raw data...")
+        for match in all_matches:
+            match_id = str(match.get("id") or match.get("mid"))
+            if match_id in missing_targets:
+                print(f"   Found missing match {match_id} in raw data:")
+                print(f"   {match.get('hteam_name')} vs {match.get('ateam_name')}")
+                print(f"   Status: {match.get('status')}, Status Name: {match.get('status_up_name')}")
     
 if __name__ == "__main__":
     main()
