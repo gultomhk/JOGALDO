@@ -25,10 +25,8 @@ jobs:
 
       - name: Install Python dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install httpx playwright
-          playwright install chromium
-
+          pip install requests pytz deep-translator
+                    
       - name: 📁 Ambil file konfigurasi dari repo privat
         shell: bash
         run: |
@@ -63,20 +61,4 @@ jobs:
           else
             git commit -m "🔄 auto: update CHIN2_matches.m3u"
             git push
-          fi
-
-      - name: Commit & Push result_raw.json ke repo publik
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git add result_raw.json
-          if git diff --cached --quiet; then
-            echo "✅ Tidak ada perubahan, skip push."
-          else
-            git commit -m "🔄 auto: update result_raw.json"
-            # pastikan sinkron dengan remote sebelum push
-            git pull --rebase origin master
-            git push origin master
           fi
