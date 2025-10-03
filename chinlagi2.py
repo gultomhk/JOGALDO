@@ -1,10 +1,13 @@
-import asyncio
-import json
-from typing import List, Dict, Any
-from datetime import datetime, timezone, timedelta
-from playwright.async_api import async_playwright
-import httpx
+import requests
+from datetime import datetime
 from pathlib import Path
+import pytz
+from deep_translator import GoogleTranslator
+
+# ==========================
+# Translator setup
+# ==========================
+translator = GoogleTranslator(source="auto", target="en")
 
 # ==========================
 # Load Config
@@ -18,186 +21,107 @@ with open(CHINLAGI2DATA_FILE, "r", encoding="utf-8") as f:
 
 UA = config_vars.get("UA")
 REFERER = config_vars.get("REFERER")
-WORKER_TEMPLATE = config_vars.get("WORKER_TEMPLATE")
+WORKER_TEMPLATE = config_vars.get("WORKER_TEMPLATE")  #
 DEFAULT_LOGO = config_vars.get("DEFAULT_LOGO")
-BASE_URL = config_vars.get("BASE_URL")
-PROXY_LIST_URL = config_vars.get("PROXY_LIST_URL")
+BASE_URL = config_vars.get("BASE_URL")  # 
 
-URLS = [
-    f"{BASE_URL}?sid=1&sort=tournament&inplay=true&language=id-id",
-    f"{BASE_URL}?sid=1&sort=tournament&inplay=false&date=24h&language=id-id",
-]
+# ==========================
+# Constants
+# ==========================
+TEAM_TRANSLATIONS = {
+    "湘南丽海": "Shonan Bellmare",
+    "东京绿茵": "Tokyo Verdy",
+}
+LEAGUE_TRANSLATIONS = {
+    "日职联": "Japan J1 League",
+}
 
-try:
-    from zoneinfo import ZoneInfo
-    JAKARTA = ZoneInfo("Asia/Jakarta")
-except Exception:
-    JAKARTA = timezone(timedelta(hours=7))
+HEADERS = {
+    "User-Agent": UA,
+    "Referer": REFERER,
+    "Accept": "application/json, text/plain, */*",
+}
 
-OUT_FILE = "CHIN2_matches.m3u"
+# ==========================
+# Functions
+# ==========================
+def get_today_date():
+    tz = pytz.timezone("Asia/Bangkok")
+    return datetime.now(tz).strftime("%Y-%m-%d")
 
-def extract_matches(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
-    out = []
-    data = payload.get("data") or {}
-    tournaments = data.get("tournaments") or []
-    for t in tournaments:
-        tname = t.get("name") or t.get("tnName") or ""
-        for m in t.get("matches", []):
-            iid = m.get("iid") or m.get("id")
-            home = (m.get("home") or {}).get("name") if isinstance(m.get("home"), dict) else m.get("home")
-            away = (m.get("away") or {}).get("name") if isinstance(m.get("away"), dict) else m.get("away")
-            kickoff = m.get("kickoffTime")
-            kickoff_ts = None
-            if kickoff is not None:
-                try:
-                    kickoff_ts = int(kickoff)
-                    if kickoff_ts > 1_000_000_000_000:
-                        kickoff_ts //= 1000
-                except:
-                    pass
-            time_str = ""
-            if kickoff_ts:
-                try:
-                    dt = datetime.fromtimestamp(kickoff_ts, tz=timezone.utc).astimezone(JAKARTA)
-                    time_str = dt.strftime("%d/%m-%H.%M")
-                except:
-                    pass
-            title = f"{time_str} {home or ''} vs {away or ''} ({tname})".strip()
-            out.append({
-                "iid": str(iid) if iid else None,
-                "home": home or "",
-                "away": away or "",
-                "kickoff": kickoff_ts,
-                "title": title,
-                "logo": (m.get("logo") or "") or DEFAULT_LOGO,
-            })
-    # fallback minimal
-    if not out:
-        out.append({
-            "iid": None,
-            "home": "NoMatch",
-            "away": "NoMatch",
-            "kickoff": None,
-            "title": "No Match Available",
-            "logo": DEFAULT_LOGO
-        })
-    return out
+def fetch_matches():
+    params = {
+        "isfanye": 1,
+        "type": 0,
+        "cid": 0,
+        "ishot": 1,
+        "pn": 1,
+        "ps": 100,
+        "level": "",
+        "name": "",
+        "langtype": "id",
+        "starttime": get_today_date(),
+        "pid": 4,
+        "zoneId": "Asia/Bangkok",
+        "zhuboType": 1,
+    }
+    r = requests.get(BASE_URL, params=params, headers=HEADERS, timeout=15)
+    r.raise_for_status()
+    return r.json()
 
-def write_m3u(matches: List[Dict[str, Any]], path: str = OUT_FILE):
-    lines = ["#EXTM3U"]
-    for m in matches:
-        title = m.get("title") or f"{m.get('home')} vs {m.get('away')}"
-        logo = m.get("logo") or DEFAULT_LOGO
-        lines.append(f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{logo}",{title}')
-        lines.append(f"#EXTVLCOPT:http-user-agent={UA}")
-        lines.append(f"#EXTVLCOPT:http-referrer={REFERER}")
-        iid = m.get("iid")
-        if iid:
-            lines.append(WORKER_TEMPLATE.format(iid=iid))
-        else:
-            lines.append("# no-iid-found")
-    with open(path, "w", encoding="utf-8") as f:
-        f.write("\n".join(lines))
-    print(f"[OK] Saved {len(matches)} entries to {path}")
+def format_time(matchtime: str):
+    dt = datetime.strptime(matchtime, "%Y-%m-%d %H:%M:%S")
+    return dt.strftime("%d/%m-%H.%M")
 
-async def fetch_proxy_list() -> List[str]:
+def translate_text(text: str, dictionary: dict):
+    if not text:
+        return ""
+    if text in dictionary:
+        return dictionary[text]
     try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            r = await client.get(PROXY_LIST_URL)
-            proxies = [line.strip() for line in r.text.splitlines() if line.strip() and not line.startswith("#")]
-            return proxies
-    except:
-        return []
+        return translator.translate(text)
+    except Exception:
+        return text
 
-async def try_fetch_page(page, url):
-    js = f"""
-    fetch("{url}", {{
-        method: "GET",
-        headers: {{
-            "Referer": "{REFERER}",
-            "User-Agent": "{UA}"
-        }}
-    }}).then(r => r.text()).catch(e => "__fetch_fail__")
-    """
-    return await page.evaluate(js)
+def main():
+    data = fetch_matches()
+    if "data" not in data or "dataList" not in data["data"]:
+        print("⚠️ Unexpected JSON structure:", data.keys())
+        return
 
-async def main():
-    proxies = await fetch_proxy_list()
-    if not proxies:
-        proxies = [None]  # fallback no proxy
-    results = []
+    lines = []
+    for match in data["data"]["dataList"]:
+        try:
+            mid = match.get("id")
+            home = translate_text(match.get("hteam_name", ""), TEAM_TRANSLATIONS)
+            away = translate_text(match.get("ateam_name", ""), TEAM_TRANSLATIONS)
+            league = translate_text(match.get("name", ""), LEAGUE_TRANSLATIONS)
+            logo = match.get("hteam_logo") or DEFAULT_LOGO
 
-    async with async_playwright() as p:
-        for proxy in proxies:
-            print(f"[INFO] mencoba proxy: {proxy or 'default'}")
-            try:
-                browser = await p.chromium.launch(headless=True, proxy={"server": proxy} if proxy else None)
-                context = await browser.new_context(user_agent=UA)
-                page = await context.new_page()
+            matchtime = match.get("matchtime")
+            if not matchtime:
+                continue
+            tstr = format_time(matchtime)
 
-                try:
-                    await page.goto(REFERER, timeout=15000)
-                    print("[INFO] Referer page loaded")
-                except:
-                    print("[WARN] gagal buka referer page")
+            title = f"{tstr} {home} vs {away} ({league})"
+            worker_url = WORKER_TEMPLATE.format(id=mid)
 
-                for url in URLS:
-                    raw = await try_fetch_page(page, url)
-                    if raw == "__fetch_fail__":
-                        print(f"[ERROR] {url} via {proxy} fetch gagal")
-                        continue
-                    try:
-                        data = json.loads(raw)
-                        results.append({"url": url, "data": data, "proxy": proxy})
-                        print(f"[OK] {url} via {proxy}")
-                    except Exception as e:
-                        print(f"[ERROR] {url} via {proxy}: {e}")
+            m3u_line = (
+                f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{logo}",{title}\n'
+                f'#EXTVLCOPT:http-user-agent={UA}\n'
+                f'#EXTVLCOPT:http-referrer={REFERER}\n'
+                f"{worker_url}\n"
+            )
+            lines.append(m3u_line)
+        except Exception as e:
+            print("Error parsing match:", e)
 
-                await browser.close()
-                if results:
-                    break
-            except Exception as e:
-                print(f"[WARN] Proxy {proxy} gagal: {e}")
+    filename = f"CHIN2_matches.m3u"
+    with open(filename, "w", encoding="utf-8") as f:
+        f.write("#EXTM3U\n")
+        f.writelines(lines)
 
-    # simpan hasil JSON (selalu ada output)
-    output_json_path = "result_raw.json"
-    with open(output_json_path, "w", encoding="utf-8") as f:
-        json.dump(results or [{"msg": "No data fetched"}], f, ensure_ascii=False, indent=2)
-    print(f"[DONE] {output_json_path} tersimpan, {len(results)} item")
+    print(f"✅ Playlist saved to {filename}")
 
-    # --- generate M3U dari hasil ---
-    all_matches = []
-    for item in results:
-        data = item.get("data") or {}
-        if isinstance(data, dict):
-            matches = extract_matches(data)
-            all_matches.extend(matches)
-
-    # filter unik berdasarkan iid
-    uniq = {}
-    for m in all_matches:
-        iid = m.get("iid")
-        if not iid:
-            continue
-        if iid in uniq:
-            ex = uniq[iid]
-            if (m.get("kickoff") or 10**18) < (ex.get("kickoff") or 10**18):
-                uniq[iid] = m
-        else:
-            uniq[iid] = m
-
-    final_matches = list(uniq.values())
-    if final_matches:
-        write_m3u(final_matches)
-    else:
-        print("[WARN] Tidak ada match valid untuk M3U, menulis dummy entry")
-        write_m3u([{
-            "iid": None,
-            "home": "NoMatch",
-            "away": "NoMatch",
-            "kickoff": None,
-            "title": "No Match Available",
-            "logo": DEFAULT_LOGO
-        }])
-
-asyncio.run(main())
+if __name__ == "__main__":
+    main()
