@@ -111,42 +111,43 @@ def main():
 
     lines = []
     for match in matches:
-    try:
-        # ambil id dengan fallback
-        mid = match.get("mid") or match.get("id")
-        if not mid:
-            continue
+        try:
+            # ambil id dengan fallback
+            mid = match.get("mid") or match.get("id")
+            if not mid:
+                continue
 
-        home = translate_text(match.get("hteam_name", ""), TEAM_TRANSLATIONS)
-        away = translate_text(match.get("ateam_name", ""), TEAM_TRANSLATIONS)
-        league = translate_text(match.get("name", ""), LEAGUE_TRANSLATIONS)
+            home = translate_text(match.get("hteam_name", ""), TEAM_TRANSLATIONS)
+            away = translate_text(match.get("ateam_name", ""), TEAM_TRANSLATIONS)
+            league = translate_text(match.get("name", ""), LEAGUE_TRANSLATIONS)
 
-        logo = match.get("hteam_logo") or DEFAULT_LOGO
+            logo = match.get("hteam_logo") or DEFAULT_LOGO
 
-        matchtime = match.get("matchtime")
-        if not matchtime:
-            continue
-        tstr = format_time(matchtime)
+            matchtime = match.get("matchtime")
+            if not matchtime:
+                continue
+            tstr = format_time(matchtime)
 
-        title = f"{tstr} {home} vs {away} ({league})"
-        worker_url = WORKER_TEMPLATE.format(id=mid)
+            title = f"{tstr} {home} vs {away} ({league})"
+            worker_url = WORKER_TEMPLATE.format(id=mid)
 
-        m3u_line = (
-            f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{logo}",{title}\n'
-            f'#EXTVLCOPT:http-user-agent={UA}\n'
-            f'#EXTVLCOPT:http-referrer={REFERER}\n'
-            f"{worker_url}\n"
-        )
-        lines.append(m3u_line)
+            m3u_line = (
+                f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{logo}",{title}\n'
+                f'#EXTVLCOPT:http-user-agent={UA}\n'
+                f'#EXTVLCOPT:http-referrer={REFERER}\n'
+                f"{worker_url}\n"
+            )
+            lines.append(m3u_line)
 
-    except Exception as e:
-        print("Error parsing match:", e)
+        except Exception as e:
+            print("Error parsing match:", e)
 
     with open(OUT_FILE, "w", encoding="utf-8") as f:
         f.write("#EXTM3U\n")
         f.writelines(lines)
 
     print(f"✅ Playlist saved to {OUT_FILE}")
+
 
 if __name__ == "__main__":
     main()
