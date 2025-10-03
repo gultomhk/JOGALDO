@@ -106,23 +106,39 @@ def extract_urls(match: dict):
     return urls
 
 
-def format_time(matchtime: str) -> str:
-    """Format waktu ke dd/mm-HH.MM, fallback ke raw string kalau gagal parse"""
+def format_time(matchtime):
+    """Format waktu ke dd/mm-HH.MM, support berbagai format"""
     if not matchtime:
         return "??"
-    for fmt in ("%Y-%m-%d %H:%M:%S", "%b %d, %Y %H:%M:%S %p"):
+
+    # kalau angka (epoch timestamp)
+    if isinstance(matchtime, int):
         try:
-            dt = datetime.strptime(matchtime, fmt)
+            dt = datetime.fromtimestamp(matchtime)
             return dt.strftime("%d/%m-%H.%M")
-        except ValueError:
-            continue
-    return matchtime  # fallback
+        except:
+            return "??"
+
+    if isinstance(matchtime, str):
+        cleaned = matchtime.replace(" 21:0:0", " 21:00:00")  # perbaiki jam rusak
+        for fmt in [
+            "%Y-%m-%d %H:%M:%S",   # 2025-10-03 20:00:00
+            "%Y/%m/%d %H:%M:%S",
+            "%b %d, %Y %I:%M:%S %p",  # Oct 3, 2025 09:00:00 PM
+            "%b %d, %Y %H:%M:%S %p",
+        ]:
+            try:
+                dt = datetime.strptime(cleaned, fmt)
+                return dt.strftime("%d/%m-%H.%M")
+            except:
+                continue
+    return str(matchtime)
 
 
 def get_match_status_text(match):
     """Get readable status text for match"""
     status = match.get("status", 1)
-    status_name = match.get("status_up_name", "")
+    status_name = str(match.get("status_up_name", "")).strip()
 
     if status == 0:  # Live match
         if status_name.isdigit():
@@ -133,7 +149,7 @@ def get_match_status_text(match):
             cn_map = {"上半场": "1st Half", "下半场": "2nd Half"}
             return f"LIVE {cn_map.get(status_name, status_name)}"
         else:
-            return "LIVE"
+            return f"LIVE {status_name}" if status_name else "LIVE"
 
     status_map = {0: "LIVE", 1: "UPCOMING", 2: "ENDED", 3: "POSTPONED"}
     return status_map.get(status, "UPCOMING")
@@ -155,17 +171,15 @@ def extract_all_matches(raw_data):
 
         # Cari di semua keys
         for key, value in data_dict.items():
-            current_path = f"{path}.{key}" if path else key
             if isinstance(value, list):
-                for i, item in enumerate(value):
+                for item in value:
                     if isinstance(item, dict):
-                        item_path = f"{current_path}[{i}]"
                         if any(k in item for k in ["hteam_name", "ateam_name", "id", "mid"]):
                             matches.append(item)
                         else:
-                            matches.extend(extract_from_dict(item, item_path))
+                            matches.extend(extract_from_dict(item))
             elif isinstance(value, dict):
-                matches.extend(extract_from_dict(value, current_path))
+                matches.extend(extract_from_dict(value))
         return matches
     
     if isinstance(raw_data, list):
