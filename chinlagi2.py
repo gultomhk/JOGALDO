@@ -21,9 +21,9 @@ with open(CHINLAGI2DATA_FILE, "r", encoding="utf-8") as f:
 
 UA = config_vars.get("UA")
 REFERER = config_vars.get("REFERER")
-WORKER_TEMPLATE = config_vars.get("WORKER_TEMPLATE")  #
+WORKER_TEMPLATE = config_vars.get("WORKER_TEMPLATE")
 DEFAULT_LOGO = config_vars.get("DEFAULT_LOGO")
-BASE_URL = config_vars.get("BASE_URL")  # 
+BASE_URL = config_vars.get("BASE_URL")
 
 OUT_FILE = "CHIN2_matches.m3u"
 
@@ -72,8 +72,17 @@ def fetch_matches():
     return r.json()
 
 def format_time(matchtime: str):
-    dt = datetime.strptime(matchtime, "%Y-%m-%d %H:%M:%S")
-    return dt.strftime("%d/%m-%H.%M")
+    # coba format YYYY-mm-dd HH:MM:SS dulu
+    try:
+        dt = datetime.strptime(matchtime, "%Y-%m-%d %H:%M:%S")
+        return dt.strftime("%d/%m-%H.%M")
+    except Exception:
+        # fallback format bahasa Inggris: Oct 3, 2025 17:0:0 PM
+        try:
+            dt = datetime.strptime(matchtime, "%b %d, %Y %H:%M:%S %p")
+            return dt.strftime("%d/%m-%H.%M")
+        except Exception:
+            return matchtime
 
 def translate_text(text: str, dictionary: dict):
     if not text:
@@ -84,6 +93,13 @@ def translate_text(text: str, dictionary: dict):
         return translator.translate(text)
     except Exception:
         return text
+
+def extract_urls(match: dict):
+    urls = []
+    for key in ["live_urls", "mirror_live_urls", "global_live_urls"]:
+        if key in match and isinstance(match[key], list):
+            urls.extend([u.get("url") for u in match[key] if u.get("url")])
+    return urls
 
 def main():
     print("🚀 Fetching matches from API...")
@@ -115,15 +131,18 @@ def main():
     lines = []
     for match in matches:
         try:
-            # ambil id dengan fallback
             mid = match.get("mid") or match.get("id")
             if not mid:
+                continue
+
+            urls = extract_urls(match)
+            if not urls:
+                print(f"⏭️ Skip {mid}, no live url")
                 continue
 
             home = translate_text(match.get("hteam_name", ""), TEAM_TRANSLATIONS)
             away = translate_text(match.get("ateam_name", ""), TEAM_TRANSLATIONS)
             league = translate_text(match.get("name", ""), LEAGUE_TRANSLATIONS)
-
             logo = match.get("hteam_logo") or DEFAULT_LOGO
 
             matchtime = match.get("matchtime") or match.get("matchtime_en")
@@ -141,9 +160,10 @@ def main():
                 f"{worker_url}\n"
             )
             lines.append(m3u_line)
+            print(f"✅ Added match {mid}: {title}")
 
         except Exception as e:
-            print("Error parsing match:", e)
+            print(f"❌ Error parsing match {match.get('id')}: {e}")
 
     # tulis output
     with open(OUT_FILE, "w", encoding="utf-8") as f:
@@ -151,7 +171,6 @@ def main():
         f.writelines(lines)
 
     print(f"✅ Playlist saved to {OUT_FILE}")
-
 
 if __name__ == "__main__":
     main()
