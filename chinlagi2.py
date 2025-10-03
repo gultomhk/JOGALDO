@@ -25,6 +25,8 @@ WORKER_TEMPLATE = config_vars.get("WORKER_TEMPLATE")  #
 DEFAULT_LOGO = config_vars.get("DEFAULT_LOGO")
 BASE_URL = config_vars.get("BASE_URL")  # 
 
+OUT_FILE = "CHIN2_matches.m3u"
+
 # ==========================
 # Constants
 # ==========================
@@ -134,9 +136,8 @@ def main():
         except Exception as e:
             print("Error parsing match:", e)
 
-    filename = f"CHIN2_matches.m3u"
-    with open(filename, "w", encoding="utf-8") as f:
+    with open(OUT_FILE, "w", encoding="utf-8") as f:
         f.write("#EXTM3U\n")
         f.writelines(lines)
 
-    print(f"✅ Playlist saved to {filename}")
+    print(f"✅ Playlist saved to {OUT_FILE}")
