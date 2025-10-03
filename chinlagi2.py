@@ -96,11 +96,14 @@ def main():
 
     data = raw["data"]
 
+    # cari list pertandingan
     matches = []
-    if isinstance(data, dict):
-        if "list" in data:
+    if isinstance(data, list):
+        matches = data
+    elif isinstance(data, dict):
+        if "list" in data and isinstance(data["list"], list):
             matches = data["list"]
-        elif "dataList" in data:
+        elif "dataList" in data and isinstance(data["dataList"], list):
             matches = data["dataList"]
 
     print(f"📊 Found {len(matches)} matches")
@@ -123,7 +126,7 @@ def main():
 
             logo = match.get("hteam_logo") or DEFAULT_LOGO
 
-            matchtime = match.get("matchtime")
+            matchtime = match.get("matchtime") or match.get("matchtime_en")
             if not matchtime:
                 continue
             tstr = format_time(matchtime)
@@ -142,6 +145,7 @@ def main():
         except Exception as e:
             print("Error parsing match:", e)
 
+    # tulis output
     with open(OUT_FILE, "w", encoding="utf-8") as f:
         f.write("#EXTM3U\n")
         f.writelines(lines)
