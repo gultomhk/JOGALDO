@@ -200,7 +200,7 @@ def save_to_map(match_dict):
 if __name__ == "__main__":
     try:
         match_dict = get_live_match_ids()
-        limited = dict(list(match_dict.items())[:15])
+        limited = dict(list(match_dict.items())[:20])
         save_to_map(limited)
 
         if not MAP_FILE.exists():
