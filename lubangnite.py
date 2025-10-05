@@ -13,6 +13,7 @@ from playwright.sync_api import sync_playwright
 AXLIVE_FILE = Path.home() / "axlive_file.txt"
 MAP_FILE = Path("map.json")
 
+
 def load_config(filepath):
     config = {}
     if filepath.exists():
@@ -23,6 +24,7 @@ def load_config(filepath):
                     key, val = line.split("=", 1)
                     config[key.strip()] = val.strip()
     return config
+
 
 CONFIG = load_config(AXLIVE_FILE)
 
@@ -83,7 +85,6 @@ def get_live_match_ids():
             if not match_id:
                 continue
 
-            # ambil waktu jika tersedia
             start_at = match.get("start_at") or match.get("time") or int(now.timestamp())
             live_dict[match_id] = start_at
 
@@ -91,7 +92,8 @@ def get_live_match_ids():
             print("⚠️ Tidak ditemukan pertandingan dengan status LIVE.")
             return {}
 
-        print(f"✅ Ditemukan {len(live_dict)} pertandingan LIVE: {list(live_dict.keys())}")
+        ids_list = ", ".join(live_dict.keys())
+        print(f"✅ Ditemukan {len(live_dict)} pertandingan LIVE: {ids_list}")
         return dict(sorted(live_dict.items(), key=lambda x: x[1]))
 
     except Exception as e:
