@@ -52,7 +52,7 @@ def get_live_match_ids():
         res.raise_for_status()
         data = res.json()
 
-        # Handle berbagai struktur JSON
+        # Pastikan JSON-nya list
         if isinstance(data, dict):
             matches = data.get("data") or data.get("fixtures") or []
         elif isinstance(data, list):
@@ -62,7 +62,6 @@ def get_live_match_ids():
 
         if not matches:
             print("❌ Tidak ada pertandingan LIVE saat ini.")
-            print("⏹ Tidak ada pertandingan live. Skrip dihentikan.")
             return {}
 
         live_dict = {}
@@ -72,14 +71,27 @@ def get_live_match_ids():
             if not isinstance(match, dict):
                 continue
 
+            # Filter semua yang sedang live (apapun olahraganya)
+            if not (
+                match.get("has_live") is True
+                or match.get("playing") is True
+                or str(match.get("status", "")).upper() == "LIVE"
+            ):
+                continue
+
             match_id = str(match.get("id") or match.get("fixture_id"))
             if not match_id:
                 continue
 
-            start_at = match.get("start_at") or int(now.timestamp())
+            # ambil waktu jika tersedia
+            start_at = match.get("start_at") or match.get("time") or int(now.timestamp())
             live_dict[match_id] = start_at
 
-        print(f"✅ Ditemukan {len(live_dict)} pertandingan live: {list(live_dict.keys())}")
+        if not live_dict:
+            print("⚠️ Tidak ditemukan pertandingan dengan status LIVE.")
+            return {}
+
+        print(f"✅ Ditemukan {len(live_dict)} pertandingan LIVE: {list(live_dict.keys())}")
         return dict(sorted(live_dict.items(), key=lambda x: x[1]))
 
     except Exception as e:
@@ -135,7 +147,7 @@ def extract_tokenized_m3u8(match_id):
                     print(f"🌟 URL final m3u8:\n{masked_url(final_url, 'https://cdn-rum.n2olabs.pro')}")
 
         page.on("response", handle_response)
-        page.wait_for_timeout(30000)
+        page.wait_for_timeout(25000)
         browser.close()
 
     return final_url
