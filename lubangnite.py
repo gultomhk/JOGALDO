@@ -107,9 +107,9 @@ def extract_tokenized_m3u8(match_id):
             url = response.url
             if "wowhaha.php" in url and "m3u8=" in url:
                 print(f"✅ Ditemukan iframe:\n{masked_url(url)}")
+
                 parsed = urlparse(url)
                 qs = parse_qs(parsed.query)
-
                 m3u8_raw = unquote(qs.get("m3u8", [""])[0])
                 token_full = qs.get("token", [""])[0]
 
@@ -123,6 +123,7 @@ def extract_tokenized_m3u8(match_id):
                     verify = parts[1]
                     encoded_url = quote(m3u8_raw, safe="")
                     encoded_verify = quote(verify, safe="")
+
                     final_url = (
                         f"https://cdn-rum.n2olabs.pro/stream.m3u8"
                         f"?url={encoded_url}"
@@ -130,6 +131,7 @@ def extract_tokenized_m3u8(match_id):
                         f"&is_vip=false"
                         f"&verify={encoded_verify}"
                     )
+
                     print(f"🌟 URL final m3u8:\n{masked_url(final_url, 'https://cdn-rum.n2olabs.pro')}")
 
         page.on("response", handle_response)
@@ -156,7 +158,7 @@ def save_to_map(match_dict):
     total = len(match_dict)
 
     for idx, (match_id, start_at) in enumerate(sorted(match_dict.items(), key=lambda x: x[1]), 1):
-        print(f"[{idx}/{total}] ▶ Scraping ID: {match_id}")
+        print(f"\n[{idx}/{total}] ▶ Scraping ID: {match_id}")
         try:
             m3u8_url = extract_tokenized_m3u8(match_id)
             if m3u8_url:
@@ -173,9 +175,9 @@ def save_to_map(match_dict):
     if not MAP_FILE.exists() or json.dumps(ordered, sort_keys=True) != json.dumps(old_data, sort_keys=True):
         with open(MAP_FILE, "w", encoding="utf-8") as f:
             json.dump(ordered, f, indent=2)
-        print(f"✅ Disimpan ulang. Total: {len(ordered)} ke {MAP_FILE}")
+        print(f"\n✅ Disimpan ulang. Total: {len(ordered)} ke {MAP_FILE}")
     else:
-        print("ℹ️ Tidak ada perubahan pada map.json.")
+        print("\nℹ️ Tidak ada perubahan pada map.json.")
 
 
 # ==============================
