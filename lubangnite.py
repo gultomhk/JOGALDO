@@ -41,7 +41,7 @@ def masked_url(url, base_url=AXLIVE_MATCH_BASE_URL):
 # ==============================
 # Ambil daftar match live dari API
 # ==============================
-def get_live_match_ids(limit=15):
+def get_live_match_ids():
     headers = {"User-Agent": "Mozilla/5.0"}
     print(f"🔎 Mengambil daftar LIVE dari {AXLIVE_API_URL} ...")
 
@@ -55,6 +55,7 @@ def get_live_match_ids(limit=15):
             matches = data.get("data") or data.get("fixtures") or []
         elif isinstance(data, list):
             matches = data
+
         if not matches:
             print("❌ Tidak ada pertandingan LIVE saat ini.")
             return {}
@@ -65,11 +66,13 @@ def get_live_match_ids(limit=15):
         for match in matches:
             if not isinstance(match, dict):
                 continue
-            if not (
-                match.get("has_live") is True
-                or match.get("playing") is True
-                or str(match.get("status", "")).upper() == "LIVE"
-            ):
+
+            # Hanya ambil yang benar-benar live
+            status = str(match.get("status", "")).upper()
+            has_live = match.get("has_live") is True
+            playing = match.get("playing") is True
+
+            if not (status == "LIVE" and has_live and playing):
                 continue
 
             match_id = str(match.get("id") or match.get("fixture_id"))
@@ -80,13 +83,11 @@ def get_live_match_ids(limit=15):
             live_dict[match_id] = start_at
 
         if not live_dict:
-            print("⚠️ Tidak ditemukan pertandingan dengan status LIVE.")
+            print("⚠️ Tidak ditemukan pertandingan dengan status LIVE & aktif.")
             return {}
 
-        sorted_ids = dict(sorted(live_dict.items(), key=lambda x: x[1]))
-        limited = dict(list(sorted_ids.items())[:limit])
-        print(f"✅ Ditemukan {len(limited)} pertandingan LIVE: {', '.join(limited.keys())}")
-        return limited
+        print(f"✅ Ditemukan {len(live_dict)} pertandingan LIVE: {', '.join(live_dict.keys())}")
+        return dict(sorted(live_dict.items(), key=lambda x: x[1]))
 
     except Exception as e:
         print(f"⚠️ Gagal mengambil data live: {e}")
@@ -94,7 +95,7 @@ def get_live_match_ids(limit=15):
 
 
 # ==============================
-# Ambil tokenized m3u8 (lebih cepat)
+# Ambil tokenized m3u8
 # ==============================
 def extract_tokenized_m3u8(page, match_id):
     page_url = f"{AXLIVE_MATCH_BASE_URL}/{match_id}?t=suggest"
@@ -128,21 +129,22 @@ def extract_tokenized_m3u8(page, match_id):
                     f"&verify={encoded_verify}"
                 )
                 print(f"✅ iframe ditemukan untuk {match_id}")
+
     try:
         page.on("response", handle_response)
         page.goto(page_url, timeout=60000)
-        # Tunggu maksimal 8 detik saja (stop lebih cepat bila final_url ditemukan)
         for _ in range(8):
             if final_url:
                 break
             page.wait_for_timeout(1000)
     except Exception as e:
         print(f"❌ Gagal load {match_id}: {e}")
+
     return final_url
 
 
 # ==============================
-# Simpan hasil scraping ke map.json (efisien)
+# Simpan hasil scraping
 # ==============================
 def save_to_map(match_dict):
     if not match_dict:
@@ -177,9 +179,8 @@ def save_to_map(match_dict):
 
         browser.close()
 
-    # Gabungkan hasil baru + lama
     combined = {**old_data, **new_data}
-    ordered = {k: combined[k] for k, _ in sorted(match_dict.items(), key=lambda x: x[1]) if k in combined}
+    ordered = {k: combined[k] for k in match_dict if k in combined}
 
     if not MAP_FILE.exists() or json.dumps(ordered, sort_keys=True) != json.dumps(old_data, sort_keys=True):
         with open(MAP_FILE, "w", encoding="utf-8") as f:
@@ -194,7 +195,7 @@ def save_to_map(match_dict):
 # ==============================
 if __name__ == "__main__":
     try:
-        match_dict = get_live_match_ids(limit=15)
+        match_dict = get_live_match_ids()
         save_to_map(match_dict)
 
         if not MAP_FILE.exists():
