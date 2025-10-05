@@ -1,16 +1,18 @@
 import os
 import json
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime
 from zoneinfo import ZoneInfo
 from urllib.parse import unquote, urlparse, parse_qs, quote
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
-# Path ke file config
+# ==============================
+# Konfigurasi Awal
+# ==============================
 AXLIVE_FILE = Path.home() / "axlive_file.txt"
+MAP_FILE = Path("map.json")
 
-# Load konfigurasi manual dari file txt
 def load_config(filepath):
     config = {}
     if filepath.exists():
@@ -24,26 +26,23 @@ def load_config(filepath):
 
 CONFIG = load_config(AXLIVE_FILE)
 
-MAP_FILE = Path("map.json")
 AXLIVE_API_URL = CONFIG.get("AXLIVE_API_URL")
-AXLIVE_LIVESTREAM_URL = CONFIG.get("AXLIVE_LIVESTREAM_URL")
-AXLIVE_FEATURED_URL = CONFIG.get("AXLIVE_FEATURED_URL")
-AXLIVE_LIVESTREAM_SPORT3_URL = CONFIG.get("AXLIVE_LIVESTREAM_SPORT3_URL")
-AXLIVE_LIVESTREAM_SPORT4_URL = CONFIG.get("AXLIVE_LIVESTREAM_SPORT4_URL")
-AXLIVE_LIVESTREAM_SPORT5_URL = CONFIG.get("AXLIVE_LIVESTREAM_SPORT5_URL")
-AXLIVE_LIVESTREAM_SPORT6_URL = CONFIG.get("AXLIVE_LIVESTREAM_SPORT6_URL")
-AXLIVE_LIVESTREAM_SPORT7_URL = CONFIG.get("AXLIVE_LIVESTREAM_SPORT7_URL")
-AXLIVE_LIVESTREAM_SPORT8_URL = CONFIG.get("AXLIVE_LIVESTREAM_SPORT8_URL")
-AXLIVE_LIVESTREAM_SPORT9_URL = CONFIG.get("AXLIVE_LIVESTREAM_SPORT9_URL")
 AXLIVE_MATCH_BASE_URL = CONFIG.get("AXLIVE_MATCH_BASE_URL")
 PROXY_BASE_URL = CONFIG.get("PROXY_BASE_URL")
 
-# Fungsi untuk print URL dengan base disembunyikan
+# ==============================
+# Utilitas
+# ==============================
 def masked_url(url, base_url=AXLIVE_MATCH_BASE_URL):
-    if url.startswith(base_url):
-        return url.replace(base_url, "***")
-    return url
+    """Sembunyikan base URL biar gak bocor di log."""
+    if not url or not base_url:
+        return url
+    return url.replace(base_url, "***") if base_url in url else url
 
+
+# ==============================
+# Ambil daftar match live dari API
+# ==============================
 def get_live_match_ids():
     headers = {"User-Agent": "Mozilla/5.0"}
     print(f"🔎 Mengambil daftar LIVE dari {AXLIVE_API_URL} ...")
@@ -51,7 +50,15 @@ def get_live_match_ids():
     try:
         res = requests.get(AXLIVE_API_URL, headers=headers, timeout=15)
         res.raise_for_status()
-        matches = res.json()
+        data = res.json()
+
+        # Handle berbagai struktur JSON
+        if isinstance(data, dict):
+            matches = data.get("data") or data.get("fixtures") or []
+        elif isinstance(data, list):
+            matches = data
+        else:
+            raise ValueError("Format JSON tidak dikenal")
 
         if not matches:
             print("❌ Tidak ada pertandingan LIVE saat ini.")
@@ -62,9 +69,13 @@ def get_live_match_ids():
         now = datetime.now(ZoneInfo("Asia/Jakarta"))
 
         for match in matches:
-            match_id = str(match.get("id"))
+            if not isinstance(match, dict):
+                continue
+
+            match_id = str(match.get("id") or match.get("fixture_id"))
             if not match_id:
                 continue
+
             start_at = match.get("start_at") or int(now.timestamp())
             live_dict[match_id] = start_at
 
@@ -75,11 +86,10 @@ def get_live_match_ids():
         print(f"⚠️ Gagal mengambil data live: {e}")
         return {}
 
-    final_sorted = dict(sorted(combined_dict.items(), key=lambda x: x[1]))
-    print(f"🎯 Total ID gabungan: {list(final_sorted.keys())}")
-    return final_sorted
 
-
+# ==============================
+# Ambil tokenized m3u8 dari halaman match
+# ==============================
 def extract_tokenized_m3u8(match_id):
     page_url = f"{AXLIVE_MATCH_BASE_URL}/{match_id}?t=suggest"
     final_url = None
@@ -89,13 +99,12 @@ def extract_tokenized_m3u8(match_id):
         context = browser.new_context(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
         page = context.new_page()
 
-        print(f"🔍 Membuka {masked_url(page_url)}")  # masking base URL
+        print(f"🔍 Membuka {masked_url(page_url)}")
         page.goto(page_url, timeout=60000)
 
         def handle_response(response):
             nonlocal final_url
             url = response.url
-
             if "wowhaha.php" in url and "m3u8=" in url:
                 print(f"✅ Ditemukan iframe:\n{masked_url(url)}")
                 parsed = urlparse(url)
@@ -104,18 +113,16 @@ def extract_tokenized_m3u8(match_id):
                 m3u8_raw = unquote(qs.get("m3u8", [""])[0])
                 token_full = qs.get("token", [""])[0]
 
-                if "cdn-rum.n2olabs.pro" in m3u8_raw:
-                    print("⚠️ Abaikan karena m3u8 sudah self-proxy")
+                if not m3u8_raw or "cdn-rum.n2olabs.pro" in m3u8_raw:
+                    print("⚠️ Abaikan karena m3u8 sudah self-proxy atau kosong.")
                     return
 
                 parts = token_full.split(".false.")
                 if len(parts) == 2:
                     token = parts[0]
                     verify = parts[1]
-
                     encoded_url = quote(m3u8_raw, safe="")
                     encoded_verify = quote(verify, safe="")
-
                     final_url = (
                         f"https://cdn-rum.n2olabs.pro/stream.m3u8"
                         f"?url={encoded_url}"
@@ -131,6 +138,10 @@ def extract_tokenized_m3u8(match_id):
 
     return final_url
 
+
+# ==============================
+# Simpan hasil scraping ke map.json
+# ==============================
 def save_to_map(match_dict):
     if not match_dict:
         print("⚠️ Tidak ada data pertandingan.")
@@ -156,13 +167,9 @@ def save_to_map(match_dict):
         except Exception as e:
             print(f"❌ Error ID {match_id}: {e}")
 
-    # Gabungkan hasil baru dan lama, hanya update jika baru ada
     combined = {**old_data, **new_data}
-
-    # Ambil urutan sesuai urutan input (match_dict)
     ordered = {k: combined[k] for k, _ in sorted(match_dict.items(), key=lambda x: x[1]) if k in combined}
 
-    # Perbandingan isi menggunakan json.dumps agar akurat
     if not MAP_FILE.exists() or json.dumps(ordered, sort_keys=True) != json.dumps(old_data, sort_keys=True):
         with open(MAP_FILE, "w", encoding="utf-8") as f:
             json.dump(ordered, f, indent=2)
@@ -170,6 +177,10 @@ def save_to_map(match_dict):
     else:
         print("ℹ️ Tidak ada perubahan pada map.json.")
 
+
+# ==============================
+# Main eksekusi
+# ==============================
 if __name__ == "__main__":
     try:
         match_dict = get_live_match_ids()
