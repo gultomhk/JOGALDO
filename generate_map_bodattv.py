@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import asyncio
 from bs4 import BeautifulSoup
-from datetime import datetime
 from pathlib import Path
 import re
 import json
@@ -25,8 +24,9 @@ if not CONFIG_FILE.exists():
     raise FileNotFoundError(f"❌ File config tidak ditemukan: {CONFIG_FILE}")
 
 config = load_config(CONFIG_FILE)
-BASE_URL = config["BASE_URL"]
-USER_AGENT = config["USER_AGENT"]
+BASE_URL = config.get("BASE_URL")
+USER_AGENT = config.get("USER_AGENT")
+HEADLESS = config.get("HEADLESS", "true").lower() != "false"
 
 # ========= Parser player?link= → nilai link =========
 def parse_player_link(url: str, keep_encoded: bool = True) -> str:
@@ -66,12 +66,7 @@ def extract_m3u8_from_match_page(html):
             urls.append(raw)
             print(f"✅ Ditemukan tombol server: {raw}")
 
-    seen, final = set(), []
-    for u in urls:
-        if u not in seen:
-            seen.add(u)
-            final.append(u)
-    return final
+    return list(dict.fromkeys(urls))  # unik
 
 # ========= Ekstraksi slug dari halaman list =========
 def extract_slug(row):
@@ -97,7 +92,7 @@ def extract_slugs_from_html(html):
 # ========= Playwright fetch =========
 async def fetch_m3u8_with_playwright(context, slug):
     url = f"{BASE_URL}/match/{slug}"
-    print(f"⚙️ Memproses slug: {slug}")
+    print(f"\n⚙️ Memproses slug: {slug}")
     page = await context.new_page()
     m3u8_links = []
 
@@ -109,30 +104,49 @@ async def fetch_m3u8_with_playwright(context, slug):
     page.on("response", handle_response)
 
     try:
-        await page.goto(url, timeout=35000, wait_until="domcontentloaded")
-        await page.wait_for_timeout(6000)
+        await page.goto(url, timeout=40000, wait_until="domcontentloaded")
+        await page.wait_for_timeout(7000)
+
         html = await page.content()
-        found = extract_m3u8_from_match_page(html)
-        for f in found:
-            if f not in m3u8_links:
-                print(f"🎯 [HTML] {slug} → {f}")
-                m3u8_links.append(f)
+        if "Cloudflare" in html or "Please enable cookies" in html:
+            print(f"⚠️ Halaman {slug} terblokir Cloudflare")
+        else:
+            found = extract_m3u8_from_match_page(html)
+            for f in found:
+                if f not in m3u8_links:
+                    print(f"🎯 [HTML] {slug} → {f}")
+                    m3u8_links.append(f)
+
+        if not m3u8_links:
+            # simpan HTML untuk debugging
+            debug_file = f"debug_{slug}.html"
+            Path(debug_file).write_text(html, encoding="utf-8")
+            print(f"💾 Disimpan {debug_file} (tidak ada .m3u8 ditemukan)")
     except Exception as e:
         print(f"❌ Error {slug}: {e}")
+        try:
+            html = await page.content()
+            Path(f"debug_error_{slug}.html").write_text(html, encoding="utf-8")
+            print(f"💾 Disimpan debug_error_{slug}.html")
+        except:
+            pass
     finally:
         await page.close()
 
     if not m3u8_links:
         print(f"⚠️ Tidak ditemukan M3U8 untuk {slug}")
     else:
-        print(f"✅ Ditemukan {len(m3u8_links)} URL untuk {slug}")
+        print(f"✅ {len(m3u8_links)} URL ditemukan untuk {slug}")
 
     return slug, m3u8_links[0] if m3u8_links else None
 
 # ========= Jalankan semua slug =========
 async def fetch_all_parallel(slugs, concurrency=3):
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
+        browser = await p.chromium.launch(
+            headless=HEADLESS,
+            args=["--disable-blink-features=AutomationControlled"]
+        )
         context = await browser.new_context(user_agent=USER_AGENT)
         sem = asyncio.Semaphore(concurrency)
 
@@ -143,14 +157,13 @@ async def fetch_all_parallel(slugs, concurrency=3):
         results = await asyncio.gather(*(run_one(s) for s in slugs))
         await browser.close()
 
-    data = {slug: url for slug, url in results if url}
-    return data
+    return {slug: url for slug, url in results if url}
 
 # ========= Save JSON =========
 def save_map(data):
     with open(MAP_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
-    print(f"✅ Disimpan ke {MAP_FILE} ({len(data)} entri)")
+    print(f"\n✅ Disimpan ke {MAP_FILE} ({len(data)} entri)")
 
 # ========= MAIN =========
 if __name__ == "__main__":
