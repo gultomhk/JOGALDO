@@ -1,12 +1,9 @@
 #!/usr/bin/env python3
 import asyncio
 from bs4 import BeautifulSoup
-from datetime import datetime, timedelta, timezone
-from dateutil import tz
 from pathlib import Path
 import re
 import json
-import requests
 from urllib.parse import urlparse, parse_qs, unquote, urljoin, urlencode
 from playwright.async_api import async_playwright
 
@@ -54,7 +51,6 @@ def extract_m3u8_from_match_page(html):
     btns = soup.select(".btn-server[data-link]")
     urls = []
 
-    # ambil dari iframe utama
     if iframe:
         src = iframe.get("src")
         if src:
@@ -63,41 +59,47 @@ def extract_m3u8_from_match_page(html):
             urls.append(parsed)
             print(f"✅ Ditemukan iframe utama: {parsed}")
 
-    # ambil dari tombol server
     for b in btns:
         raw = b.get("data-link")
         if raw and ".m3u8" in raw:
             urls.append(raw)
             print(f"✅ Ditemukan tombol server: {raw}")
 
-    # bersihkan duplikat
-    seen, final = set(), []
+    # hapus duplikat
+    final = []
+    seen = set()
     for u in urls:
         if u not in seen:
             seen.add(u)
             final.append(u)
     return final
 
-# ========= Ekstraksi slug dari halaman list =========
-def extract_slug(row):
-    if row.has_attr("onclick"):
-        match = re.search(r"/match/([^\"']+)", row["onclick"])
-        if match:
-            return match.group(1).strip()
-    link = row.select_one("a[href^='/match/']")
-    if link:
-        return link['href'].replace('/match/', '').strip()
-    return None
-
+# ========= Ekstraksi semua slug dari halaman daftar =========
 def extract_slugs_from_html(html):
     soup = BeautifulSoup(html, "html.parser")
-    matches = soup.select("div.common-table-row.table-row")
-    slugs = []
-    for row in matches:
-        slug = extract_slug(row)
-        if slug:
-            slugs.append(slug)
-    return slugs
+    slugs = set()
+
+    # ambil dari onclick
+    for div in soup.select("div.common-table-row.table-row[onclick]"):
+        onclick = div.get("onclick", "")
+        match = re.search(r"/match/([\w\-\d]+)", onclick)
+        if match:
+            slug = match.group(1).strip()
+            print(f"🎯 Slug (onclick): {slug}")
+            slugs.add(slug)
+
+    # ambil dari href
+    for a in soup.select("a[href*='/match/']"):
+        href = a["href"]
+        match = re.search(r"/match/([\w\-\d]+)", href)
+        if match:
+            slug = match.group(1).strip()
+            if slug not in slugs:
+                print(f"🎯 Slug (href): {slug}")
+                slugs.add(slug)
+
+    print(f"📦 Total slug valid: {len(slugs)}")
+    return list(slugs)
 
 # ========= Playwright fetch =========
 async def fetch_m3u8_with_playwright(context, slug):
@@ -107,11 +109,12 @@ async def fetch_m3u8_with_playwright(context, slug):
 
     def handle_response(response):
         if ".m3u8" in response.url and response.url not in m3u8_links:
-            print(f"🎯 Dapat dari network: {response.url}")
+            print(f"🎯 [Network] {response.url}")
             m3u8_links.append(response.url)
 
     page.on("response", handle_response)
 
+    print(f"⚙️ Memproses slug: {slug}")
     try:
         await page.goto(url, timeout=30000, wait_until="domcontentloaded")
         await page.wait_for_timeout(6000)
@@ -126,7 +129,6 @@ async def fetch_m3u8_with_playwright(context, slug):
     finally:
         await page.close()
 
-    # hanya ambil URL pertama (kalau ada)
     return slug, m3u8_links[0] if m3u8_links else None
 
 # ========= Jalankan semua slug =========
@@ -143,7 +145,6 @@ async def fetch_all_parallel(slugs, concurrency=4):
         results = await asyncio.gather(*(run_one(s) for s in slugs))
         await browser.close()
 
-    # hasil berupa {slug: url_m3u8}
     data = {slug: url for slug, url in results if url}
     return data
 
@@ -161,7 +162,6 @@ if __name__ == "__main__":
 
     html = html_path.read_text(encoding="utf-8")
 
-    # deteksi apakah ini list atau match page
     if "iframe" in html and "btn-server" in html:
         print("📺 Mode: halaman pertandingan tunggal")
         urls = extract_m3u8_from_match_page(html)
@@ -170,5 +170,8 @@ if __name__ == "__main__":
     else:
         print("📋 Mode: halaman daftar pertandingan")
         slugs = extract_slugs_from_html(html)
-        data = asyncio.run(fetch_all_parallel(slugs))
-        save_map(data)
+        if not slugs:
+            print("⚠️ Tidak ada slug ditemukan di HTML.")
+        else:
+            data = asyncio.run(fetch_all_parallel(slugs))
+            save_map(data)
