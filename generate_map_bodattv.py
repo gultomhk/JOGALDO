@@ -33,7 +33,7 @@ USER_AGENT = config.get("USER_AGENT")
 HEADLESS = config.get("HEADLESS", "true").lower() != "false"
 
 # ========= Proxy Handling =========
-PROXY_LIST_URL = config.get("PROXY_LIST_URL", PROXY_LIST_URL_DEFAULT)
+PROXY_LIST_URL = config.get("PROXY_LIST_URL")
 PROXY_URL = config.get("PROXY_URL") or os.environ.get("HTTP_PROXY")
 
 # Cache proxy yang berhasil
