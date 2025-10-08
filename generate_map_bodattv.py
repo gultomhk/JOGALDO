@@ -23,7 +23,7 @@ if not CONFIG_FILE.exists():
     raise FileNotFoundError(f"❌ File config tidak ditemukan: {CONFIG_FILE}")
 
 config = load_config(CONFIG_FILE)
-BASE_URL = config.get("BASE_URL", "https://fstv.space")
+BASE_URL = config.get("BASE_URL")
 USER_AGENT = config.get("USER_AGENT")
 HEADLESS = config.get("HEADLESS", "true").lower() != "false"
 
