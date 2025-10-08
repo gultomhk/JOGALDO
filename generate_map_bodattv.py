@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import asyncio
 from bs4 import BeautifulSoup
+from datetime import datetime
 from pathlib import Path
 import re
 import json
@@ -65,74 +66,71 @@ def extract_m3u8_from_match_page(html):
             urls.append(raw)
             print(f"✅ Ditemukan tombol server: {raw}")
 
-    # hapus duplikat
-    final = []
-    seen = set()
+    seen, final = set(), []
     for u in urls:
         if u not in seen:
             seen.add(u)
             final.append(u)
     return final
 
-# ========= Ekstraksi semua slug dari halaman daftar =========
+# ========= Ekstraksi slug dari halaman list =========
+def extract_slug(row):
+    if row.has_attr("onclick"):
+        match = re.search(r"/match/([^\"']+)", row["onclick"])
+        if match:
+            return match.group(1).strip()
+    link = row.select_one("a[href^='/match/']")
+    if link:
+        return link['href'].replace('/match/', '').strip()
+    return None
+
 def extract_slugs_from_html(html):
     soup = BeautifulSoup(html, "html.parser")
-    slugs = set()
-
-    # ambil dari onclick
-    for div in soup.select("div.common-table-row.table-row[onclick]"):
-        onclick = div.get("onclick", "")
-        match = re.search(r"/match/([\w\-\d]+)", onclick)
-        if match:
-            slug = match.group(1).strip()
-            print(f"🎯 Slug (onclick): {slug}")
-            slugs.add(slug)
-
-    # ambil dari href
-    for a in soup.select("a[href*='/match/']"):
-        href = a["href"]
-        match = re.search(r"/match/([\w\-\d]+)", href)
-        if match:
-            slug = match.group(1).strip()
-            if slug not in slugs:
-                print(f"🎯 Slug (href): {slug}")
-                slugs.add(slug)
-
-    print(f"📦 Total slug valid: {len(slugs)}")
-    return list(slugs)
+    matches = soup.select("div.common-table-row.table-row")
+    slugs = []
+    for row in matches:
+        slug = extract_slug(row)
+        if slug:
+            slugs.append(slug)
+    return slugs
 
 # ========= Playwright fetch =========
 async def fetch_m3u8_with_playwright(context, slug):
     url = f"{BASE_URL}/match/{slug}"
+    print(f"⚙️ Memproses slug: {slug}")
     page = await context.new_page()
     m3u8_links = []
 
     def handle_response(response):
         if ".m3u8" in response.url and response.url not in m3u8_links:
-            print(f"🎯 [Network] {response.url}")
+            print(f"🎯 [Network] {slug} → {response.url}")
             m3u8_links.append(response.url)
 
     page.on("response", handle_response)
 
-    print(f"⚙️ Memproses slug: {slug}")
     try:
-        await page.goto(url, timeout=30000, wait_until="domcontentloaded")
+        await page.goto(url, timeout=35000, wait_until="domcontentloaded")
         await page.wait_for_timeout(6000)
-
         html = await page.content()
         found = extract_m3u8_from_match_page(html)
         for f in found:
             if f not in m3u8_links:
+                print(f"🎯 [HTML] {slug} → {f}")
                 m3u8_links.append(f)
     except Exception as e:
-        print(f"❌ Error saat buka slug {slug}: {e}")
+        print(f"❌ Error {slug}: {e}")
     finally:
         await page.close()
+
+    if not m3u8_links:
+        print(f"⚠️ Tidak ditemukan M3U8 untuk {slug}")
+    else:
+        print(f"✅ Ditemukan {len(m3u8_links)} URL untuk {slug}")
 
     return slug, m3u8_links[0] if m3u8_links else None
 
 # ========= Jalankan semua slug =========
-async def fetch_all_parallel(slugs, concurrency=4):
+async def fetch_all_parallel(slugs, concurrency=3):
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         context = await browser.new_context(user_agent=USER_AGENT)
@@ -170,8 +168,6 @@ if __name__ == "__main__":
     else:
         print("📋 Mode: halaman daftar pertandingan")
         slugs = extract_slugs_from_html(html)
-        if not slugs:
-            print("⚠️ Tidak ada slug ditemukan di HTML.")
-        else:
-            data = asyncio.run(fetch_all_parallel(slugs))
-            save_map(data)
+        print(f"🔍 Total slug ditemukan: {len(slugs)}")
+        data = asyncio.run(fetch_all_parallel(slugs))
+        save_map(data)
