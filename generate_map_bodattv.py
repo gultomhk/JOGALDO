@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import asyncio
+import os
 from bs4 import BeautifulSoup
 from pathlib import Path
 import re
@@ -27,6 +28,13 @@ config = load_config(CONFIG_FILE)
 BASE_URL = config.get("BASE_URL")
 USER_AGENT = config.get("USER_AGENT")
 HEADLESS = config.get("HEADLESS", "true").lower() != "false"
+
+# Proxy opsional (bisa dari file atau env)
+PROXY_URL = config.get("PROXY_URL") or os.environ.get("HTTP_PROXY")
+if PROXY_URL:
+    print(f"🌐 Proxy aktif: {PROXY_URL}")
+else:
+    print("🚫 Tidak ada proxy, koneksi langsung digunakan")
 
 # ========= Parser player?link= → nilai link =========
 def parse_player_link(url: str, keep_encoded: bool = True) -> str:
@@ -68,7 +76,7 @@ def extract_m3u8_from_match_page(html):
 
     return list(dict.fromkeys(urls))  # unik
 
-# ========= Ekstraksi slug dari halaman list =========
+# ========= Ekstraksi slug =========
 def extract_slug(row):
     if row.has_attr("onclick"):
         match = re.search(r"/match/([^\"']+)", row["onclick"])
@@ -118,7 +126,6 @@ async def fetch_m3u8_with_playwright(context, slug):
                     m3u8_links.append(f)
 
         if not m3u8_links:
-            # simpan HTML untuk debugging
             debug_file = f"debug_{slug}.html"
             Path(debug_file).write_text(html, encoding="utf-8")
             print(f"💾 Disimpan {debug_file} (tidak ada .m3u8 ditemukan)")
@@ -143,13 +150,14 @@ async def fetch_m3u8_with_playwright(context, slug):
 # ========= Jalankan semua slug =========
 async def fetch_all_parallel(slugs, concurrency=3):
     async with async_playwright() as p:
-        browser = await p.chromium.launch(
-            headless=HEADLESS,
-            args=["--disable-blink-features=AutomationControlled"]
-        )
-        context = await browser.new_context(user_agent=USER_AGENT)
-        sem = asyncio.Semaphore(concurrency)
+        args = ["--disable-blink-features=AutomationControlled"]
+        if PROXY_URL:
+            args.append(f"--proxy-server={PROXY_URL}")
 
+        browser = await p.chromium.launch(headless=HEADLESS, args=args)
+        context = await browser.new_context(user_agent=USER_AGENT)
+
+        sem = asyncio.Semaphore(concurrency)
         async def run_one(slug):
             async with sem:
                 return await fetch_m3u8_with_playwright(context, slug)
