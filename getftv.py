@@ -79,88 +79,74 @@ def extract_matches_from_html(html):
     output = ["#EXTM3U"]
     seen = set()
 
-    matches_table = soup.select("div.common-table-row.table-row")
-    print(f"⛵️ Found {len(matches_table)} table-row matches")
+    # Ambil semua match item (2 kemungkinan struktur)
+    matches = soup.select("div.common-table-row.table-row, div.slide-item")
+    print(f"⛵️ Found {len(matches)} match items")
 
-    for row in matches_table:
+    for item in matches:
         try:
+            # --- slug / link ---
+            link_tag = item.select_one("a[href^='/match/']")
             slug = None
-            link = row.select_one("a[href^='/match/']")
-            if link:
-                slug = link['href'].replace('/match/', '').strip()
-
-            if not slug and row.has_attr("onclick"):
-                match = re.search(r"/match/([^']+)", row["onclick"])
-                if match:
-                    slug = match.group(1).strip()
-
-            if not slug or slug in seen:
+            if link_tag:
+                slug = link_tag['href'].replace('/match/', '').strip()
+            if not slug:
+                continue
+            if slug in seen:
                 continue
             seen.add(slug)
 
-            waktu_tag = row.select_one(".match-time")
-            if waktu_tag and waktu_tag.get("data-timestamp"):
-                timestamp = int(waktu_tag["data-timestamp"])
-                event_time_utc = datetime.fromtimestamp(timestamp, tz=timezone.utc)
-                event_time_local = event_time_utc.astimezone(tz.gettz("Asia/Jakarta"))
-                waktu = event_time_local.strftime("%d/%m-%H.%M")
+            # --- waktu ---
+            ts_tag = item.select_one(".timestamp[data-timestamp]")
+            if ts_tag:
+                try:
+                    timestamp = int(ts_tag["data-timestamp"])
+                    event_time_utc = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+                    event_time_local = event_time_utc.astimezone(tz.gettz("Asia/Jakarta"))
+                    waktu = event_time_local.strftime("%d/%m-%H.%M")
+                except:
+                    waktu = "00/00-00.00"
+                    event_time_local = now
             else:
                 waktu = "00/00-00.00"
                 event_time_local = now
 
-            # ✅ Cek apakah sedang live
-            is_live = row.select_one(".live-text") is not None
-            if not is_live and event_time_local < (now - timedelta(hours=2)):
-                print(f"⏩ Lewat waktu & bukan live, skip: {slug}")
-                continue
+            # --- nama liga ---
+            league_tag = item.select_one(".match-name")
+            league = clean_title(league_tag.get_text(strip=True)) if league_tag else "Unknown League"
 
-            # ✅ Skip keyword pengecualian
-            slug_lower = slug.lower()
-            is_exception = any(
-                keyword in slug_lower
-                for keyword in ["tennis", "billiards", "snooker", "worldssp", "superbike"]
-            )
-            if not is_live and not is_exception and event_time_local < (now - timedelta(hours=2)):
-                continue
-
-            wrapper = row.select_one(".list-club-wrapper")
-            if wrapper:
-                name_tags = wrapper.select(".club-name")
-                texts = [t.text.strip() for t in name_tags if t.text.strip().lower() != "vs"]
-                if len(texts) >= 2:
-                    title = f"{texts[0]} vs {texts[1]}"
-                elif len(texts) == 1:
-                    title = texts[0]
-                else:
-                    title = wrapper.get_text(separator=" ", strip=True)
+            # --- nama tim ---
+            clubs = [c.get_text(strip=True) for c in item.select(".club-name")]
+            if len(clubs) >= 2:
+                title = f"{clubs[0]} vs {clubs[1]}"
             else:
-                title = clean_title(slug.replace("-", " "))
+                title = slug.replace("-", " ")
 
             title = clean_title(title)
-            if title.lower() == "vs" or len(title.strip()) < 3:
-                print(f"⚠️  Skip bad title (table): {title}")
+            if not title or len(title) < 3:
                 continue
 
-            print(f"📃 Parsed: {waktu} | {title}")
+            print(f"📃 Parsed: {waktu} | {league} | {title}")
 
-            # Ambil halaman slug dan ambil hanya 1 server (server1 saja)
+            # --- ambil halaman slug ---
             slug_html = get_slug_page(slug)
             m3u8_urls = extract_m3u8_urls(slug_html)
 
             if not m3u8_urls:
-                print(f"⚠️  Tidak ada server untuk {slug}, skip")
+                print(f"⚠️ Tidak ada server untuk {slug}, skip")
                 continue
 
-            # Ambil hanya server pertama
+            # --- buat entri M3U ---
+            full_title = f"{league} - {title}"
             output += [
-                f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{LOGO}",{waktu} {title}',
+                f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{LOGO}",{waktu} {full_title}',
                 f'#EXTVLCOPT:http-user-agent={USER_AGENT}',
                 f'#EXTVLCOPT:http-referrer={BASE_URL}/',
                 f'{WORKER_URL}{slug}'
             ]
 
         except Exception as e:
-            print(f"❌ Error parsing table row: {e}")
+            print(f"❌ Error parsing match: {e}")
             continue
 
     return "\n".join(output)
