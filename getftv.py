@@ -90,7 +90,7 @@ def extract_matches_from_html(html):
             print(f"📃 Parsed: {waktu} | {league} | {title}")
 
             # --- buat entri M3U ---
-            full_title = f"{league} - {title}"
+            full_title = f"{title} - {league}"
             output += [
                 f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{LOGO}",{waktu} {full_title}',
                 f'#EXTVLCOPT:http-user-agent={USER_AGENT}',
