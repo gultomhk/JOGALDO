@@ -31,8 +31,6 @@ WORKER_URL = config["WORKER_URL"]
 LOGO = config["LOGO"]
 USER_AGENT = config["USER_AGENT"]
 
-now = datetime.now(tz.gettz("Asia/Jakarta"))
-
 def clean_title(title):
     title = title.replace("football", "")
     title = re.sub(r"\s*[:|•]\s*", " ", title)
@@ -45,7 +43,6 @@ def extract_matches_from_html(html):
     output = ["#EXTM3U"]
     seen = set()
 
-    # Bisa dari 2 struktur: common-table-row atau slide-item
     matches = soup.select("div.common-table-row.table-row, div.slide-item")
     print(f"⛵️ Found {len(matches)} match items")
 
@@ -61,21 +58,26 @@ def extract_matches_from_html(html):
             seen.add(slug)
 
             # --- waktu ---
-            ts_tag = item.select_one(".timestamp[data-timestamp]")
+            ts_tag = item.select_one(".match-time[data-timestamp]")
             if ts_tag and ts_tag.get("data-timestamp"):
                 try:
                     timestamp = int(ts_tag["data-timestamp"])
                     event_time_utc = datetime.fromtimestamp(timestamp, tz=timezone.utc)
                     event_time_local = event_time_utc.astimezone(tz.gettz("Asia/Jakarta"))
                     waktu = event_time_local.strftime("%d/%m-%H.%M")
-                except:
+                except Exception as e:
+                    print(f"⚠️ Gagal parsing timestamp: {e}")
                     waktu = "00/00-00.00"
             else:
                 waktu = "00/00-00.00"
 
             # --- nama liga ---
-            league_tag = item.select_one(".match-name")
-            league = clean_title(league_tag.get_text(strip=True)) if league_tag else "Unknown League"
+            # Ambil dari URL slug terakhir (biasanya mengandung nama olahraga/league)
+            # contoh slug: los-angeles-dodgers-vs-philadelphia-phillies-baseball-177734
+            league_match = re.search(r"-([a-z]+)-\d+$", slug)
+            league = league_match.group(1).upper() if league_match else "Unknown League"
+            if league == "BASEBALL":
+                league = "MLB"
 
             # --- nama tim ---
             clubs = [c.get_text(strip=True) for c in item.select(".club-name")]
