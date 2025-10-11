@@ -1,12 +1,11 @@
 {
-  "ppv-event-04-slapfight-influx-ppv-004": "https://o4.sundaytotueday.online/uk-sky04.m3u8?auth_key=1760160040-d87e7d549d901a0be9122f8b2591a4e8-00000000000000000000000000000000-91a15f15b8246f6cd8318ce7ecd946ed",
-  "ppv-event-09-xfn-404-ppv-09": "https://o4.sundaytotueday.online/uk-sky09.m3u8?auth_key=1760160041-d87e7d549d901a0be9122f8b2591a4e8-00000000000000000000000000000000-8239bf311aa630430125db2ffab6cb31",
-  "ppv-event-08-cage-fury-fc-147-ppv-08": "https://o4.sundaytotueday.online/uk-sky08.m3u8?auth_key=1760160041-d87e7d549d901a0be9122f8b2591a4e8-00000000000000000000000000000000-ed2b1b4d9e5631c790b92d7acb5913e6",
-  "ppv-event-07-lfa-219-ppv-007": "https://o4.sundaytotueday.online/uk-sky07.m3u8?auth_key=1760160042-d87e7d549d901a0be9122f8b2591a4e8-00000000000000000000000000000000-122034013a85ff72c38b5506e10c9dce",
-  "ppv-event-06-combat-fc-11-ppv-006": "https://o4.sundaytotueday.online/uk-sky06.m3u8?auth_key=1760160043-d87e7d549d901a0be9122f8b2591a4e8-00000000000000000000000000000000-b9106de0f31d24b29d9d0903c0e29970",
-  "ppv-event-10-urijah-fabers-a1-combat-31-ppv-10": "https://o4.sundaytotueday.online/uk-sky10.m3u8?auth_key=1760160044-d87e7d549d901a0be9122f8b2591a4e8-00000000000000000000000000000000-2f84b452afa3867c186efb4dea5ac398",
-  "ppv-event-11-brown-v-machuca-ppv-11": "https://o4.sundaytotueday.online/uk-sky11.m3u8?auth_key=1760160044-d87e7d549d901a0be9122f8b2591a4e8-00000000000000000000000000000000-3713a2127f5ef1d13fccfa1ade9bd852",
-  "wta-tour-1000-wuham-atp-tour-1000-shanghai-atp-2025": "https://o2.sundaytotueday.online/us-tennistv.m3u8?auth_key=1760160045-d87e7d549d901a0be9122f8b2591a4e8-00000000000000000000000000000000-ea84d9eeab24776f2df85e14b7b05dca",
-  "malawi-vs-equatorial-guinea-football-1126084": "https://o3.sundaytotueday.online/dmtn12.m3u8?auth_key=1760160047-d87e7d549d901a0be9122f8b2591a4e8-00000000000000000000000000000000-871a22168a0bb7cc157c55193e103a85",
-  "baycurrent-classic-third-round-pga-tour-golf-tgl-001": "https://o2.sundaytotueday.online/uk-skysportgolf.m3u8?auth_key=1760160050-d87e7d549d901a0be9122f8b2591a4e8-00000000000000000000000000000000-91b5338a6efac65108cf603d88bd5dca"
+  "ppv-event-04-slapfight-influx-ppv-004": "https://o4.sundaytotueday.online/uk-sky04.m3u8?auth_key=1760164251-15079992712cb6ccbbb7bf8ff39624ec-00000000000000000000000000000000-8cf710f5509716340261c50caac85408",
+  "ppv-event-09-xfn-404-ppv-09": "https://o4.sundaytotueday.online/uk-sky09.m3u8?auth_key=1760164252-15079992712cb6ccbbb7bf8ff39624ec-00000000000000000000000000000000-215282bcb5bf7220e400c5edd229ff73",
+  "ppv-event-08-cage-fury-fc-147-ppv-08": "https://o4.sundaytotueday.online/uk-sky08.m3u8?auth_key=1760164253-15079992712cb6ccbbb7bf8ff39624ec-00000000000000000000000000000000-b2587946ef8cb166f534e9f3f99d5ad8",
+  "ppv-event-07-lfa-219-ppv-007": "https://o4.sundaytotueday.online/uk-sky07.m3u8?auth_key=1760164254-15079992712cb6ccbbb7bf8ff39624ec-00000000000000000000000000000000-cdbc3072c95c6e288b4fcafadb0d4f30",
+  "ppv-event-10-urijah-fabers-a1-combat-31-ppv-10": "https://o4.sundaytotueday.online/uk-sky10.m3u8?auth_key=1760164255-15079992712cb6ccbbb7bf8ff39624ec-00000000000000000000000000000000-86ea59f05da471160b980111aa3d8d21",
+  "ppv-event-11-brown-v-machuca-ppv-11": "https://o4.sundaytotueday.online/uk-sky11.m3u8?auth_key=1760164255-15079992712cb6ccbbb7bf8ff39624ec-00000000000000000000000000000000-1bc4cbf572e0fa2a41791ad9ca9c7d05",
+  "wta-tour-1000-wuham-atp-tour-1000-shanghai-atp-2025": "https://o2.sundaytotueday.online/us-tennistv.m3u8?auth_key=1760164256-15079992712cb6ccbbb7bf8ff39624ec-00000000000000000000000000000000-8dbe5f84bb2340160c9c6e6cf3d05947",
+  "malawi-vs-equatorial-guinea-football-1126084": "https://o3.sundaytotueday.online/dmtn12.m3u8?auth_key=1760164257-15079992712cb6ccbbb7bf8ff39624ec-00000000000000000000000000000000-58f7ec9d988718489f795e8c842b965f",
+  "baycurrent-classic-third-round-pga-tour-golf-tgl-001": "https://o2.sundaytotueday.online/uk-skysportgolf.m3u8?auth_key=1760164258-15079992712cb6ccbbb7bf8ff39624ec-00000000000000000000000000000000-eb89dd482792a81dec566946d71d7da6"
 }
