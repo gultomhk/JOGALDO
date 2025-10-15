@@ -19,9 +19,16 @@ LOGO_URL = config_globals.get("LOGO_URL")
 MY_WEBSITE = config_globals.get("MY_WEBSITE")
 
 headers = {"User-Agent": USER_AGENT}
+
+# ====== Ambil halaman utama ======
+print("🌐 Mengambil halaman utama...")
+resp = requests.get(BASE_URL, headers=headers)
+resp.raise_for_status()
+soup = BeautifulSoup(resp.text, "html.parser")
+
 translator = GoogleTranslator(source="vi", target="en")
 
-# ====== Fungsi bantu ======
+
 def parse_time_from_slug(slug: str):
     """Ambil waktu & tanggal dari slug."""
     match = re.search(r"luc-(\d{1,2})(\d{2})-ngay-(\d{1,2})-(\d{1,2})-(\d{4})", slug)
@@ -29,6 +36,7 @@ def parse_time_from_slug(slug: str):
         h, m, d, mo, y = match.groups()
         return f"{int(d):02d}/{int(mo):02d}-{int(h):02d}.{m}"
     return "??/??-??.??"
+
 
 def parse_title_from_slug(slug: str):
     """Ambil nama pertandingan dari slug dan terjemahkan ke English."""
@@ -39,20 +47,16 @@ def parse_title_from_slug(slug: str):
     try:
         translated = translator.translate(title_part)
         combined = f"{title_part} ({translated})"
-    except Exception:
+    except Exception as e:
+        print(f"⚠️ Gagal translate '{title_part}': {e}")
         combined = title_part
 
     return combined
 
-# ====== Ambil halaman utama ======
-print("🌐 Mengambil halaman utama...")
-resp = requests.get(BASE_URL, headers=headers)
-resp.raise_for_status()
-soup = BeautifulSoup(resp.text, "html.parser")
 
-# ====== Proses semua tab ======
+# ====== Proses tiap tab ======
 output_lines = ["#EXTM3U"]
-seen_slugs = set()
+seen_slugs = set()  # ← untuk hindari duplikasi
 
 for tab_id in TABS:
     tab_section = soup.select_one(f"#{tab_id}")
@@ -70,24 +74,23 @@ for tab_id in TABS:
         # Normalisasi slug
         slug = re.sub(r"^/|/$", "", href)
         if slug in seen_slugs:
-            continue
+            continue  # skip duplikat
         seen_slugs.add(slug)
 
-        # Buat entri M3U
         match_time = parse_time_from_slug(slug)
         title = parse_title_from_slug(slug)
-        full_slug_url = f"{MY_WEBSITE}?slug={slug}"
+        full_slug_url = f"{MY_WEBSITE}{slug}/"
 
         output_lines.append(
-            f'#EXTINF:-1 group-title="🏐| LIVE EVENT" tvg-logo="{LOGO_URL}",{match_time} {title}'
+            f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{LOGO_URL}",{match_time} {title}'
         )
         output_lines.append(f"#EXTVLCOPT:http-user-agent={USER_AGENT}")
         output_lines.append(f"#EXTVLCOPT:http-referrer={REFERRER}")
         output_lines.append(full_slug_url)
 
-# ====== Simpan hasil ======
-filename = "Keongphut_sport.m3u"
+# ====== Simpan ke file ======
+filename = f"Keongphut_sport.m3u"
 with open(filename, "w", encoding="utf-8") as f:
-    f.write("\n".join(output_lines).strip() + "\n")
+    f.write("\n".join(output_lines))
 
 print(f"\n✅ File M3U berhasil disimpan: {filename}")
