@@ -18,7 +18,7 @@ with open(CONFIG_FILE, encoding="utf-8") as f:
 BASE_URL = config_globals.get("BASE_URL")
 TABS = config_globals.get("TABS")
 USER_AGENT = config_globals.get("USER_AGENT")
-REFERRER = config_globals.get("REFERRER)
+REFERRER = config_globals.get("REFERRER")
 LOGO_URL = config_globals.get("LOGO_URL")
 MY_WEBSITE = config_globals.get("MY_WEBSITE")
 
