@@ -44,7 +44,7 @@ jobs:
       - name: ▶️ Jalankan script Python dan simpan output M3U
         shell: bash
         run: |
-          python TESTKEONG.py > Keongphut_sport.m3u
+          python TESTKEONG.py
 
       - name: 📤 Push output ke repo privat jika ada perubahan
         shell: bash
