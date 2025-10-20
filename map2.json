@@ -1,14 +1,10 @@
 {
-  "nfl-network-247-game-315511": "https://o2.shanggreek.shop/us-nfl.m3u8?auth_key=1760916031-8e05fd9f44d107fcefb716795d19ded5-00000000000000000000000000000000-cb33b254207120965b19fe575b261e13",
-  "nfl-redzone-game-6262": "https://o2.shanggreek.shop/us-redzone.m3u8?auth_key=1760916032-8e05fd9f44d107fcefb716795d19ded5-00000000000000000000000000000000-907b07050c7f0f72693825043a952a96",
-  "los-angeles-chargers-vs-indianapolis-colts-american-football-17416": "https://o2.shanggreek.shop/nfl-losangeleschargers.m3u8?auth_key=1760916032-8e05fd9f44d107fcefb716795d19ded5-00000000000000000000000000000000-989caae3696d7cf98ed90b2e68a26fd2",
-  "denver-broncos-vs-new-york-giants-american-football-17415": "https://o2.shanggreek.shop/nfl-denverbroncos.m3u8?auth_key=1760916033-8e05fd9f44d107fcefb716795d19ded5-00000000000000000000000000000000-53c35b44d3a719af9d05d5c5a649fa39",
-  "arizona-cardinals-vs-green-bay-packers-american-football-17418": "https://o2.shanggreek.shop/nfl-arizonacardinals.m3u8?auth_key=1760916033-8e05fd9f44d107fcefb716795d19ded5-00000000000000000000000000000000-aff769fb4a43571a8daa48f60d4cc69c",
-  "dallas-cowboys-vs-washington-commanders-american-football-17417": "https://o2.shanggreek.shop/nfl-dallascowboys.m3u8?auth_key=1760916034-8e05fd9f44d107fcefb716795d19ded5-00000000000000000000000000000000-8721713e8244baf0105d302603ae0bb1",
-  "atp-tour-250-wta-tour-250-atp-2025": "https://o4.shanggreek.shop/uk-skysporttenis.m3u8?auth_key=1760916035-8e05fd9f44d107fcefb716795d19ded5-00000000000000000000000000000000-2b8dfbb69f69298eeb43db6e6ebe08ad",
-  "internacional-vs-sport-recife-football-1351329": "https://o3.shanggreek.shop/dmtn22.m3u8?auth_key=1760916037-8e05fd9f44d107fcefb716795d19ded5-00000000000000000000000000000000-03f41e6ce3bd4950f8dafd884dc96d24",
-  "mirassol-vs-sao-paulo-football-1351327": "https://o3.shanggreek.shop/dmtn11.m3u8?auth_key=1760916037-8e05fd9f44d107fcefb716795d19ded5-00000000000000000000000000000000-d77ddeb1f8fcf9b8f8efbd25a1bde322",
-  "chicago-blackhawks-vs-anaheim-ducks-hockey-415708": "https://o2.shanggreek.shop/nhl-chicagoblackhawks.m3u8?auth_key=1760916044-8e05fd9f44d107fcefb716795d19ded5-00000000000000000000000000000000-1a39ce7e06a18398da433ad7d0ddf52a",
-  "toronto-blue-jays-vs-seattle-mariners-baseball-177987": "https://o2.shanggreek.shop/mlb-torontobluejays.m3u8?auth_key=1760916044-8e05fd9f44d107fcefb716795d19ded5-00000000000000000000000000000000-c3fa066aa826433de742e04be14a99b1",
-  "san-francisco-49ers-vs-atlanta-falcons-american-football-17419": "https://o2.shanggreek.shop/nfl-sanfrancisco49ers.m3u8?auth_key=1760916045-8e05fd9f44d107fcefb716795d19ded5-00000000000000000000000000000000-9144c6e20c481a06ccb5f0ae1255f4bf"
+  "nfl-network-247-game-315511": "https://o2.shanggreek.shop/us-nfl.m3u8?auth_key=1760925489-f30e170d10a5e3acc9410bc5f15012d9-00000000000000000000000000000000-c528b5217b504f82afa82cd4df894185",
+  "nfl-redzone-game-6262": "https://o2.shanggreek.shop/us-redzone.m3u8?auth_key=1760925490-f30e170d10a5e3acc9410bc5f15012d9-00000000000000000000000000000000-1c0dfcddebfe1cf7bb019ef4f035f221",
+  "san-francisco-49ers-vs-atlanta-falcons-american-football-17419": "https://o2.shanggreek.shop/nfl-sanfrancisco49ers.m3u8?auth_key=1760925495-f30e170d10a5e3acc9410bc5f15012d9-00000000000000000000000000000000-c44aed6a7135694f39f39aaae67b84af",
+  "ppv-event-02-world-of-outlaws-sprint-cars-angell-ppv-02": "https://o4.shanggreek.shop/uk-sky02.m3u8?auth_key=1760925491-f30e170d10a5e3acc9410bc5f15012d9-00000000000000000000000000000000-407138fd3badb76d2d810274be5f0489",
+  "atp-tour-250-wta-tour-250-atp-2025": "https://o4.shanggreek.shop/uk-skysporttenis.m3u8?auth_key=1760925492-f30e170d10a5e3acc9410bc5f15012d9-00000000000000000000000000000000-d9de1f4b6cedc04108197b88ad912731",
+  "toronto-blue-jays-vs-seattle-mariners-baseball-177987": "https://o2.shanggreek.shop/mlb-torontobluejays.m3u8?auth_key=1760925494-f30e170d10a5e3acc9410bc5f15012d9-00000000000000000000000000000000-73d4478548415d1ece0805303ac01955",
+  "utah-mammoth-vs-boston-bruins-hockey-415709": "https://o2.shanggreek.shop/nhl-bostonbruins.m3u8?auth_key=1760925493-f30e170d10a5e3acc9410bc5f15012d9-00000000000000000000000000000000-b5f767dbcfdb6b49a02cb5dff2262e32",
+  "chicago-blackhawks-vs-anaheim-ducks-hockey-415708": "https://o2.shanggreek.shop/nhl-chicagoblackhawks.m3u8?auth_key=1760925493-f30e170d10a5e3acc9410bc5f15012d9-00000000000000000000000000000000-946a525f1ddbbcd5f9dd2a48f36f9b0f"
 }
