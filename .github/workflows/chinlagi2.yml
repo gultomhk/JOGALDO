@@ -1,8 +1,6 @@
 name: ⏰ Chinlagi2 Auto Runner
 
 on:
-  schedule:
-    - cron: "0 * * * *"   # jalan tiap 1 jam sekali (menit ke-0)
   workflow_dispatch:       # bisa manual trigger juga
 
 permissions:
