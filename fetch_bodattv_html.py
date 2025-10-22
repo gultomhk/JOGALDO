@@ -4,6 +4,7 @@ from playwright.async_api import async_playwright
 
 BODATTVDATA_FILE = Path.home() / "bodattvdata_file.txt"
 
+
 def load_config(filepath):
     config = {}
     with open(filepath, "r", encoding="utf-8") as f:
@@ -12,6 +13,7 @@ def load_config(filepath):
                 key, val = line.strip().split("=", 1)
                 config[key.strip()] = val.strip().strip('"')
     return config
+
 
 config = load_config(BODATTVDATA_FILE)
 
@@ -42,10 +44,22 @@ async def fetch_dynamic_html_playwright(retries=3):
                 await page.goto(DEFAULT_URL, timeout=60000)
                 await page.wait_for_load_state("networkidle")
 
+                # 🔍 --- Deteksi Cloudflare Challenge ---
+                content = await page.content()
+                if (
+                    "cf-challenge" in content
+                    or "cf-error-details" in content
+                    or "captcha" in content.lower()
+                    or "Checking your browser before accessing" in content
+                ):
+                    print("⚠️ Cloudflare challenge detected! Page not accessible.")
+                    raise Exception("Cloudflare challenge detected")
+                # --- Akhir deteksi ---
+
                 print("📜 Scrolling page...")
                 await scroll_page(page)
 
-                await page.wait_for_selector('.slide-item, .common-table-row', timeout=30000)
+                await page.wait_for_selector(".slide-item, .common-table-row", timeout=30000)
 
                 try:
                     tab_button = await page.query_selector("button:has-text('Server')")
@@ -67,8 +81,9 @@ async def fetch_dynamic_html_playwright(retries=3):
             except Exception as e:
                 print(f"❌ Error on attempt {attempt}: {e}")
                 await page.screenshot(path=f"error_attempt{attempt}.png", full_page=True)
+
                 if attempt < retries:
-                    print("🔄 Retrying in 10s...")
+                    print("🔄 Retrying in 10s...\n")
                     await asyncio.sleep(10)
                 else:
                     print("⛔ All retries failed, saving empty file...")
