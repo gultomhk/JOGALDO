@@ -1,4 +1,7 @@
 import asyncio
+import random
+import re
+import aiohttp
 from pathlib import Path
 from playwright.async_api import async_playwright
 
@@ -16,9 +19,22 @@ def load_config(filepath):
 
 
 config = load_config(BODATTVDATA_FILE)
-
 DEFAULT_URL = config.get("DEFAULT_URL")
-USER_AGENT = config.get("USER_AGENT", "Mozilla/5.0")
+USER_AGENT = config.get("USER_AGENT")
+PROXYLIST_URL = config.get("UPROXYLIST_URL")
+
+
+# 🔹 Ambil daftar proxy US dari GitHub
+async def fetch_proxy_list():
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(PROXYLIST_URL, timeout=15) as resp:
+                text = await resp.text()
+                proxies = re.findall(r"(\d+\.\d+\.\d+\.\d+:\d+)", text)
+                return proxies
+    except Exception as e:
+        print(f"⚠️ Gagal mengambil proxy list: {e}")
+        return []
 
 
 async def scroll_page(page):
@@ -32,35 +48,50 @@ async def scroll_page(page):
         previous_height = current_height
 
 
-async def fetch_dynamic_html_playwright(retries=3):
-    async with async_playwright() as p:
-        browser = await p.firefox.launch(headless=True)
-        context = await browser.new_context(user_agent=USER_AGENT)
-        page = await context.new_page()
+async def fetch_dynamic_html_playwright(retries=5):
+    proxies = await fetch_proxy_list()
+    print(f"🌎 Loaded {len(proxies)} US proxies from GitHub list")
 
+    if not proxies:
+        print("❌ Tidak ada proxy yang bisa digunakan.")
+        return
+
+    async with async_playwright() as p:
         for attempt in range(1, retries + 1):
+            proxy = random.choice(proxies)
+            print(f"🌐 Attempt {attempt}/{retries} using proxy: {proxy}")
+
+            # Proxy Playwright harus diterapkan di `launch()`
+            launch_args = {
+                "headless": True,
+                "proxy": {"server": f"http://{proxy}"}
+            }
+
             try:
-                print(f"🌐 Visiting FSTV (attempt {attempt}/{retries}): {DEFAULT_URL}")
+                browser = await p.firefox.launch(**launch_args)
+                context = await browser.new_context(user_agent=USER_AGENT)
+                page = await context.new_page()
+
                 await page.goto(DEFAULT_URL, timeout=60000)
                 await page.wait_for_load_state("networkidle")
 
                 # 🔍 --- Deteksi Cloudflare Challenge ---
                 content = await page.content()
-                if (
-                    "cf-challenge" in content
-                    or "cf-error-details" in content
-                    or "captcha" in content.lower()
-                    or "Checking your browser before accessing" in content
+                if any(
+                    s in content for s in [
+                        "cf-challenge", "cf-error-details",
+                        "captcha", "Checking your browser before accessing"
+                    ]
                 ):
-                    print("⚠️ Cloudflare challenge detected! Page not accessible.")
+                    print("⚠️ Cloudflare challenge detected! Changing proxy...\n")
                     raise Exception("Cloudflare challenge detected")
                 # --- Akhir deteksi ---
 
                 print("📜 Scrolling page...")
                 await scroll_page(page)
-
                 await page.wait_for_selector(".slide-item, .common-table-row", timeout=30000)
 
+                # Optional klik tab
                 try:
                     tab_button = await page.query_selector("button:has-text('Server')")
                     if tab_button:
@@ -73,23 +104,23 @@ async def fetch_dynamic_html_playwright(retries=3):
                 html = await page.content()
                 with open("BODATTV_PAGE_SOURCE.html", "w", encoding="utf-8") as f:
                     f.write(html)
-                print("✅ Saved full page source to BODATTV_PAGE_SOURCE.html")
 
+                print(f"✅ Success with proxy {proxy}")
                 await browser.close()
-                return  # sukses, keluar dari fungsi
+                return
 
             except Exception as e:
                 print(f"❌ Error on attempt {attempt}: {e}")
-                await page.screenshot(path=f"error_attempt{attempt}.png", full_page=True)
+                if 'browser' in locals():
+                    await browser.close()
+                await asyncio.sleep(5)
 
                 if attempt < retries:
-                    print("🔄 Retrying in 10s...\n")
-                    await asyncio.sleep(10)
+                    print("🔄 Retrying with new proxy...\n")
                 else:
                     print("⛔ All retries failed, saving empty file...")
                     with open("BODATTV_PAGE_SOURCE.html", "w", encoding="utf-8") as f:
                         f.write("")
-                    await browser.close()
                     return
 
 
