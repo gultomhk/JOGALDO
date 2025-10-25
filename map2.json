@@ -1,12 +1,10 @@
 {
-  "ppv-event-01-ufc-321-prelims-ppv-01": "https://o4.shangper.shop/uk-sky01.m3u8?auth_key=1761427183-09ec0df623c2354fa1829056bea64eaf-00000000000000000000000000000000-e60b6e489dff63efdeb971c55621a988",
-  "ppv-event-04-parker-v-wardley-ppv-004": "https://o4.shangper.shop/uk-sky04.m3u8?auth_key=1761427183-09ec0df623c2354fa1829056bea64eaf-00000000000000000000000000000000-e3393b35c174e3314a21342bb519c784",
-  "ppv-event-02-ufc-321-aspinall-v-gane-ppv-02": "https://o4.shangper.shop/uk-sky02.m3u8?auth_key=1761427184-09ec0df623c2354fa1829056bea64eaf-00000000000000000000000000000000-44f7e44bdc9ed94efae9528bf3006008",
-  "ppv-event-05-bkfc-83-camozzi-v-sakara-ppv-05": "https://o4.shangper.shop/uk-sky05.m3u8?auth_key=1761427184-09ec0df623c2354fa1829056bea64eaf-00000000000000000000000000000000-dbc7387e96c6a18419e77a2290ade730",
-  "atp-tour-250-wta-tour-250-atp-2025": "https://o4.shangper.shop/uk-skysporttenis.m3u8?auth_key=1761427186-09ec0df623c2354fa1829056bea64eaf-00000000000000000000000000000000-d75d203da68582595a65e08682fcae10",
-  "estrela-vs-rio-ave-football-1396313": "https://o3.shangper.shop/pt-sporttv1.m3u8?auth_key=1761427187-09ec0df623c2354fa1829056bea64eaf-00000000000000000000000000000000-48971549184eac5ea6bb17011d573541",
-  "benfica-vs-arouca-football-1396310": "https://o3.shangper.shop/pt-benfica.m3u8?auth_key=1761427188-09ec0df623c2354fa1829056bea64eaf-00000000000000000000000000000000-53e50f224da45f67546a4950ca07ecb9",
-  "boston-bruins-vs-colorado-avalanche-hockey-415745": "https://o2.shangper.shop/nhl-bostonbruins.m3u8?auth_key=1761427188-09ec0df623c2354fa1829056bea64eaf-00000000000000000000000000000000-9ce2b84c29c709d842289d78c79f7d79",
-  "darts-european-championship-pdc-002": "https://o2.shangper.shop/uk-itv4.m3u8?auth_key=1761427189-09ec0df623c2354fa1829056bea64eaf-00000000000000000000000000000000-4ac28564c9fc39c498ebc79becfa0174",
-  "1st-qualifying-autodromo-hermanos-rodriguez-formula-1-2475": "https://o2.shangper.shop/uk-skysportf1.m3u8?auth_key=1761427196-09ec0df623c2354fa1829056bea64eaf-00000000000000000000000000000000-f942c7afa415a3891b6cfdae197a7104"
+  "ppv-event-01-ufc-321-prelims-ppv-01": "https://o4.shangper.shop/uk-sky01.m3u8?auth_key=1761430791-d534e3fe6752883552a11a24d7917a63-00000000000000000000000000000000-93081d1cad76b9362f2a89c9727e95d4",
+  "ppv-event-02-ufc-321-aspinall-v-gane-ppv-02": "https://o4.shangper.shop/uk-sky02.m3u8?auth_key=1761430792-d534e3fe6752883552a11a24d7917a63-00000000000000000000000000000000-afc1756ae38be022b96563e634f0f21f",
+  "ppv-event-05-bkfc-83-camozzi-v-sakara-ppv-05": "https://o4.shangper.shop/uk-sky05.m3u8?auth_key=1761430793-d534e3fe6752883552a11a24d7917a63-00000000000000000000000000000000-be0f893b396bee62772c7166b4dee088",
+  "atp-tour-250-wta-tour-250-atp-2025": "https://o4.shangper.shop/uk-skysporttenis.m3u8?auth_key=1761430793-d534e3fe6752883552a11a24d7917a63-00000000000000000000000000000000-f9daf3fb20f5ef749fe451f0ed14e83f",
+  "bucaramanga-vs-llaneros-football-1392512": "https://o4.shangper.shop/z-winsport.m3u8?auth_key=1761430794-d534e3fe6752883552a11a24d7917a63-00000000000000000000000000000000-0bc0ae81dbec453bbadeabe04ba00a33",
+  "tampa-bay-lightning-vs-anaheim-ducks-hockey-415746": "https://o2.shangper.shop/nhl-tampabaylightning.m3u8?auth_key=1761430796-d534e3fe6752883552a11a24d7917a63-00000000000000000000000000000000-958743b57fe2d80616f08e6353f634ca",
+  "toronto-maple-leafs-vs-buffalo-sabres-hockey-415751": "https://o2.shangper.shop/nhl-torontomapleleafs.m3u8?auth_key=1761430797-d534e3fe6752883552a11a24d7917a63-00000000000000000000000000000000-9b38ffbf1b7c38b9db82afa1b1ab1073",
+  "darts-european-championship-pdc-002": "https://o2.shangper.shop/uk-itv4.m3u8?auth_key=1761430798-d534e3fe6752883552a11a24d7917a63-00000000000000000000000000000000-b7754245a8e738f424af93eb3fc2dc21"
 }
