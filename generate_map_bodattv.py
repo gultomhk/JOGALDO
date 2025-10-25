@@ -1,5 +1,7 @@
 import asyncio
 import json
+import time
+import random
 import cloudscraper
 from bs4 import BeautifulSoup
 from urllib.parse import unquote, urljoin
@@ -24,23 +26,35 @@ if not CONFIG_FILE.exists():
 
 config = load_config(CONFIG_FILE)
 BASE_URL = config.get("BASE_URL")
-USER_AGENT = config.get("USER_AGENT")
+USER_AGENT = config.get("USER_AGENT", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
 HEADLESS = config.get("HEADLESS", "true").lower() != "false"
 
-# Output file
 OUTPUT_FILE = MAP_FILE
 
 # ==========================
-# Ambil HTML langsung
+# Ambil HTML dengan retry
 # ==========================
-def fetch_html(url):
-    scraper = cloudscraper.create_scraper()
-    headers = {"User-Agent": USER_AGENT} if USER_AGENT else {}
-    r = scraper.get(url, headers=headers, timeout=20)
-    if r.status_code == 200 and "<html" in r.text.lower():
-        print("✅ Berhasil ambil HTML")
-        return r.text
-    raise RuntimeError(f"❌ Gagal ambil HTML: status_code={r.status_code}")
+def fetch_html(url, max_retries=3):
+    scraper = cloudscraper.create_scraper(browser={"custom": USER_AGENT})
+    headers = {"User-Agent": USER_AGENT}
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            r = scraper.get(url, headers=headers, timeout=20)
+            if r.status_code == 200 and "<html" in r.text.lower():
+                print(f"✅ [OK] HTML loaded ({url})")
+                return r.text
+            elif r.status_code in (403, 503):
+                print(f"⚠️ [Cloudflare?] status_code={r.status_code}, retry {attempt}/{max_retries}")
+                time.sleep(random.uniform(1, 3))
+            else:
+                print(f"❌ [Error] status_code={r.status_code}, retry {attempt}/{max_retries}")
+                time.sleep(1)
+        except Exception as e:
+            print(f"⚠️ [Attempt {attempt}] Error: {e}")
+            time.sleep(2)
+
+    raise RuntimeError(f"❌ Gagal ambil HTML setelah {max_retries} percobaan (403/blocked)")
 
 # ==========================
 # Ekstrak M3U8
@@ -69,8 +83,8 @@ def extract_m3u8_from_html(html, base_url):
 # Ekstrak slug
 # ==========================
 def extract_slug(row):
+    import re
     if row.has_attr("onclick"):
-        import re
         match = re.search(r"/match/([^\"']+)", row["onclick"])
         if match:
             return match.group(1).strip()
@@ -116,7 +130,7 @@ async def main():
                 page_html = fetch_html(url)
                 m3u8_links = extract_m3u8_from_html(page_html, url)
                 if m3u8_links:
-                    map_data[slug] = m3u8_links[0]  # ambil yang pertama saja
+                    map_data[slug] = m3u8_links[0]
             except Exception as e:
                 print(f"⚠️ Gagal proses slug {slug}: {e}")
 
@@ -124,5 +138,8 @@ async def main():
             json.dump(map_data, f, indent=2, ensure_ascii=False)
         print(f"💾 Disimpan ke {OUTPUT_FILE}")
 
+# ==========================
+# Jalankan
+# ==========================
 if __name__ == "__main__":
     asyncio.run(main())
