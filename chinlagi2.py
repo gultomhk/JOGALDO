@@ -22,7 +22,7 @@ WORKER_PROXY = config_vars.get("WORKER_PROXY")
 DEFAULT_LOGO = config_vars.get("DEFAULT_LOGO")
 BASE_URL = config_vars.get("BASE_URL")
 
-OUT_FILE = "CHIN2_matches.m3u"  
+OUT_FILE = "CHIN2_matches.m3u"
 
 # ===== AUTO TANGGAL (GMT+7) =====
 tz_jakarta = timezone(timedelta(hours=7))
@@ -56,6 +56,7 @@ translator = GoogleTranslator(source="auto", target="en")
 
 # Cache sederhana biar gak terjemah teks yang sama berulang
 translate_cache = {}
+
 
 def tr(text: str):
     """Terjemahkan teks dengan cache."""
@@ -96,7 +97,9 @@ for match in matches:
     for anchor in anchors:
         uid = anchor.get("uid")
         nick = anchor.get("nickName", "Unknown")
-        icon = anchor.get("cutOutIcon") or anchor.get("icon") or LOGO_DEFAULT
+
+        # 🖼️ Gunakan 100% default logo, abaikan icon dari anchor
+        icon = DEFAULT_LOGO
 
         title = f"{host_en} vs {guest_en}"
         extinf = (
