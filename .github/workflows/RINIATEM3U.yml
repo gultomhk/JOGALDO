@@ -43,8 +43,8 @@ jobs:
           git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} repo-output
 
           # 🚫 Skip kalau matama.m3u kosong
-          if [ ! -s matama.m3u ]; then
-            echo "⚠️ matama.m3u kosong, tidak ada push & file lama aman."
+          if [ ! -f matama.m3u ] || ! grep -q "#EXTINF" matama.m3u; then
+            echo "⚠️ matama.m3u tidak ada channel valid, skip push dan file lama aman."
             exit 0
           fi
 
