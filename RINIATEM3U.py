@@ -114,13 +114,17 @@ def get_aesport_matches():
         waktu = item.starttime.astimezone(ZoneInfo("Asia/Jakarta")).strftime("%d/%m-%H.%M")
         nama = f"{waktu} {item.title}"
         stream_url = AESPORT_WORKER_TEMPLATE2.format(slug=item.slug)
+
         line = [
             f'#EXTINF:-1 tvg-logo="{AESPORT_LOGO}" group-title="{GROUP}",{nama}',
+            f'#EXTVLCOPT:http-user-agent={AESPORT_HEADERS["User-Agent"]}',
+            f'#EXTVLCOPT:http-referrer={AESPORT_HEADERS["Referer"]}',
             stream_url
         ]
         outputs.append("\n".join(line))
 
     return outputs
+
 
 def main():
     matches = get_aesport_matches()
