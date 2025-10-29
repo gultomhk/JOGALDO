@@ -125,9 +125,12 @@ def get_aesport_matches():
 
     return outputs
 
-
 def main():
     matches = get_aesport_matches()
+    if not matches:
+        print("⚠️ Tidak ada match ditemukan, skip generate file.")
+        return  # ❗ Tidak menulis file sama sekali
+
     outfile = Path("matama.m3u")
     with open(outfile, "w", encoding="utf-8") as f:
         f.write("#EXTM3U\n")
