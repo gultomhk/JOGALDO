@@ -139,18 +139,26 @@ def get_links(live_url, proxies):
     return links
 
 def save_to_m3u(items, file="sayurasem.m3u"):
+
     lines = ["#EXTM3U"]
+
     for item in items:
         for link in item.links:
             _, cid = resolve_m3u8(link.url)
-            if not cid: continue
+            if not cid:
+                continue
+
             waktu = item.starttime.strftime("%d/%m-%H.%M")
             nama = f"{waktu} {item.title} - {link.name}"
             logo = "https://i.ibb.co/qY2HZWX5/512x512bb.jpg"
             group = "⚽️| LIVE EVENT"
             stream_url = WORKER_URL_TEMPLATE.format(channel_id=cid)
+
             lines.append(f'#EXTINF:-1 tvg-logo="{logo}" group-title="{group}",{nama}')
+            lines.append(f'#EXTVLCOPT:http-user-agent={HEADERS["User-Agent"]}')
+            lines.append(f'#EXTVLCOPT:http-referrer={HEADERS["Referer"]}')
             lines.append(stream_url)
+
     Path(file).write_text("\n".join(lines), encoding="utf-8")
     print(f"✅ M3U disimpan: {file}")
 
