@@ -1,8 +1,10 @@
 name: ⏰ CHINZYAGIO Auto Runner
 
 on:
-  workflow_dispatch:       # bisa manual trigger juga
-
+  workflow_dispatch:
+  schedule:
+    - cron: '0 * * * *'  # Setiap 1 jam
+    
 permissions:
   contents: write
 
