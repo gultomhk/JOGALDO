@@ -6,6 +6,7 @@ import re
 import json
 import os
 import ssl
+from pathlib import Path
 
 # ==========================
 # KONFIGURASI
@@ -18,7 +19,6 @@ with open(CHINZYAIGODATA_FILE, "r", encoding="utf-8") as f:
 
 BASE_URL = config_vars.get("BASE_URL")
 API_URL = config_vars.get("API_URL")
-
 
 OUTPUT_FILE = "map6.json"
 TABS = ["football", "basketball", "volleyball", "badminton", "tennis"]
@@ -73,6 +73,7 @@ async def fetch_stream_url(session, slug, retries=3):
             async with session.get(url, allow_redirects=False, ssl=sslcontext, timeout=25) as resp:
                 if resp.status in (301, 302, 303, 307, 308):
                     stream_url = resp.headers.get("Location", "")
+                    if stream_url:
                         # Validasi: hanya simpan jika ada .m3u8 atau .flv
                         if re.search(r"\.(m3u8|flv)\b", stream_url):
                             print(f"🎯 {slug} → {stream_url}")
