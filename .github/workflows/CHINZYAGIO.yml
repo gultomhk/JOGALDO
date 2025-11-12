@@ -15,7 +15,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # perlu untuk bisa push force
+          fetch-depth: 0  # penting agar bisa force push
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -46,11 +46,16 @@ jobs:
             exit 1
           fi
 
-          # buat commit baru walaupun tidak ada perubahan
-          git add -f map6.json
-          git commit -m "🔁 Rewrite map6.json [bot] $(date '+%Y-%m-%d %H:%M:%S')" || echo "No diff, but force push anyway"
-          
-          # sinkronisasi dan force push agar rewrite diterima
+          # pastikan branch master terbaru
           git fetch origin master
-          git reset --soft origin/master
-          git push origin HEAD:master --force
+          git checkout master
+          git pull origin master
+
+          # tambahkan timestamp agar commit selalu unik
+          echo "last_update=$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> map6.json
+
+          git add map6.json
+          git commit -m "🔁 Rewrite map6.json [bot] $(date '+%Y-%m-%d %H:%M:%S')" || echo "⚠️ No changes detected, forcing push anyway"
+
+          # paksa push agar selalu overwrite remote
+          git push origin master --force
