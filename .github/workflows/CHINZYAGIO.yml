@@ -3,7 +3,7 @@ name: CHINZYAIGO Auto Fetch
 on:
   schedule:
     - cron: "0 * * * *"   # setiap 1 jam
-  workflow_dispatch:
+  workflow_dispatch:      # bisa dijalankan manual juga dari GitHub Actions tab
 
 jobs:
   run-script:
@@ -15,7 +15,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # penting agar bisa force push
+          fetch-depth: 0  # penting agar bisa melakukan git pull/rebase
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -35,27 +35,19 @@ jobs:
         run: |
           python CHINZYAGIO.py
 
-      - name: 🚀 Force Commit & Push rewritten map6.json
+      - name: 🚀 Commit & Push changes if any
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          # pastikan file ada
-          if [ ! -f map6.json ]; then
-            echo "❌ map6.json tidak ditemukan!"
-            exit 1
+          git add map6.json || true
+
+          if git diff --staged --quiet; then
+            echo "✅ Tidak ada perubahan, skip push."
+          else
+            git commit -m "🔄 Update map6.json [bot]"
+            echo "🔃 Sinkronisasi dengan remote branch..."
+            git fetch origin master
+            git rebase origin/master || git rebase --abort
+            git push origin HEAD:master
           fi
-
-          # pastikan branch master terbaru
-          git fetch origin master
-          git checkout master
-          git pull origin master
-
-          # tambahkan timestamp agar commit selalu unik
-          echo "last_update=$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> map6.json
-
-          git add map6.json
-          git commit -m "🔁 Rewrite map6.json [bot] $(date '+%Y-%m-%d %H:%M:%S')" || echo "⚠️ No changes detected, forcing push anyway"
-
-          # paksa push agar selalu overwrite remote
-          git push origin master --force
