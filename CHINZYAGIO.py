@@ -7,6 +7,7 @@ import json
 import os
 import ssl
 from pathlib import Path
+from datetime import datetime
 
 # ==========================
 # KONFIGURASI
@@ -34,6 +35,33 @@ sslcontext.check_hostname = False
 sslcontext.verify_mode = ssl.CERT_NONE
 
 
+# ====== Fungsi bantu ======
+def parse_time_from_slug(slug: str):
+    match = re.search(r"luc-(\d{1,2})(\d{2})-ngay-(\d{1,2})-(\d{1,2})-(\d{4})", slug)
+    if match:
+        h, m, d, mo, y = match.groups()
+        return f"{int(d):02d}/{int(mo):02d}-{int(h):02d}.{m}"
+    return "??/??-??.??"
+
+
+def parse_datetime_key(slug: str):
+    match = re.search(r"luc-(\d{1,2})(\d{2})-ngay-(\d{1,2})-(\d{1,2})-(\d{4})", slug)
+    if match:
+        h, m, d, mo, y = map(int, match.groups())
+        try:
+            return datetime(y, mo, d, h, m)
+        except ValueError:
+            return datetime.min
+    return datetime.min
+
+
+def parse_title_from_slug(slug: str):
+    title_part = re.sub(r"^truc-tiep[-/]*", "", slug)
+    title_part = re.sub(r"-luc-\d{3,4}-ngay-\d{1,2}-\d{1,2}-\d{4}$", "", title_part)
+    title_part = re.sub(r"[-_/]+", " ", title_part).strip()
+    return title_part
+
+
 # ==========================
 # Ambil semua slug dari homepage
 # ==========================
@@ -59,7 +87,10 @@ def get_all_slugs():
         print(f"✅ {tab}: ditemukan {len(found)} slug")
         results.extend(found)
 
-    print(f"📦 Total slug yang akan diproses: {len(results)}")
+    # Urutkan berdasarkan waktu terbaru
+    results = sorted(results, key=parse_datetime_key, reverse=True)
+
+    print(f"📦 Total slug yang akan diproses (urut waktu): {len(results)}")
     return results
 
 
@@ -104,7 +135,9 @@ async def main():
             s, url = await fetch_stream_url(session, slug)
             if url:
                 new_results[s] = url
-                print(f"💾 Simpan {s}")
+                time_str = parse_time_from_slug(s)
+                title = parse_title_from_slug(s)
+                print(f"💾 [{time_str}] {title}")
             else:
                 print(f"⏭️ Lewati {s} (tidak ada stream valid)")
 
