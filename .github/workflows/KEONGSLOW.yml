@@ -32,8 +32,9 @@ jobs:
       - name: 📦 Install dependencies
         shell: bash
         run: |
-          pip install playwright beautifulsoup4 deep-translator
-          playwright install --with-deps
+          python -m pip install --upgrade pip
+          pip install requests beautifulsoup4 playwright deep-translator
+          playwright install chromium
 
       - name: 📁 Ambil file konfigurasi dari repo privat
         shell: bash
