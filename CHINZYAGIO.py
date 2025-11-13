@@ -74,7 +74,6 @@ async def fetch_stream_url(session, slug, retries=3):
                 if resp.status in (301, 302, 303, 307, 308):
                     stream_url = resp.headers.get("Location", "")
                     if stream_url:
-                        # Validasi: hanya simpan jika ada .m3u8 atau .flv
                         if re.search(r"\.(m3u8|flv)\b", stream_url):
                             print(f"🎯 {slug} → {stream_url}")
                             return slug, stream_url
@@ -88,7 +87,6 @@ async def fetch_stream_url(session, slug, retries=3):
         except Exception as e:
             print(f"❌ Percobaan {attempt}/{retries} gagal untuk {slug}: {e}")
             await asyncio.sleep(1)
-
     return slug, ""
 
 
@@ -97,30 +95,24 @@ async def fetch_stream_url(session, slug, retries=3):
 # ==========================
 async def main():
     slugs = get_all_slugs()
+    print(f"\n🕐 Mulai proses {len(slugs)} slug...\n")
 
-    if os.path.exists(OUTPUT_FILE):
-        with open(OUTPUT_FILE, "r", encoding="utf-8") as f:
-            results = json.load(f)
-    else:
-        results = {}
-
-    pending = [s for s in slugs if s not in results or not results[s]]
-    print(f"\n🕐 Akan memproses {len(pending)} slug baru...\n")
+    new_results = {}
 
     async with aiohttp.ClientSession(headers=COMMON_HEADERS) as session:
-        for slug in pending:
+        for slug in slugs:
             s, url = await fetch_stream_url(session, slug)
-            if url:  # hanya simpan kalau valid
-                results[s] = url
+            if url:
+                new_results[s] = url
                 print(f"💾 Simpan {s}")
             else:
                 print(f"⏭️ Lewati {s} (tidak ada stream valid)")
 
-            # Simpan progres setiap iterasi
-            with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-                json.dump(results, f, indent=2, ensure_ascii=False)
+    # Rewrite total map6.json hanya jika sukses run
+    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+        json.dump(new_results, f, indent=2, ensure_ascii=False)
 
-    print("\n🗺️ Semua selesai. Hasil disimpan ke map6.json ✅")
+    print("\n✅ map6.json berhasil di-rewrite total setelah sukses run.")
 
 
 if __name__ == "__main__":
