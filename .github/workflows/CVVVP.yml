@@ -1,7 +1,7 @@
 name: Cvvp Auto Fetch
 
 on:
-  workflow_dispatch:      # bisa dijalankan manual juga dari GitHub Actions tab
+  workflow_dispatch:
 
 jobs:
   run-script:
@@ -13,16 +13,34 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # penting agar bisa melakukan git pull/rebase
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
+      - name: Install Google Chrome Stable
+        run: |
+          wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo apt-get install -y ./google-chrome-stable_current_amd64.deb
+
       - name: Install dependencies
         run: |
-          pip install aiohttp requests
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+
+      - name: Install Python & Playwright
+        run: |
+          pip install playwright
+          python -m playwright install-deps
+          python -m playwright install chromium
+
+      - name: Start virtual display
+        run: |
+          export DISPLAY=:99
+          Xvfb :99 -ac -screen 0 1280x720x16 &
+          sleep 2
 
       - name: 📁 Ambil file konfigurasi dari repo privat
         run: |
@@ -44,7 +62,6 @@ jobs:
             echo "✅ Tidak ada perubahan, skip push."
           else
             git commit -m "🔄 Update map8.json [bot]"
-            echo "🔃 Sinkronisasi dengan remote branch..."
             git fetch origin master
             git rebase origin/master || git rebase --abort
             git push origin HEAD:master
