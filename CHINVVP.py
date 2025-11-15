@@ -14,7 +14,7 @@ with open(cvvpdata_FILE, "r", encoding="utf-8") as f:
     exec(code, config_vars)
 
 PPV_API_URL = config_vars.get("PPV_API_URL")
-RESOLVER_API = config_vars.get("RESOLVER_API")
+RESOLVER_API = config_vars.get("RESOLVER_API")   # contoh: http://localhost:7860/multi
 
 
 OUTPUT_FILE = Path("map8.json")
@@ -24,22 +24,19 @@ HEADERS = {
     "Accept": "application/json"
 }
 
-def extract_m3u8(text):
-    """Ekstrak URL .m3u8 dari respon"""
-    m = re.search(r'https?://[^\s"\'<>]+\.m3u8[^\s"\'<>]*', text)
-    return m.group(0) if m else None
-
 
 def get_all_iframes():
-    """Ambil semua iframe URL dari API ppv.to"""
+    """Ambil semua iframe dari PPV API"""
     print("📺 Mengambil event dari PPV.to...")
 
     r = requests.get(PPV_API_URL, headers=HEADERS, timeout=15)
-    data = r.json()
+    r.raise_for_status()
 
     results = []
-    for category in data.get("streams", []):
-        for stream in category.get("streams", []):
+    data = r.json()
+
+    for cat in data.get("streams", []):
+        for stream in cat.get("streams", []):
             iframe = stream.get("iframe")
             if iframe:
                 results.append(iframe)
@@ -48,39 +45,30 @@ def get_all_iframes():
     return results
 
 
-def resolve_all(iframes):
-    """Coba semua iframe satu-per-satu ke HF resolver"""
-    output = {}
+def resolve_multi(iframes):
+    """Kirim semua iframe ke Playwright resolver 1 kali"""
+    print("🚀 Mengirim ke resolver multi-embed...")
 
-    for iframe in iframes:
-        url = RESOLVER_API + iframe
-        print(f"🔍 Resolving: {iframe}")
+    params = []
+    for u in iframes:
+        params.append(("u", u))
 
-        try:
-            r = requests.get(url, headers=HEADERS, timeout=20)
-            m3u8 = extract_m3u8(r.text)
+    r = requests.get(RESOLVER_API, params=params, headers=HEADERS, timeout=200)
+    r.raise_for_status()
 
-            if m3u8:
-                print(f"   → ✅ Berhasil: {m3u8}")
-                output[iframe] = m3u8
-            else:
-                print("   → ❌ Tidak menemukan .m3u8")
-                output[iframe] = None
-
-        except Exception as e:
-            print(f"   → ❌ Error: {e}")
-            output[iframe] = None
-
-    return output
+    result = r.json()
+    print("🎯 Resolver selesai.")
+    return result
 
 
 def save_json(data):
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
-    print(f"\n💾 map8.json berhasil dibuat ({OUTPUT_FILE.absolute()})")
+
+    print(f"\n💾 map8.json berhasil dibuat → {OUTPUT_FILE.absolute()}")
 
 
 if __name__ == "__main__":
     iframes = get_all_iframes()
-    results = resolve_all(iframes)
+    results = resolve_multi(iframes)
     save_json(results)
