@@ -1,18 +1,19 @@
 import requests
 import json
+import re
 from pathlib import Path
 
 # ==========================
-# KONFIG
+# KONFIGURASI
 # ==========================
 cvvpdata_FILE = Path.home() / "cvvpdata_file.txt"
 config_vars = {}
 with open(cvvpdata_FILE, "r", encoding="utf-8") as f:
-    exec(f.read(), config_vars)
+    code = f.read()
+    exec(code, config_vars)
 
-PPV_API_URL = config_vars["PPV_API_URL"]
-RESOLVER_API = config_vars["RESOLVER_API"]
-
+PPV_API_URL = config_vars.get("PPV_API_URL")
+RESOLVER_API = config_vars.get("RESOLVER_API")  # contoh: http://localhost:7860/multi
 OUTPUT_FILE = Path("map8.json")
 
 HEADERS = {
@@ -20,93 +21,75 @@ HEADERS = {
     "Accept": "application/json"
 }
 
-BATCH_SIZE = 10   # aman untuk HF Space
-
-
+# ============================================================
+# 1. Ambil semua iframe dari API PPV.to
+# ============================================================
 def get_all_iframes():
-    print("📺 Fetching PPV.to")
-
+    print("📺 Mengambil event dari PPV.to...")
     r = requests.get(PPV_API_URL, headers=HEADERS, timeout=15)
     r.raise_for_status()
 
     data = r.json()
-    out = []
 
+    results = []
     for cat in data.get("streams", []):
-        for s in cat.get("streams", []):
-            iframe = s.get("iframe")
-            if iframe:
-                out.append(iframe)
+        for stream in cat.get("streams", []):
+            iframe = stream.get("iframe")
+            # FILTER AGAR CLEAN
+            if iframe and isinstance(iframe, str) and iframe.startswith("http"):
+                results.append(iframe)
 
-    print(f"✅ Total iframe found: {len(out)}")
-    return out
+    # hilangkan duplikat
+    results = list(dict.fromkeys(results))
 
+    print(f"✅ Total iframe valid: {len(results)}")
+    return results
 
-def resolve_batch(batch):
-    """Resolve 1 batch (max 10)"""
-    params = []
-    for u in batch:
-        if u:
-            params.append(("u", u))
+# ============================================================
+# 2. Multi-resolve sekali request
+# ============================================================
+def resolve_multi(iframes):
+    print("🚀 Mengirim ke resolver multi-embed...")
 
-    print(f"🚀 Resolving batch {len(batch)} items...")
+    params = [("u", u) for u in iframes]
 
-    r = requests.get(
-        RESOLVER_API,
-        params=params,
-        headers=HEADERS,
-        timeout=80   # cukup, tidak timeout
-    )
+    r = requests.get(RESOLVER_API, params=params, headers=HEADERS, timeout=200)
 
     if r.status_code != 200:
-        print("🔥 Resolver error:", r.text)
-        return {}
+        print("🔥 SERVER ERROR:", r.text)
+        r.raise_for_status()
 
-    return r.json()
+    raw = r.json()
 
+    print("🎯 Resolver selesai. Membersihkan output...")
 
-def clean_results(raw: dict) -> dict:
-    clean = {}
+    # Bikin output CLEAN → {iframe: m3u8}
+    clean_result = {}
 
-    for key, val in raw.items():
-        if not key or not isinstance(key, str):
-            continue
-        if not key.startswith("http"):
-            continue
-        if not val or not isinstance(val, str):
-            continue
-        if ".m3u8" not in val.lower():
-            continue
+    for iframe in iframes:
+        val = raw.get(iframe)
 
-        clean[key] = val
+        # Filter nilai tidak valid
+        if isinstance(val, str) and ("m3u8" in val):
+            clean_result[iframe] = val
 
-    return clean
+    print(f"✨ Stream valid: {len(clean_result)}")
+    return clean_result
 
-
+# ============================================================
+# 3. Save JSON rapih
+# ============================================================
 def save_json(data):
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
-    print(f"💾 Saved CLEAN map8.json ({len(data)} entries)")
+    print(f"\n💾 map8.json berhasil dibuat → {OUTPUT_FILE.absolute()}")
 
 
+# ============================================================
+# MAIN
+# ============================================================
 if __name__ == "__main__":
-    all_iframes = get_all_iframes()
-
-    final_map = {}
-
-    # ==========================
-    # PROCESS IN BATCHES
-    # ==========================
-    for i in range(0, len(all_iframes), BATCH_SIZE):
-        batch = all_iframes[i:i+BATCH_SIZE]
-        try:
-            result = resolve_batch(batch)
-        except Exception as e:
-            print("❌ Batch failed:", e)
-            continue
-
-        cleaned = clean_results(result)
-        final_map.update(cleaned)
-
-    save_json(final_map)
+    iframes = get_all_iframes()
+    results = resolve_multi(iframes)
+    save_json(results)
