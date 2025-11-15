@@ -54,7 +54,11 @@ def resolve_multi(iframes):
         params.append(("u", u))
 
     r = requests.get(RESOLVER_API, params=params, headers=HEADERS, timeout=200)
-    r.raise_for_status()
+
+    # kalau server kasih error 400, tampilkan text asli
+    if r.status_code != 200:
+        print("🔥 SERVER ERROR:", r.text)
+        r.raise_for_status()
 
     result = r.json()
     print("🎯 Resolver selesai.")
