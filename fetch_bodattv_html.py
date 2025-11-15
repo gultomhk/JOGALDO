@@ -20,6 +20,9 @@ config = load_config(BODATTVDATA_FILE)
 DEFAULT_URL = config.get("DEFAULT_URL")
 USER_AGENT = config.get("USER_AGENT")
 
+# ====== MASUKKAN cf_clearance DI SINI ======
+CF_CLEARANCE = "E_T2StX3Nu0cQ4BVe0d74L5Ml5yNI4GZc78G_JsxdYM-1763177652-1.2.1.1-X.f1lWa1iwxtkxOL6MhQSz4bzALdKL2cI.GsMMgF3zgIOTFweNBi._CRVkYnolVm1buBm1oyHj.vKQ_tGg0BIQNCSPO7ftzHMO9yPtzKrGr_8aSb3uVlvVV_xZgsGsqwLB.UQCdFFbl2INWWT6Q454vkL4ZrVYhRm9asJxQWfxyfNPOVF2HCYZOC4.G1pmgYPajUtX3ViW8.MBs0_TH313eqvHQ6BF7TNwQDroQowqY"
+
 # =======================
 # 🔧 UTILITAS
 # =======================
@@ -35,37 +38,46 @@ async def scroll_page(page):
         previous_height = current_height
 
 # =======================
-# 🔧 MAIN SCRAPER TANPA PROXY
+# 🔧 SCRAPER DENGAN COOKIE CF_CLEARANCE
 # =======================
 async def fetch_dynamic_html_playwright():
     async with async_playwright() as p:
         print(f"🌐 Membuka halaman: {DEFAULT_URL}")
 
         try:
-            browser = await p.firefox.launch(headless=True)
-            context = await browser.new_context(user_agent=USER_AGENT)
+            # Chromium wajib untuk Cloudflare
+            browser = await p.chromium.launch(headless=True)
+            context = await browser.new_context(
+                user_agent=USER_AGENT,
+                viewport={"width": 1366, "height": 768}
+            )
+
+            # Inject cookie Cloudflare clearance
+            await context.add_cookies([
+                {
+                    "name": "cf_clearance",
+                    "value": CF_CLEARANCE,
+                    "domain": ".fstv.space",
+                    "path": "/"
+                }
+            ])
+
             page = await context.new_page()
 
+            # Akses langsung, Cloudflare tidak akan muncul
             await page.goto(DEFAULT_URL, timeout=60000)
             await page.wait_for_load_state("networkidle")
 
-            # Deteksi Cloudflare
-            content = await page.content()
-            if any(
-                s in content for s in [
-                    "cf-challenge", "cf-error-details",
-                    "captcha", "Checking your browser before accessing"
-                ]
-            ):
-                print("⚠️ Terkena proteksi Cloudflare!")
-                await browser.close()
-                return
-
             print("📜 Scrolling halaman...")
             await scroll_page(page)
-            await page.wait_for_selector(".slide-item, .common-table-row", timeout=30000)
 
-            # Opsional: klik tab "Server"
+            # Tunggu konten muncul
+            try:
+                await page.wait_for_selector(".slide-item, .common-table-row", timeout=30000)
+            except:
+                print("⚠️ Selector utama tidak ditemukan, lanjut simpan HTML.")
+
+            # Klik tab Server bila ada
             try:
                 tab_button = await page.query_selector("button:has-text('Server')")
                 if tab_button:
@@ -73,8 +85,9 @@ async def fetch_dynamic_html_playwright():
                     await tab_button.click()
                     await page.wait_for_timeout(2000)
             except Exception:
-                print("⚠️ Tidak ada tab 'Server' ditemukan (aman diabaikan).")
+                print("⚠️ Tidak ada tab 'Server' ditemukan.")
 
+            # Simpan HTML
             html = await page.content()
             with open("BODATTV_PAGE_SOURCE.html", "w", encoding="utf-8") as f:
                 f.write(html)
