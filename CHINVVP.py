@@ -8,76 +8,66 @@ from pathlib import Path
 # ==========================
 cvvpdata_FILE = Path.home() / "cvvpdata_file.txt"
 config_vars = {}
+
 with open(cvvpdata_FILE, "r", encoding="utf-8") as f:
     code = f.read()
     exec(code, config_vars)
 
 PPV_API_URL = config_vars.get("PPV_API_URL")
 RESOLVER_API = config_vars.get("RESOLVER_API")  # contoh: http://localhost:7860/multi
+
 OUTPUT_FILE = Path("map8.json")
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
     "Accept": "application/json"
 }
 
 # ============================================================
-# 1. Ambil semua iframe dari API PPV.to
+# Ambil semua iframe dari PPV API
 # ============================================================
 def get_all_iframes():
+    """Ambil semua iframe dari PPV API"""
     print("📺 Mengambil event dari PPV.to...")
+
     r = requests.get(PPV_API_URL, headers=HEADERS, timeout=15)
     r.raise_for_status()
 
+    results = []
     data = r.json()
 
-    results = []
     for cat in data.get("streams", []):
         for stream in cat.get("streams", []):
             iframe = stream.get("iframe")
-            # FILTER AGAR CLEAN
-            if iframe and isinstance(iframe, str) and iframe.startswith("http"):
+            if iframe:
                 results.append(iframe)
 
-    # hilangkan duplikat
-    results = list(dict.fromkeys(results))
-
-    print(f"✅ Total iframe valid: {len(results)}")
+    print(f"✅ Total iframe ditemukan: {len(results)}")
     return results
 
+
 # ============================================================
-# 2. Multi-resolve sekali request
+# Resolver multi-embed
 # ============================================================
 def resolve_multi(iframes):
+    """Kirim semua iframe ke Playwright resolver 1 kali"""
     print("🚀 Mengirim ke resolver multi-embed...")
 
     params = [("u", u) for u in iframes]
 
     r = requests.get(RESOLVER_API, params=params, headers=HEADERS, timeout=200)
 
+    # Kalau server kasih error 400, tampilkan text asli
     if r.status_code != 200:
         print("🔥 SERVER ERROR:", r.text)
         r.raise_for_status()
 
-    raw = r.json()
+    print("🎯 Resolver selesai.")
+    return r.json()
 
-    print("🎯 Resolver selesai. Membersihkan output...")
-
-    # Bikin output CLEAN → {iframe: m3u8}
-    clean_result = {}
-
-    for iframe in iframes:
-        val = raw.get(iframe)
-
-        # Filter nilai tidak valid
-        if isinstance(val, str) and ("m3u8" in val):
-            clean_result[iframe] = val
-
-    print(f"✨ Stream valid: {len(clean_result)}")
-    return clean_result
 
 # ============================================================
-# 3. Save JSON rapih
+# Simpan JSON
 # ============================================================
 def save_json(data):
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
