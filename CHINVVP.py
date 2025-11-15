@@ -2,7 +2,7 @@ import requests
 import json
 import asyncio
 from pathlib import Path
-from playwright.async_api import async_playwright
+from playwright.async_api import async_playwright, TimeoutError
 
 # ==========================
 # KONFIGURASI
@@ -45,9 +45,64 @@ def get_all_iframes():
 
 
 # ============================================================
-# Resolver SINGLE menggunakan Playwright
+# Resolver SINGLE (gunakan browser yang sama)
 # ============================================================
-async def resolve_single(url):
+async def resolve_single(browser, url):
+    context = await browser.new_context(
+        user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                   "AppleWebKit/537.36 (KHTML, like Gecko) "
+                   "Chrome/120.0.0.0 Safari/537.36"
+    )
+    page = await context.new_page()
+
+    await page.add_init_script("""
+    Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
+    """)
+
+    found = None
+
+    def on_request(req):
+        nonlocal found
+        if ".m3u8" in req.url:
+            found = req.url
+
+    page.on("request", on_request)
+
+    try:
+        await page.goto(url, timeout=0)
+    except:
+        pass
+
+    for _ in range(60):
+        if found:
+            break
+        await asyncio.sleep(0.5)
+
+    await context.close()
+    return found
+
+
+# ============================================================
+# Resolver MULTI paralel
+# ============================================================
+SEM = asyncio.Semaphore(6)  # batasi 6 iframe sekaligus (aman untuk GitHub Actions)
+
+async def worker(browser, url, results, index, total):
+    async with SEM:
+        print(f"\n[{index}/{total}] ▶ {url}")
+        try:
+            m3u8 = await resolve_single(browser, url)
+            print("🔥 M3U8:", m3u8)
+            results[url] = m3u8
+        except Exception as e:
+            print("❌ ERROR:", e)
+            results[url] = None
+
+
+async def resolve_all(iframes):
+    results = {}
+    print("🚀 Resolving semua iframe SECARA PARALEL...")
+
     async with async_playwright() as p:
         browser = await p.chromium.launch(
             executable_path="/usr/bin/google-chrome",
@@ -62,60 +117,18 @@ async def resolve_single(url):
                 "--use-gl=swiftshader",
                 "--no-sandbox",
                 "--window-size=1280,720",
-            ],
+            ]
         )
 
-        context = await browser.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                       "AppleWebKit/537.36 (KHTML, like Gecko) "
-                       "Chrome/120.0.0.0 Safari/537.36"
-        )
-        page = await context.new_page()
+        tasks = []
+        total = len(iframes)
 
-        await page.add_init_script("""
-        Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
-        """)
+        for idx, iframe in enumerate(iframes, start=1):
+            tasks.append(worker(browser, iframe, results, idx, total))
 
-        found = None
-
-        def on_request(req):
-            nonlocal found
-            if ".m3u8" in req.url:
-                found = req.url
-
-        page.on("request", on_request)
-
-        try:
-            await page.goto(url, timeout=0)
-        except:
-            pass
-
-        # Polling tunggu m3u8 muncul
-        for _ in range(60):
-            if found:
-                break
-            await asyncio.sleep(0.5)
+        await asyncio.gather(*tasks)
 
         await browser.close()
-        return found
-
-
-# ============================================================
-# Resolver MULTI: panggil playwright satu per satu
-# ============================================================
-async def resolve_all(iframes):
-    results = {}
-    print("🚀 Resolving semua iframe (tanpa API)...")
-
-    for idx, iframe in enumerate(iframes, start=1):
-        print(f"\n[{idx}/{len(iframes)}] ▶ {iframe}")
-        try:
-            m3u8 = await resolve_single(iframe)
-            print("🔥 M3U8:", m3u8)
-            results[iframe] = m3u8
-        except Exception as e:
-            print("❌ ERROR:", e)
-            results[iframe] = None
 
     print("🎯 Semua selesai.")
     return results
