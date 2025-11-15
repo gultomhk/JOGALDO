@@ -16,7 +16,6 @@ with open(cvvpdata_FILE, "r", encoding="utf-8") as f:
 PPV_API_URL = config_vars.get("PPV_API_URL")
 RESOLVER_API = config_vars.get("RESOLVER_API")   # contoh: http://localhost:7860/multi
 
-
 OUTPUT_FILE = Path("map8.json")
 
 HEADERS = {
@@ -51,6 +50,9 @@ def resolve_multi(iframes):
 
     params = []
     for u in iframes:
+        # skip data kosong
+        if not u or not isinstance(u, str):
+            continue
         params.append(("u", u))
 
     r = requests.get(RESOLVER_API, params=params, headers=HEADERS, timeout=200)
@@ -65,11 +67,42 @@ def resolve_multi(iframes):
     return result
 
 
-def save_json(data):
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+# ==========================
+# FILTER BERSIH
+# ==========================
+def clean_results(raw: dict) -> dict:
+    """Filter map8.json → hanya key valid + URL m3u8 saja"""
+    clean = {}
 
-    print(f"\n💾 map8.json berhasil dibuat → {OUTPUT_FILE.absolute()}")
+    for key, val in raw.items():
+        if not key:
+            continue
+        if not isinstance(key, str):
+            continue
+
+        # key harus berupa URL iframe
+        if not key.startswith("http"):
+            continue
+
+        # value wajib string dan mengandung .m3u8
+        if not val or not isinstance(val, str):
+            continue
+        if ".m3u8" not in val.lower():
+            continue
+
+        clean[key] = val
+
+    return clean
+
+
+def save_json(data):
+    cleaned = clean_results(data)
+
+    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+        json.dump(cleaned, f, indent=2, ensure_ascii=False)
+
+    print(f"\n💾 map8.json (BERSIH) berhasil dibuat → {OUTPUT_FILE.absolute()}")
+    print(f"📌 Total entry valid: {len(cleaned)}")
 
 
 if __name__ == "__main__":
