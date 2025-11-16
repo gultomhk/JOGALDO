@@ -1,7 +1,9 @@
 name: CHINZYAIGO Auto Fetch
 
 on:
-  workflow_dispatch:      # bisa dijalankan manual juga dari GitHub Actions tab
+  workflow_dispatch:
+  schedule:
+    - cron: '0 */2 * * *'   # Setiap 2 jam
 
 jobs:
   run-script:
