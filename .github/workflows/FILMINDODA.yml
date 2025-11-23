@@ -9,7 +9,6 @@ permissions:
 jobs:
   fetch_m3u8:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
 
     steps:
       - name: Checkout repo publik
