@@ -1,8 +1,6 @@
 name: UPDATE FILM INDO
 
 on:
-  schedule:
-    - cron: "0 */7 * * *"   # setiap jam ke-0, setiap 7 jam
   workflow_dispatch:          # tetap bisa manual trigger juga
 
 permissions:
