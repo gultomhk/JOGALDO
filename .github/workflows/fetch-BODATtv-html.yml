@@ -9,7 +9,6 @@ permissions:
 jobs:
   fetch_bodattv:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
 
     steps:
       - name: Checkout Repo (publik)
