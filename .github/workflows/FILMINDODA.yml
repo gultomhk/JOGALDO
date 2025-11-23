@@ -46,6 +46,7 @@ jobs:
       - name: Install Playwright
         run: |
           pip install playwright
+          pip install requests bs4 playwright
           python -m playwright install-deps
           python -m playwright install chromium
 
