@@ -1,18 +1,18 @@
 import asyncio
-import json
-import html
-from pathlib import Path
-from datetime import datetime
-
 import requests
 from bs4 import BeautifulSoup
-from playwright.async_api import async_playwright, Request
+from playwright.async_api import async_playwright
+from pathlib import Path
+import os
+import ast  # untuk parsing list dari file
 
-# =======================
 CONFIG_FILE = Path.home() / "steramest2data_file.txt"
-OUTPUT_FILE = "map4.json"
-LIMIT_MATCHES = 15  # 🔹 ambil 5 pertandingan terdekat
-# =======================
+
+OUTPUT_FILE = Path("ngefilm.m3u")
+USER_DATA = "/tmp/ngefilm_profile"
+USER_DATA_IFRAME = "/tmp/ngefilm_iframe_profile"
+os.makedirs(USER_DATA, exist_ok=True)
+os.makedirs(USER_DATA_IFRAME, exist_ok=True)
 
 # --- load config dari file ---
 config = {}
@@ -21,123 +21,161 @@ with open(CONFIG_FILE, "r", encoding="utf-8") as f:
         line = line.strip()
         if line and not line.startswith("#") and "=" in line:
             key, val = line.split("=", 1)
-            config[key.strip()] = val.strip().strip('"').strip("'")
-
-# wajib ada BASE_URL dan USER_AGENT
-if "BASE_URL" not in config or "USER_AGENT" not in config:
-    raise ValueError("⚠️ steramest2data_file.txt harus berisi BASE_URL dan USER_AGENT")
+            key = key.strip()
+            val = val.strip().strip('"').strip("'")
+            # Parse list jika key adalah UNIVERSAL_DOMAINS
+            if key == "UNIVERSAL_DOMAINS":
+                val = ast.literal_eval(val)
+            config[key] = val
 
 BASE_URL = config["BASE_URL"]
-UA = config["USER_AGENT"]
-INDEX_URL = f"{BASE_URL}/index/"
+UNIVERSAL_DOMAINS = config["UNIVERSAL_DOMAINS"]
+INDEX_URL = f"{BASE_URL}/page/"
+ref = config["ref"]
 
-# --- helper ambil daftar pertandingan ---
-def fetch_matches():
-    headers = {"User-Agent": UA}
-    res = requests.get(INDEX_URL, headers=headers, timeout=20)
-    res.raise_for_status()
-    soup = BeautifulSoup(res.text, "html.parser")
-
-    matches = []
-    for li in soup.select("li.f1-podium--item"):
-        a = li.find("a")
-        if not a:
-            continue
-        slug = a.get("href", "")
-        time_el = li.select_one(".SaatZamanBilgisi")
-        if not time_el:
-            continue
-
-        ts = time_el.get("data-zaman")
-        if ts and ts.isdigit():
-            dt = datetime.fromtimestamp(int(ts))
-        else:
-            try:
-                dt = datetime.strptime(time_el.get_text(strip=True), "%d.%m.%Y %I:%M %p")
-            except:
-                dt = None
-
-        matches.append({"slug": slug, "datetime": dt})
-    return matches
-
-# --- helper safe_goto ---
-async def safe_goto(page, url, tries=2, timeout=20000):
-    for attempt in range(tries):
+def get_items():
+    headers = {"User-Agent": "Mozilla/5.0"}
+    all_results = []
+    seen = set()
+    for page in range(8, 15):
+        url = (
+            f"{INDEX_URL}{page}/"
+            "?s=&search=advanced&post_type=&index=&orderby=&genre="
+            "&movieyear=&country=indonesia&quality="
+        )
+        print("🔎 Scraping:", url)
         try:
-            await page.goto(url, timeout=timeout, wait_until="domcontentloaded")
-            html_content = await page.content()
-            if any(x in html_content.lower() for x in ["cloudflare", "just a moment", "attention required"]):
-                await asyncio.sleep(2)
+            r = requests.get(url, headers=headers, timeout=20)
+            r.raise_for_status()
+        except:
+            continue
+
+        soup = BeautifulSoup(r.text, "html.parser")
+        articles = soup.select("div#gmr-main-load article")
+        for art in articles:
+            a = art.select_one("h2.entry-title a")
+            if not a:
                 continue
-            return True
-        except Exception as e:
-            print(f"⚠️ Error loading {url}: {e}")
-            await asyncio.sleep(2)
-    return False
+            detail = a["href"]
+            slug = detail.rstrip("/").split("/")[-1]
+            if slug in seen:
+                continue
+            seen.add(slug)
+            title = a.get_text(strip=True)
+            img = art.select_one("img")
+            poster = img["src"] if img else ""
+            all_results.append({
+                "title": title,
+                "slug": slug,
+                "poster": poster,
+                "detail": detail
+            })
+        print("➕ Total sementara:", len(all_results))
 
-# --- scrape m3u8 ---
-async def scrape_stream_url(context, url):
-    m3u8_links = set()
-    page = await context.new_page()
+    print("\n🎉 TOTAL FINAL:", len(all_results), "\n")
+    return all_results
 
-    def capture_request(request: Request):
-        if ".m3u8" in request.url.lower() and not m3u8_links:
-            print(f"🎯 Found stream: {request.url}")
-            m3u8_links.add(request.url)
+def print_m3u(item, m3u8, out):
+    title = item["title"]
+    poster = item["poster"]
+    out.write(f'#EXTINF:-1 tvg-logo="{poster}" group-title="MOVIES FILM INDONESIA",{title}\n')
+    out.write("#EXTVLCOPT:http-user-agent=Mozilla/5.0\n")
+    out.write(f"#EXTVLCOPT:http-referrer={ref}\n")
+    out.write(f"{m3u8}\n\n")
 
-    page.on("request", capture_request)
-
-    try:
-        if not await safe_goto(page, url):
-            return []
-        await asyncio.sleep(1)
-        await page.mouse.click(500, 500)
-        for _ in range(20):
-            if m3u8_links:
-                break
-            await asyncio.sleep(0.5)
-    except Exception as e:
-        print(f"⚠️ Error scraping {url}: {e}")
-    finally:
-        await page.close()
-
-    # bersihkan HTML entities di URL
-    return [html.unescape(u) for u in m3u8_links]
-
-# --- main ---
-async def main():
-    matches = fetch_matches()
-    print(f"📊 Total matches ditemukan: {len(matches)}")
-
-    matches = [m for m in matches if m["datetime"]]
-    matches.sort(key=lambda m: m["datetime"])
-    matches = matches[:LIMIT_MATCHES]
-
-    print(f"🗓️ Akan di-scrape {len(matches)} pertandingan terdekat:")
-    for m in matches:
-        print(f" - {m['slug']} ({m['datetime']})")
-
-    results = {}
+async def process_item(item):
+    slug = item["slug"]
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
+        browser = await p.chromium.launch(
+            executable_path="/usr/bin/google-chrome",
+            headless=True,
+            args=[
+                f"--user-data-dir={USER_DATA_IFRAME}",
+                "--disable-gpu-sandbox",
+                "--disable-setuid-sandbox",
+                "--disable-blink-features=AutomationControlled",
+                "--disable-web-security",
+                "--disable-infobars",
+                "--ignore-certificate-errors",
+                "--use-gl=swiftshader",
+                "--no-sandbox",
+                "--window-size=1280,720",
+            ]
+        )
         context = await browser.new_context()
+        page = await context.new_page()
 
-        for m in matches:
-            slug = m["slug"].lstrip("/")
-            url = f"{BASE_URL}/{slug}"
-            print(f"\n🔍 Scraping {url}")
-            links = await scrape_stream_url(context, url)
-            if links:
-                results[m["slug"]] = links[0]
-            else:
-                print(f"❌ Tidak ada stream ketemu di {slug}")
+        # Cari iframe universal
+        iframe = None
+        for player in range(1, 6):
+            urlp = f"{BASE_URL}/{slug}/?player={player}"
+            try:
+                await page.goto(urlp, timeout=0)
+                await page.wait_for_timeout(3000)
+            except:
+                continue
+
+            frames = await page.query_selector_all("iframe")
+            for fr in frames:
+                src = await fr.get_attribute("src")
+                if src and any(d in src.lower() for d in UNIVERSAL_DOMAINS):
+                    iframe = src
+                    break
+            if iframe:
+                break
+
+        if not iframe:
+            print(f"❌ Skip {slug} — tidak ada iframe universal")
+            await browser.close()
+            return (item, None)
+
+        # Extract m3u8
+        found = None
+        async def intercept(route, request):
+            nonlocal found
+            url = request.url
+            is_fake = url.endswith(".txt") or url.endswith(".woff") or url.endswith(".woff2")
+            if ".m3u8" in url or is_fake:
+                if found is None:
+                    found = url
+                    print("🔥 STREAM:", url)
+                return await route.continue_(headers={"referer": iframe, "user-agent": "Mozilla/5.0"})
+            return await route.continue_()
+
+        await page.route("**/*", intercept)
+
+        try:
+            await page.goto(iframe, timeout=0)
+        except:
+            pass
+
+        for _ in range(15):
+            if found:
+                break
+            await asyncio.sleep(1)
 
         await browser.close()
+        return (item, found)
 
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        json.dump(results, f, ensure_ascii=False, indent=2)
-    print(f"\n✅ Saved results to {OUTPUT_FILE}")
+async def main():
+    items = get_items()
+    if not items:
+        return
 
+    # Batasi concurrency agar tidak overload
+    sem = asyncio.Semaphore(5)
+    async def sem_task(item):
+        async with sem:
+            return await process_item(item)
 
-if __name__ == "__main__":
-    asyncio.run(main())
+    tasks = [sem_task(item) for item in items]
+    results = await asyncio.gather(*tasks)
+
+    with OUTPUT_FILE.open("w", encoding="utf-8") as f:
+        f.write("#EXTM3U\n\n")
+        for item, m3u8 in results:
+            if m3u8:
+                print(f"🔥 STREAM={m3u8} ({item['slug']})")
+                print_m3u(item, m3u8, f)
+
+asyncio.run(main())
