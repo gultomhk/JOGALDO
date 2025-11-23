@@ -2,8 +2,7 @@ name: Update BODATTV M3U
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 * * * *'  # Setiap 1 jam
+
 
 permissions:
   contents: write  # Diperlukan agar bisa push dengan GITHUB_TOKEN
