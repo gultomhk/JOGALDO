@@ -163,8 +163,27 @@ def parse_title_from_slug(slug: str):
 # ==========================
 def get_all_slugs():
     print("🌐 Mengambil halaman utama untuk parse semua slug...")
-    resp = requests.get(BASE_URL, headers=COMMON_HEADERS, timeout=20)
-    resp.raise_for_status()
+
+    session = requests.Session()
+    session.verify = False                      # <--- FIX SSL ERROR
+    session.headers.update(COMMON_HEADERS)
+
+    # Tambahkan cookie Cloudflare
+    session.cookies.set(
+        "cf_clearance",
+        CF_CLEARANCE,
+        domain=urlparse(BASE_URL).hostname,
+        path="/",
+        secure=True
+    )
+
+    try:
+        resp = session.get(BASE_URL, timeout=20)
+        resp.raise_for_status()
+    except Exception as e:
+        print(f"❌ Gagal load BASE_URL: {e}")
+        return []
+
     soup = BeautifulSoup(resp.text, "html.parser")
 
     results = []
