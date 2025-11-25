@@ -3,6 +3,10 @@ from bs4 import BeautifulSoup
 import re
 from deep_translator import GoogleTranslator
 from pathlib import Path
+import urllib3
+
+# Disable SSL warnings
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # ====== Load konfigurasi ======
 CONFIG_FILE = Path.home() / "keongdata.txt"
@@ -10,21 +14,40 @@ config_globals = {}
 with open(CONFIG_FILE, encoding="utf-8") as f:
     exec(f.read(), config_globals)
 
-# Bersihkan nilai konfigurasi agar tidak ada newline atau spasi aneh
 def clean_value(val):
     if isinstance(val, str):
         return val.strip()
     return val
 
-BASE_URL = clean_value(config_globals.get("BASE_URL"))
-TABS = config_globals.get("TABS", [])
+BASE_URL   = clean_value(config_globals.get("BASE_URL"))
+TABS       = config_globals.get("TABS", [])
 USER_AGENT = clean_value(config_globals.get("USER_AGENT"))
-REFERRER = clean_value(config_globals.get("REFERRER"))
-LOGO_URL = clean_value(config_globals.get("LOGO_URL"))
+REFERRER   = clean_value(config_globals.get("REFERRER"))
+LOGO_URL   = clean_value(config_globals.get("LOGO_URL"))
 MY_WEBSITE = clean_value(config_globals.get("MY_WEBSITE"))
+CF_CLEARANCE = clean_value(config_globals.get("CF_CLEARANCE"))
 
-headers = {"User-Agent": USER_AGENT}
+# Session dengan bypass Cloudflare
+session = requests.Session()
+session.verify = False  # FIX SSL ERROR
+session.headers.update({
+    "User-Agent": USER_AGENT,
+    "Referer": REFERRER,
+    "Accept": "text/html,application/xhtml+xml;q=0.9",
+})
+
+# Masukkan cookie Cloudflare
+session.cookies.set("cf_clearance", CF_CLEARANCE)
+
 translator = GoogleTranslator(source="vi", target="en")
+
+# ====== Ambil halaman utama ======
+print("🌐 Mengambil halaman utama (dengan bypass Cloudflare)...")
+
+resp = session.get(BASE_URL, timeout=15)
+resp.raise_for_status()
+
+soup = BeautifulSoup(resp.text, "html.parser")
 
 # ====== Fungsi bantu ======
 def parse_time_from_slug(slug: str):
