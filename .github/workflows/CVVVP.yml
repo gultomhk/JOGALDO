@@ -3,7 +3,7 @@ name: Cvvp Auto Fetch
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 */3 * * *'
+    - cron: '0 * * * *'  # Setiap 1 jam
 jobs:
   run-script:
     runs-on: ubuntu-latest
