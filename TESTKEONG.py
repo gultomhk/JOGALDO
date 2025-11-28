@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import re
 from deep_translator import GoogleTranslator
 from pathlib import Path
+from urllib.parse import urljoin
 import urllib3
 
 # Disable SSL warnings
