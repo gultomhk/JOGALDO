@@ -40,9 +40,9 @@ COMMON_HEADERS = {
 }
 
 EXTRA_HEADERS = {
-    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+    "accept": COMMON_HEADERS["accept"],
     "accept-encoding": "gzip, deflate, br, zstd",
-    "accept-language": "id,en-US;q=0.9,en;q=0.8,vi;q=0.7",
+    "accept-language": COMMON_HEADERS["accept-language"],
     "sec-ch-ua": '"Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"',
     "sec-ch-ua-mobile": "?0",
     "sec-ch-ua-platform": '"Windows"',
@@ -55,7 +55,25 @@ EXTRA_HEADERS = {
 }
 
 # ====================================================
-# PLAYWRIGHT STREAM FETCH
+# FIXED: NORMALIZER SLUG
+# ====================================================
+def normalize_slug(href: str):
+
+    if not href:
+        return ""
+
+    href = href.replace("https://", "").replace("http://", "")
+
+    # potong domain jika ada
+    if "/" in href:
+        parts = href.split("/", 1)
+        href = parts[1]
+
+    return href.lstrip("/")
+
+
+# ====================================================
+# PLAYWRIGHT STREAM
 # ====================================================
 async def playwright_fetch_stream(page_url: str, headless=True):
     async with async_playwright() as p:
@@ -127,8 +145,9 @@ async def playwright_fetch_stream(page_url: str, headless=True):
         await browser.close()
         return None
 
+
 # ====================================================
-# SLUG UTILITIES
+# UTILITIES
 # ====================================================
 def parse_time_from_slug(slug: str):
     match = re.search(r"luc-(\d{1,2})(\d{2})-ngay-(\d{1,2})-(\d{1,2})-(\d{4})", slug)
@@ -155,11 +174,13 @@ def parse_title_from_slug(slug: str):
     title_part = re.sub(r"[-_/]+", " ", title_part).strip()
     return title_part
 
+
 # ====================================================
-# Ambil player link tambahan
+# FIXED: expand slug /link/1 /link/2
 # ====================================================
 def expand_slug_with_players(slug_main, session):
     url = urljoin(BASE_URL, "/" + slug_main + "/")
+
     try:
         resp = session.get(url, timeout=15)
         resp.raise_for_status()
@@ -172,14 +193,15 @@ def expand_slug_with_players(slug_main, session):
     results = [slug_main]
 
     for pl in links:
-        href = pl.get("href", "").strip("/")
+        href = normalize_slug(pl.get("href", ""))
         if href.startswith("truc-tiep/"):
             results.append(href)
 
     return results
 
+
 # ====================================================
-# Ambil SLUG utama
+# FIXED: GET ALL SLUGS (AUTO NORMALIZE URL)
 # ====================================================
 def get_all_slugs():
     print("🌐 Mengambil halaman utama untuk parse semua slug...")
@@ -214,14 +236,10 @@ def get_all_slugs():
         found = []
 
         for a in tab_section.select("a[href*='/truc-tiep/']"):
-            href = a.get("href", "").strip()
-            if not href:
-                continue
+            href = normalize_slug(a.get("href", ""))   # 👉 FIXED di sini
 
-            slug = href.strip("/")
-
-            if slug.startswith("truc-tiep/") and slug not in found:
-                found.append(slug)
+            if href.startswith("truc-tiep/") and href not in found:
+                found.append(href)
 
         print(f"✅ {tab}: ditemukan {len(found)} slug")
         results.extend(found)
@@ -230,8 +248,9 @@ def get_all_slugs():
     print(f"📦 Total slug utama: {len(results)}")
     return results
 
+
 # ====================================================
-# Playwright fetch
+# PLAYWRIGHT WRAPPER
 # ====================================================
 async def fetch_stream_url(session, slug, retries=2):
     full_url = f"{BASE_URL.rstrip('/')}/{slug}"
@@ -256,6 +275,7 @@ async def fetch_stream_url(session, slug, retries=2):
 
     return slug, ""
 
+
 # ====================================================
 # MAIN
 # ====================================================
@@ -267,7 +287,7 @@ async def main():
     # Ambil slug utama
     slugs_main = get_all_slugs()
 
-    # Expand slug dengan /link/1, /link/2
+    # Expand slug dengan /link/1 /link/2
     expanded_slugs = []
     for s in slugs_main:
         expanded_slugs.extend(expand_slug_with_players(s, session))
@@ -289,6 +309,7 @@ async def main():
         json.dump(new_results, f, indent=2, ensure_ascii=False)
 
     print("\n✅ map6.json berhasil di-rewrite total.")
+
 
 if __name__ == "__main__":
     asyncio.run(main())
