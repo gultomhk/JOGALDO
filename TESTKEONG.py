@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 import re
 from deep_translator import GoogleTranslator
 from pathlib import Path
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 import urllib3
 
 # Disable SSL warnings
@@ -44,13 +44,23 @@ resp = session.get(BASE_URL, timeout=15)
 resp.raise_for_status()
 soup = BeautifulSoup(resp.text, "html.parser")
 
+
 # ====== Fungsi bantu ======
+def extract_slug(url):
+
+    if url.startswith("http://") or url.startswith("https://"):
+        parsed = urlparse(url)
+        return parsed.path.lstrip("/")
+    return url.lstrip("/")
+
+
 def parse_time_from_slug(slug: str):
     m = re.search(r"luc-(\d{1,2})(\d{2})-ngay-(\d{1,2})-(\d{1,2})-(\d{4})", slug)
     if m:
         h, mm, d, mo, y = m.groups()
         return f"{int(d):02d}/{int(mo):02d}-{int(h):02d}.{mm}"
     return "??/??-??.??"
+
 
 def parse_title_from_slug(slug: str):
     title_part = re.sub(r"^truc-tiep[-/]*", "", slug)
@@ -61,6 +71,7 @@ def parse_title_from_slug(slug: str):
         return f"{title_part} ({translated})"
     except Exception:
         return title_part
+
 
 # ====== Mulai proses tab ======
 output_lines = ["#EXTM3U"]
@@ -83,7 +94,7 @@ for tab_id in TABS:
         full_main_url = urljoin(BASE_URL, href_main)
 
         # Slug utama
-        slug_main = href_main.strip("/")
+        slug_main = extract_slug(href_main)
 
         # --- fetch halaman pertandingan ---
         try:
@@ -98,8 +109,7 @@ for tab_id in TABS:
         # Cari TV Links
         tv_links = detail.select("div#tv_links a.player-link")
         if not tv_links:
-            # fallback: 1 player default (tetap harus absolut)
-            tv_links = [{"href": href_main}]
+            tv_links = [{"href": href_main}]  # fallback
 
         print(f"🎬 Ditemukan {len(tv_links)} player pada {full_main_url}")
 
@@ -108,10 +118,9 @@ for tab_id in TABS:
             if not href_player:
                 continue
 
-            full_player_url = urljoin(BASE_URL, href_player)
-            slug_full = href_player.strip("/")
+            # slug aman
+            slug_full = extract_slug(href_player)
 
-            # Hindari duplikasi server untuk slug sama
             if slug_full in seen_full_slugs:
                 continue
             seen_full_slugs.add(slug_full)
@@ -129,13 +138,14 @@ for tab_id in TABS:
             # Label Server
             label = (pl.get_text(strip=True) if not isinstance(pl, dict) else "") or f"Server {idx+1}"
 
-            # Generate line M3U
+            # Append ke playlist
             output_lines.append(
                 f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{LOGO_URL}",{match_time} {title} [{label}]'
             )
             output_lines.append(f"#EXTVLCOPT:http-user-agent={USER_AGENT}")
             output_lines.append(f"#EXTVLCOPT:http-referrer={REFERRER}")
             output_lines.append(final_url)
+
 
 # ====== Simpan ke file ======
 filename = "Keongphut_sport.m3u"
