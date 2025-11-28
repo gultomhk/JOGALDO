@@ -78,33 +78,39 @@ for tab_id in TABS:
         if not href_main:
             continue
 
+        # Paksa absolut
+        full_main_url = urljoin(BASE_URL, href_main)
+
         # Slug utama
         slug_main = href_main.strip("/")
 
         # --- fetch halaman pertandingan ---
         try:
-            page = session.get(href_main, timeout=15)
+            page = session.get(full_main_url, timeout=15)
             page.raise_for_status()
         except Exception as e:
-            print(f"❌ Gagal load halaman {href_main}: {e}")
+            print(f"❌ Gagal load halaman {full_main_url}: {e}")
             continue
 
         detail = BeautifulSoup(page.text, "html.parser")
 
-        # Cari blok TV Links
+        # Cari TV Links
         tv_links = detail.select("div#tv_links a.player-link")
         if not tv_links:
-            tv_links = [{"href": href_main}]  # fallback: 1 player default
+            # fallback: 1 player default (tetap harus absolut)
+            tv_links = [{"href": href_main}]
 
-        print(f"🎬 Ditemukan {len(tv_links)} player pada {href_main}")
+        print(f"🎬 Ditemukan {len(tv_links)} player pada {full_main_url}")
 
         for idx, pl in enumerate(tv_links):
-            href_player = pl.get("href") if hasattr(pl, "get") else href_main
+            href_player = pl["href"] if isinstance(pl, dict) else pl.get("href")
             if not href_player:
                 continue
 
+            full_player_url = urljoin(BASE_URL, href_player)
             slug_full = href_player.strip("/")
 
+            # Hindari duplikasi server untuk slug sama
             if slug_full in seen_full_slugs:
                 continue
             seen_full_slugs.add(slug_full)
@@ -119,11 +125,10 @@ for tab_id in TABS:
             else:
                 final_url = f"{MY_WEBSITE}?slug={slug_full}"
 
-            # Label player
-            label = f"Server {idx+1}"  
-            if pl.text.strip():
-                label = pl.text.strip()
+            # Label Server
+            label = (pl.get_text(strip=True) if not isinstance(pl, dict) else "") or f"Server {idx+1}"
 
+            # Generate line M3U
             output_lines.append(
                 f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{LOGO_URL}",{match_time} {title} [{label}]'
             )
