@@ -165,10 +165,9 @@ def get_all_slugs():
     print("🌐 Mengambil halaman utama untuk parse semua slug...")
 
     session = requests.Session()
-    session.verify = False                      # <--- FIX SSL ERROR
+    session.verify = False
     session.headers.update(COMMON_HEADERS)
 
-    # Tambahkan cookie Cloudflare
     session.cookies.set(
         "cf_clearance",
         CF_CLEARANCE,
@@ -191,26 +190,34 @@ def get_all_slugs():
         tab_section = soup.select_one(f"#{tab}")
         if not tab_section:
             continue
+
         found = []
-        for a in tab_section.select("a[href*='/truc-tiep/']"):
+
+        # 💥 FIX: ambil semua player-link termasuk /link/1 /link/2
+        for a in tab_section.select("a.player-link"):
             href = a.get("href", "")
             if not href:
                 continue
+
             slug = re.sub(r"^/|/$", "", href)
-            if slug not in found:
-                found.append(slug)
+
+            if "/truc-tiep/" not in slug:
+                continue
+
+            found.append(slug)
+
         print(f"✅ {tab}: ditemukan {len(found)} slug")
         results.extend(found)
 
     results = sorted(results, key=parse_datetime_key, reverse=True)
-    print(f"📦 Total slug: {len(results)}")
+    print(f"📦 Total slug: {len(results)} total player termasuk link/1 link/2")
     return results
 
 # ==========================
 # Ambil STREAM URL via PLAYWRIGHT
 # ==========================
 async def fetch_stream_url(session, slug, retries=2):
-    full_url = f"{BASE_URL}/{slug}".rstrip("/")
+    full_url = f"{BASE_URL.rstrip('/')}/{slug}"
 
     for attempt in range(1, retries + 1):
         try:
