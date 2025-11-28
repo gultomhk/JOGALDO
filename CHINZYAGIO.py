@@ -1,6 +1,6 @@
 import asyncio
 import re
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
 from playwright.async_api import async_playwright
 import aiohttp
 import requests
@@ -35,7 +35,6 @@ COMMON_HEADERS = {
     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
 }
 
-# Headers dipakai untuk Playwright
 EXTRA_HEADERS = {
     "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
     "accept-encoding": "gzip, deflate, br, zstd",
@@ -52,7 +51,7 @@ EXTRA_HEADERS = {
 }
 
 # ===============================================
-# FUNGSI ASLI PLAYWRIGHT (tidak diubah struktur)
+# PLAYWRIGHT STREAM FETCH
 # ===============================================
 async def playwright_fetch_stream(page_url: str, headless=True):
     async with async_playwright() as p:
@@ -66,17 +65,14 @@ async def playwright_fetch_stream(page_url: str, headless=True):
         )
         await context.set_extra_http_headers(EXTRA_HEADERS)
 
-        # *** Tambahan: Set cookie CF_Clearance ke domain utama ***
         parsed_base = urlparse(BASE_URL)
-        await context.add_cookies([
-            {
-                "name": "cf_clearance",
-                "value": CF_CLEARANCE,
-                "domain": parsed_base.hostname,
-                "path": "/",
-                "secure": True,
-            }
-        ])
+        await context.add_cookies([{
+            "name": "cf_clearance",
+            "value": CF_CLEARANCE,
+            "domain": parsed_base.hostname,
+            "path": "/",
+            "secure": True,
+        }])
 
         page = await context.new_page()
         await page.goto(page_url, timeout=60000)
@@ -94,15 +90,13 @@ async def playwright_fetch_stream(page_url: str, headless=True):
 
         parsed = urlparse(iframe_src)
         if parsed.hostname:
-            await context.add_cookies([
-                {
-                    "name": "cf_clearance",
-                    "value": CF_CLEARANCE,
-                    "domain": parsed.hostname,
-                    "path": "/",
-                    "secure": True,
-                }
-            ])
+            await context.add_cookies([{
+                "name": "cf_clearance",
+                "value": CF_CLEARANCE,
+                "domain": parsed.hostname,
+                "path": "/",
+                "secure": True,
+            }])
 
         iframe_page = await context.new_page()
         await iframe_page.set_extra_http_headers({**EXTRA_HEADERS, "referer": page_url})
@@ -110,7 +104,6 @@ async def playwright_fetch_stream(page_url: str, headless=True):
 
         html = await iframe_page.content()
 
-        # Cari var urlStream
         m = re.search(r'var\s+urlStream\s*=\s*"([^"]+)"', html)
         if m:
             stream_url = m.group(1).replace("\\/", "/")
@@ -119,7 +112,6 @@ async def playwright_fetch_stream(page_url: str, headless=True):
             await browser.close()
             return stream_url
 
-        # Cari .m3u8 atau .flv direct
         m2 = re.search(r'https?://[^"\']+\.(m3u8|flv)', html)
         if m2:
             stream_url = m2.group(0)
@@ -132,7 +124,9 @@ async def playwright_fetch_stream(page_url: str, headless=True):
         return None
 
 
-# =============== PARSER SLUGS =================
+# ===============================================
+# SLUG UTILITIES
+# ===============================================
 def parse_time_from_slug(slug: str):
     match = re.search(r"luc-(\d{1,2})(\d{2})-ngay-(\d{1,2})-(\d{1,2})-(\d{4})", slug)
     if match:
@@ -158,9 +152,36 @@ def parse_title_from_slug(slug: str):
     title_part = re.sub(r"[-_/]+", " ", title_part).strip()
     return title_part
 
-# ==========================
-# Ambil semua slug
-# ==========================
+
+# ====================================================
+# FUNGSI BARU: Ambil player link (/link/1, /link/2)
+# ====================================================
+def expand_slug_with_players(slug_main, session):
+    """ Ambil slug utama → buka halaman → tambahkan slug/link/X jika ada """
+    url = urljoin(BASE_URL, "/" + slug_main + "/")
+
+    try:
+        resp = session.get(url, timeout=15)
+        resp.raise_for_status()
+    except:
+        return [slug_main]  # fallback
+
+    soup = BeautifulSoup(resp.text, "html.parser")
+    links = soup.select("div#tv_links a.player-link")
+
+    results = [slug_main]
+
+    for pl in links:
+        href = pl.get("href", "").strip("/")
+        if href.startswith("truc-tiep/"):
+            results.append(href)
+
+    return results
+
+
+# ====================================================
+# Ambil SLUG UTAMA
+# ====================================================
 def get_all_slugs():
     print("🌐 Mengambil halaman utama untuk parse semua slug...")
 
@@ -193,29 +214,26 @@ def get_all_slugs():
 
         found = []
 
-        # 💥 FIX: ambil semua player-link termasuk /link/1 /link/2
-        for a in tab_section.select("a.player-link"):
-            href = a.get("href", "")
+        for a in tab_section.select("a[href*='/truc-tiep/']"):
+            href = a.get("href", "").strip()
             if not href:
                 continue
 
-            slug = re.sub(r"^/|/$", "", href)
-
-            if "/truc-tiep/" not in slug:
-                continue
-
-            found.append(slug)
+            slug = href.strip("/")
+            if slug.startswith("truc-tiep/") and slug not in found:
+                found.append(slug)
 
         print(f"✅ {tab}: ditemukan {len(found)} slug")
         results.extend(found)
 
     results = sorted(results, key=parse_datetime_key, reverse=True)
-    print(f"📦 Total slug: {len(results)} total player termasuk link/1 link/2")
+    print(f"📦 Total slug utama: {len(results)}")
     return results
 
-# ==========================
-# Ambil STREAM URL via PLAYWRIGHT
-# ==========================
+
+# ====================================================
+# PLAYWRIGHT PROCESS
+# ====================================================
 async def fetch_stream_url(session, slug, retries=2):
     full_url = f"{BASE_URL.rstrip('/')}/{slug}"
 
@@ -232,8 +250,6 @@ async def fetch_stream_url(session, slug, retries=2):
                 print(f"🎯 {slug} → {stream_url}")
                 return slug, stream_url
 
-            print(f"⚠️ Tidak menemukan stream pada {slug}")
-
         except Exception as e:
             print(f"❌ Error Playwright {slug}: {e}")
 
@@ -241,18 +257,30 @@ async def fetch_stream_url(session, slug, retries=2):
 
     return slug, ""
 
-# ==========================
+
+# ====================================================
 # MAIN
-# ==========================
+# ====================================================
 async def main():
-    slugs = get_all_slugs()
-    print(f"\n🕐 Mulai proses {len(slugs)} slug...\n")
+    session = requests.Session()
+    session.verify = False
+    session.headers.update(COMMON_HEADERS)
+
+    # Ambil slug utama
+    slugs_main = get_all_slugs()
+
+    # Expand slug dengan /link/1, /link/2
+    expanded_slugs = []
+    for s in slugs_main:
+        expanded_slugs.extend(expand_slug_with_players(s, session))
+
+    print(f"\n📌 Total slug final (+ player): {len(expanded_slugs)}\n")
 
     new_results = {}
 
-    async with aiohttp.ClientSession(headers=COMMON_HEADERS) as session:
-        for slug in slugs:
-            s, url = await fetch_stream_url(session, slug)
+    async with aiohttp.ClientSession(headers=COMMON_HEADERS) as aio:
+        for slug in expanded_slugs:
+            s, url = await fetch_stream_url(aio, slug)
             if url:
                 new_results[s] = url
                 print(f"💾 [{parse_time_from_slug(s)}] {parse_title_from_slug(s)}")
@@ -262,7 +290,7 @@ async def main():
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         json.dump(new_results, f, indent=2, ensure_ascii=False)
 
-    print("\n✅ map6.json berhasil di-rewrite total setelah sukses run.")
+    print("\n✅ map6.json berhasil di-rewrite total.")
 
 if __name__ == "__main__":
     asyncio.run(main())
