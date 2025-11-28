@@ -10,6 +10,9 @@ import ssl
 from pathlib import Path
 from datetime import datetime
 
+# Disable SSL warnings
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 # ==========================
 # KONFIGURASI
 # ==========================
@@ -36,9 +39,9 @@ COMMON_HEADERS = {
 }
 
 EXTRA_HEADERS = {
-    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+    "accept": COMMON_HEADERS["accept"],
     "accept-encoding": "gzip, deflate, br, zstd",
-    "accept-language": "id,en-US;q=0.9,en;q=0.8,vi;q=0.7",
+    "accept-language": COMMON_HEADERS["accept-language"],
     "sec-ch-ua": '"Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"',
     "sec-ch-ua-mobile": "?0",
     "sec-ch-ua-platform": '"Windows"',
@@ -106,19 +109,14 @@ async def playwright_fetch_stream(page_url: str, headless=True):
 
         m = re.search(r'var\s+urlStream\s*=\s*"([^"]+)"', html)
         if m:
-            stream_url = m.group(1).replace("\\/", "/")
-            if stream_url.startswith("https://live3.procdnlive.com/"):
-                stream_url = stream_url.replace("https://", "http://")
+            stream = m.group(1).replace("\\/", "/")
             await browser.close()
-            return stream_url
+            return stream
 
         m2 = re.search(r'https?://[^"\']+\.(m3u8|flv)', html)
         if m2:
-            stream_url = m2.group(0)
-            if stream_url.startswith("https://live3.procdnlive.com/"):
-                stream_url = stream_url.replace("https://", "http://")
             await browser.close()
-            return stream_url
+            return m2.group(0)
 
         await browser.close()
         return None
@@ -127,50 +125,54 @@ async def playwright_fetch_stream(page_url: str, headless=True):
 # ===============================================
 # SLUG UTILITIES
 # ===============================================
+def extract_slug(url):
+    """Pastikan output selalu format: truc-tiep/..."""
+    if url.startswith("http"):
+        return urlparse(url).path.lstrip("/")
+    return url.lstrip("/")
+
+
 def parse_time_from_slug(slug: str):
-    match = re.search(r"luc-(\d{1,2})(\d{2})-ngay-(\d{1,2})-(\d{1,2})-(\d{4})", slug)
-    if match:
-        h, m, d, mo, y = match.groups()
-        return f"{int(d):02d}/{int(mo):02d}-{int(h):02d}.{m}"
+    m = re.search(r"luc-(\d{1,2})(\d{2})-ngay-(\d{1,2})-(\d{1,2})-(\d{4})", slug)
+    if m:
+        h, mm, d, mo, y = m.groups()
+        return f"{int(d):02d}/{int(mo):02d}-{int(h):02d}.{mm}"
     return "??/??-??.??"
 
 
 def parse_datetime_key(slug: str):
-    match = re.search(r"luc-(\d{1,2})(\d{2})-ngay-(\d{1,2})-(\d{1,2})-(\d{4})", slug)
-    if match:
-        h, m, d, mo, y = map(int, match.groups())
-        try:
-            return datetime(y, mo, d, h, m)
-        except ValueError:
-            return datetime.min
-    return datetime.min
+    m = re.search(r"luc-(\d{1,2})(\d{2})-ngay-(\d{1,2})-(\d{1,2})-(\d{4})", slug)
+    if not m:
+        return datetime.min
+    h, mm, d, mo, y = map(int, m.groups())
+    try:
+        return datetime(y, mo, d, h, mm)
+    except:
+        return datetime.min
 
 
 def parse_title_from_slug(slug: str):
-    title_part = re.sub(r"^truc-tiep[-/]*", "", slug)
-    title_part = re.sub(r"-luc-\d{3,4}-ngay-\d{1,2}-\d{1,2}-\d{4}$", "", title_part)
-    title_part = re.sub(r"[-_/]+", " ", title_part).strip()
-    return title_part
+    t = re.sub(r"^truc-tiep[-/]*", "", slug)
+    t = re.sub(r"-luc-\d{3,4}-ngay-\d{1,2}-\d{1,2}-\d{4}$", "", t)
+    return re.sub(r"[-_/]+", " ", t).strip()
 
 
 # ====================================================
-# FUNGSI BARU: Ambil player link (/link/1, /link/2)
+# Expand slug dengan /link/1 /link/2
 # ====================================================
 def expand_slug_with_players(slug_main, session):
-    """ Ambil slug utama → buka halaman → tambahkan slug/link/X jika ada """
     url = urljoin(BASE_URL, "/" + slug_main + "/")
 
     try:
-        resp = session.get(url, timeout=15)
-        resp.raise_for_status()
+        r = session.get(url, timeout=15)
+        r.raise_for_status()
     except:
-        return [slug_main]  # fallback
+        return [slug_main]
 
-    soup = BeautifulSoup(resp.text, "html.parser")
+    soup = BeautifulSoup(r.text, "html.parser")
     links = soup.select("div#tv_links a.player-link")
 
     results = [slug_main]
-
     for pl in links:
         href = pl.get("href", "").strip("/")
         if href.startswith("truc-tiep/"):
@@ -180,15 +182,14 @@ def expand_slug_with_players(slug_main, session):
 
 
 # ====================================================
-# Ambil SLUG UTAMA
+# Ambil slug utama
 # ====================================================
 def get_all_slugs():
-    print("🌐 Mengambil halaman utama untuk parse semua slug...")
+    print("🌐 Mengambil halaman utama untuk parse slug...")
 
     session = requests.Session()
     session.verify = False
     session.headers.update(COMMON_HEADERS)
-
     session.cookies.set(
         "cf_clearance",
         CF_CLEARANCE,
@@ -213,13 +214,8 @@ def get_all_slugs():
             continue
 
         found = []
-
         for a in tab_section.select("a[href*='/truc-tiep/']"):
-            href = a.get("href", "").strip()
-            if not href:
-                continue
-
-            slug = href.strip("/")
+            slug = extract_slug(a.get("href", ""))
             if slug.startswith("truc-tiep/") and slug not in found:
                 found.append(slug)
 
@@ -232,20 +228,18 @@ def get_all_slugs():
 
 
 # ====================================================
-# PLAYWRIGHT PROCESS
+# Playwright runner
 # ====================================================
-async def fetch_stream_url(session, slug, retries=2):
+async def fetch_stream_url(slug, retries=2):
     full_url = f"{BASE_URL.rstrip('/')}/{slug}"
 
     for attempt in range(1, retries + 1):
         try:
             print(f"🌐 Playwright: {slug} (percobaan {attempt})")
-
             stream_url = await asyncio.wait_for(
                 playwright_fetch_stream(full_url),
                 timeout=90
             )
-
             if stream_url:
                 print(f"🎯 {slug} → {stream_url}")
                 return slug, stream_url
@@ -266,31 +260,29 @@ async def main():
     session.verify = False
     session.headers.update(COMMON_HEADERS)
 
-    # Ambil slug utama
     slugs_main = get_all_slugs()
 
-    # Expand slug dengan /link/1, /link/2
     expanded_slugs = []
     for s in slugs_main:
         expanded_slugs.extend(expand_slug_with_players(s, session))
 
     print(f"\n📌 Total slug final (+ player): {len(expanded_slugs)}\n")
 
-    new_results = {}
+    results = {}
 
-    async with aiohttp.ClientSession(headers=COMMON_HEADERS) as aio:
-        for slug in expanded_slugs:
-            s, url = await fetch_stream_url(aio, slug)
-            if url:
-                new_results[s] = url
-                print(f"💾 [{parse_time_from_slug(s)}] {parse_title_from_slug(s)}")
-            else:
-                print(f"⏭️ Lewati {s} (tidak ada stream valid)")
+    for slug in expanded_slugs:
+        s, url = await fetch_stream_url(slug)
+        if url:
+            results[s] = url
+            print(f"💾 [{parse_time_from_slug(s)}] {parse_title_from_slug(s)}")
+        else:
+            print(f"⏭️ Lewati {s} (tidak ada stream)")
 
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        json.dump(new_results, f, indent=2, ensure_ascii=False)
+        json.dump(results, f, indent=2, ensure_ascii=False)
 
     print("\n✅ map6.json berhasil di-rewrite total.")
+
 
 if __name__ == "__main__":
     asyncio.run(main())
