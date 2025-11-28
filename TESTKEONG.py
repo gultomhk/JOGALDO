@@ -63,7 +63,7 @@ def parse_title_from_slug(slug: str):
 
 # ====== Mulai proses tab ======
 output_lines = ["#EXTM3U"]
-seen_slugs = set()
+seen_full_slugs = set()
 
 for tab_id in TABS:
     tab_section = soup.select_one(f"#{tab_id}")
@@ -74,31 +74,62 @@ for tab_id in TABS:
     print(f"✅ Memproses tab '{tab_id}' ...")
 
     for a in tab_section.select("a[href*='/truc-tiep/']"):
-        href = a.get("href")
-        if not href:
+        href_main = a.get("href")
+        if not href_main:
             continue
 
-        slug = href.strip("/")
+        # Slug utama
+        slug_main = href_main.strip("/")
 
-        if slug in seen_slugs:
+        # --- fetch halaman pertandingan ---
+        try:
+            page = session.get(href_main, timeout=15)
+            page.raise_for_status()
+        except Exception as e:
+            print(f"❌ Gagal load halaman {href_main}: {e}")
             continue
-        seen_slugs.add(slug)
 
-        match_time = parse_time_from_slug(slug)
-        title = parse_title_from_slug(slug)
+        detail = BeautifulSoup(page.text, "html.parser")
 
-        # Pastikan tidak dobel ?slug=
-        if "?slug=" in MY_WEBSITE:
-            final_url = f"{MY_WEBSITE}{slug}"
-        else:
-            final_url = f"{MY_WEBSITE}?slug={slug}"
+        # Cari blok TV Links
+        tv_links = detail.select("div#tv_links a.player-link")
+        if not tv_links:
+            tv_links = [{"href": href_main}]  # fallback: 1 player default
 
-        output_lines.append(
-            f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{LOGO_URL}",{match_time} {title}'
-        )
-        output_lines.append(f"#EXTVLCOPT:http-user-agent={USER_AGENT}")
-        output_lines.append(f"#EXTVLCOPT:http-referrer={REFERRER}")
-        output_lines.append(final_url)
+        print(f"🎬 Ditemukan {len(tv_links)} player pada {href_main}")
+
+        for idx, pl in enumerate(tv_links):
+            href_player = pl.get("href") if hasattr(pl, "get") else href_main
+            if not href_player:
+                continue
+
+            slug_full = href_player.strip("/")
+
+            if slug_full in seen_full_slugs:
+                continue
+            seen_full_slugs.add(slug_full)
+
+            # Parse
+            match_time = parse_time_from_slug(slug_full)
+            title = parse_title_from_slug(slug_full)
+
+            # URL Worker
+            if "?slug=" in MY_WEBSITE:
+                final_url = f"{MY_WEBSITE}{slug_full}"
+            else:
+                final_url = f"{MY_WEBSITE}?slug={slug_full}"
+
+            # Label player
+            label = f"Server {idx+1}"  
+            if pl.text.strip():
+                label = pl.text.strip()
+
+            output_lines.append(
+                f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{LOGO_URL}",{match_time} {title} [{label}]'
+            )
+            output_lines.append(f"#EXTVLCOPT:http-user-agent={USER_AGENT}")
+            output_lines.append(f"#EXTVLCOPT:http-referrer={REFERRER}")
+            output_lines.append(final_url)
 
 # ====== Simpan ke file ======
 filename = "Keongphut_sport.m3u"
