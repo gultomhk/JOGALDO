@@ -71,8 +71,12 @@ jobs:
           if git diff --staged --quiet; then
             echo "✅ Tidak ada perubahan, skip push."
           else
-            git commit -m "🔄 Update map6.json [bot]"
-            git fetch origin master
-            git rebase origin/master || git rebase --abort
+            # Ambil update terbaru tanpa merge conflict
+            git pull --rebase --autostash origin master
+
+            # Commit ulang
+            git commit -m "🔄 Update map6.json [bot]" || echo "Sudah tercommit"
+
+            # Push aman
             git push origin HEAD:master
           fi
