@@ -66,17 +66,13 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add map6.json || true
+          git add map6.json
 
+          # Periksa perubahan sebelum commit
           if git diff --staged --quiet; then
             echo "✅ Tidak ada perubahan, skip push."
           else
-            # Ambil update terbaru tanpa merge conflict
+            git commit -m "🔄 Update map6.json [bot]"
             git pull --rebase --autostash origin master
-
-            # Commit ulang
-            git commit -m "🔄 Update map6.json [bot]" || echo "Sudah tercommit"
-
-            # Push aman
             git push origin HEAD:master
           fi
