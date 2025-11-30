@@ -2,9 +2,9 @@ name: Chinzakodok get
 
 on:
   schedule:
-    - cron: "0 * * * *"   # jalan tiap 1 jam sekali (menit ke-0)
-  workflow_dispatch:       # bisa manual trigger juga
-  
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
 permissions:
   contents: write
 
@@ -13,10 +13,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Checkout repo (untuk akses workflow ini)
+      - name: 📥 Checkout repo
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # penting supaya bisa pull --rebase
+          fetch-depth: 0
 
       - name: 🐍 Setup Python
         uses: actions/setup-python@v5
@@ -25,8 +25,8 @@ jobs:
 
       - name: Install Python dependencies
         run: |
-          pip install beautifulsoup4 deep-translator
-                    
+          pip install beautifulsoup4 deep-translator aiohttp
+
       - name: 📁 Ambil file konfigurasi dari repo privat
         shell: bash
         run: |
@@ -44,20 +44,18 @@ jobs:
 
           git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} repo-output
 
-          # 🚫 Skip kalau CHINZAKODOK.m3u kosong
           if [ ! -s CHINZAKODOK.m3u ]; then
-            echo "⚠️ CHINZAKODOK.m3u kosong, tidak ada push & file lama aman."
+            echo "⚠️ CHINZAKODOK.m3u kosong, tidak ada push."
             exit 0
           fi
 
-          # ✅ Hanya copy kalau ada isi
           cp CHINZAKODOK.m3u repo-output/
 
           cd repo-output
           git add CHINZAKODOK.m3u
 
           if git diff --cached --quiet; then
-            echo "✅ Tidak ada perubahan pada CHINZAKODOK.m3u, skip push."
+            echo "✅ Tidak ada perubahan, skip push."
           else
             git commit -m "🔄 auto: update CHINZAKODOK.m3u"
             git push
