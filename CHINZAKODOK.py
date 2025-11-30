@@ -23,7 +23,7 @@ except Exception:
 CHINZAKODOK_FILE = Path.home() / "chinzakodok_file.txt"
 
 config_vars = {}
-with open(CHINZYAIGODATA_FILE, "r", encoding="utf-8") as f:
+with open(CHINZAKODOK_FILE, "r", encoding="utf-8") as f:
     code = f.read()
     exec(code, config_vars)
 
