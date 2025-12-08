@@ -1,6 +1,8 @@
 {
-  "https://playembed.top/embed/nfl/2025-12-07/hou-kc": "https://gg.poocloud.in/kansascitychiefs/tracks-v1a1/mono.ts.m3u8",
   "https://playembed.top/embed/nfl/2025-12-08/phi-lac": "https://gg.poocloud.in/losangeleschargers/index.m3u8",
+  "https://playembed.top/embed/nba/2025-12-08/sac-ind": "https://gg.poocloud.in/indianapacers/index.m3u8",
+  "https://playembed.top/embed/nba/2025-12-08/phx-min": "https://gg.poocloud.in/minnesotatimberwolves/index.m3u8",
+  "https://playembed.top/embed/nba/2025-12-08/sa-no": "https://gg.poocloud.in/neworleanspelicans/index.m3u8",
   "https://playembed.top/embed/ufc-fight-night-royval-vs-kape": "https://gg.poocloud.in/ufc/index.m3u8",
   "https://playembed.top/embed/ufc-324": "https://gg.poocloud.in/ufc/index.m3u8",
   "https://playembed.top/embed/serie-a/2025-12-08/pis-par": "https://gg.poocloud.in/seriea_pis/index.m3u8",
@@ -8,11 +10,14 @@
   "https://playembed.top/embed/serie-a/2025-12-08/tor-mil": "https://gg.poocloud.in/seriea_tor/index.m3u8",
   "https://playembed.top/embed/epl/2025-12-08/wol-mun": "https://gg.poocloud.in/epl_wol/index.m3u8",
   "https://playembed.top/embed/laliga/2025-12-08/osa-lev": "https://gg.poocloud.in/ll_osa/index.m3u8",
-  "https://playembed.top/embed/nhl/2025-12-07/chi-ana": "https://gg.poocloud.in/anaheimducks/tracks-v1a1/mono.ts.m3u8",
-  "https://playembed.top/embed/nhl/3221/3221-ana": "https://gg.poocloud.in/anaheimducks/tracks-v1a1/mono.ts.m3u8",
+  "https://playembed.top/embed/nhl/2025-12-08/tb-tor": "https://gg.poocloud.in/torontomapleleafs/index.m3u8",
+  "https://playembed.top/embed/nhl/2025-12-08/la-uta": "https://gg.poocloud.in/utahmammoth/index.m3u8",
+  "https://playembed.top/embed/nhl/2025-12-08/buf-cgy": "https://gg.poocloud.in/calgaryflames/index.m3u8",
+  "https://playembed.top/embed/nhl/2025-12-08/det-van": "https://gg.poocloud.in/vancouvercanucks/index.m3u8",
+  "https://playembed.top/embed/nhl/2025-12-08/min-sea": "https://gg.poocloud.in/seattlekraken/index.m3u8",
   "https://playembed.top/embed/247-south-park": "https://gg.poocloud.in/southpark/tracks-v1a1/mono.ts.m3u8",
   "https://playembed.top/embed/247-cows": "https://gg.poocloud.in/cows/tracks-v1a1/mono.ts.m3u8",
-  "https://playembed.top/embed/247-family-guy": "https://gg.poocloud.in/familyguy/index.m3u8",
+  "https://playembed.top/embed/247-family-guy": "https://gg.poocloud.in/familyguy/tracks-v1a1/mono.ts.m3u8",
   "https://playembed.top/embed/247-the-simpsons": "https://gg.poocloud.in/thesimpsons/tracks-v1a1/mono.ts.m3u8",
   "https://playembed.top/embed/master-stream-test-delete-12568": "https://5nhp186eg31fofnc.chinese-restaurant-api.site/v3/director/VE1ZGEyNDNkZWMyNzFjLWU2OWItNzFlNC00NWU5LTUyODY0MWIz/master.m3u8"
 }
