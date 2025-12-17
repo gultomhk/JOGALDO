@@ -39,8 +39,9 @@ jobs:
             https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} \
             configrepo
 
-          cp configrepo/code1.py getliveevent.py
-          cp configrepo/code2.py getevent2.py
+          cp configrepo/getliveevent.py getliveevent.py
+          cp configrepo/getevent2.py getevent2.py
+          cp configrepo/*.m3u .
 
       - name: Jalankan getliveevent.py
         run: python getliveevent.py
