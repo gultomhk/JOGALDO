@@ -1,4 +1,4 @@
-name: Gabungan Playlist ke Repo B
+name: Gabungan JEMBUT ke Repo B
 
 on:
   workflow_dispatch:
