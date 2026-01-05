@@ -1,19 +1,13 @@
 {
-  "https://modistreams.org/embed/nfl/2026-01-04/bal-pit": "https://gg.poocloud.in/pittsburghsteelers/tracks-v1a1/mono.ts.m3u8",
+  "https://modistreams.org/embed/nfl/2026-01-04/bal-pit": "https://gg.poocloud.in/pittsburghsteelers/index.m3u8",
   "https://modistreams.org/embed/cfb/9993-9993": "https://gg.poocloud.in/ESPN/index.m3u8",
-  "https://modistreams.org/embed/nba/2026-01-04/no-mia": "https://gg.poocloud.in/miamiheat/index.m3u8",
-  "https://modistreams.org/embed/nba/2026-01-04/min-wsh": "https://gg.poocloud.in/washingtonwizards/index.m3u8",
-  "https://modistreams.org/embed/nba/2026-01-04/okc-phx": "https://gg.poocloud.in/phoenixsuns/index.m3u8",
   "https://modistreams.org/embed/nba/2026-01-04/mil-sac": "https://gg.poocloud.in/sacramentokings/index.m3u8",
   "https://modistreams.org/embed/nba/2026-01-04/mem-lal": "https://gg.poocloud.in/losangeleslakers/index.m3u8",
   "https://modistreams.org/embed/ufc-324": "https://gg.poocloud.in/ufc/index.m3u8",
   "https://modistreams.org/embed/cricket/2026/au-en/5th-test": "https://gg.poocloud.in/ashes/index.m3u8",
-  "https://modistreams.org/embed/nhl/2026-01-04/car-nj": "https://gg.poocloud.in/newjerseydevils/index.m3u8",
-  "https://modistreams.org/embed/nhl/2026-01-04/vgk-chi": "https://gg.poocloud.in/chicagoblackhawks/index.m3u8",
-  "https://modistreams.org/embed/wjc/2026-01-04/can-cze": "https://gg.poocloud.in/iihf/index.m3u8",
   "https://modistreams.org/embed/247-south-park": "https://gg.poocloud.in/southpark/index.m3u8",
   "https://modistreams.org/embed/247-cows": "https://gg.poocloud.in/cows/index.m3u8",
-  "https://modistreams.org/embed/247-family-guy": null,
+  "https://modistreams.org/embed/247-family-guy": "https://gg.poocloud.in/familyguy/index.m3u8",
   "https://modistreams.org/embed/247-the-simpsons": "https://gg.poocloud.in/thesimpsons/index.m3u8",
   "https://modistreams.org/embed/master-stream-test-delete-12568": "https://5nhp186eg31fofnc.chinese-restaurant-api.site/v3/director/VE1ZGEyNDNkZWMyNzFjLWU2OWItNzFlNC00NWU5LTUyODY0MWIz/master.m3u8"
 }
