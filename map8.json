@@ -1,12 +1,11 @@
 {
-  "https://modistreams.org/embed/cfb/3525-3525": "https://gg.poocloud.in/ESPN/tracks-v1a1/mono.ts.m3u8",
+  "https://modistreams.org/embed/cfb/3525-3525": "https://gg.poocloud.in/ESPN/index.m3u8",
   "https://modistreams.org/embed/nfl/2026-01-10/lar-car": "https://gg.poocloud.in/carolinapanthers/index.m3u8",
   "https://modistreams.org/embed/nfl/2026-01-10/gb-chi": "https://gg.poocloud.in/chicagobears/index.m3u8",
   "https://modistreams.org/embed/nfl/2026-01-11/buf-jax": "https://gg.poocloud.in/jacksonvillejaguars/index.m3u8",
   "https://modistreams.org/embed/nfl/2026-01-11/sf-phi": "https://gg.poocloud.in/philadelphiaeagles/index.m3u8",
   "https://modistreams.org/embed/nfl/2026-01-11/lac-ne": "https://gg.poocloud.in/newenglandpatriots/index.m3u8",
   "https://modistreams.org/embed/nfl/2026-01-12/hou-pit": "https://gg.poocloud.in/pittsburghsteelers/index.m3u8",
-  "https://modistreams.org/embed/cbb/6749/6749-gonz": "https://gg.poocloud.in/ESPN2/index.m3u8",
   "https://modistreams.org/embed/nba/2026-01-09/tor-bos": "https://gg.poocloud.in/bostonceltics/index.m3u8",
   "https://modistreams.org/embed/nba/2026-01-09/phi-orl": "https://gg.poocloud.in/orlandomagic/index.m3u8",
   "https://modistreams.org/embed/nba/2026-01-09/no-wsh": "https://gg.poocloud.in/washingtonwizards/index.m3u8",
@@ -28,8 +27,8 @@
   "https://modistreams.org/embed/bundesliga/2026-01-10/hdh-koe": "https://gg.poocloud.in/bl_hdh/index.m3u8",
   "https://modistreams.org/embed/bundesliga/2026-01-10/fcu-m05": "https://gg.poocloud.in/bl_fcu/index.m3u8",
   "https://modistreams.org/embed/bundesliga/2026-01-10/scf-hsv": "https://gg.poocloud.in/bl_scf/index.m3u8",
-  "https://modistreams.org/embed/bundesliga/2026-01-10/stp-rbl": "https://gg.poocloud.in/bl_stp/index.m3u8",
-  "https://modistreams.org/embed/bundesliga/2026-01-10/svw-tsg": null,
+  "https://modistreams.org/embed/bundesliga/2026-01-10/stp-rbl": null,
+  "https://modistreams.org/embed/bundesliga/2026-01-10/svw-tsg": "https://gg.poocloud.in/bl_svw/index.m3u8",
   "https://modistreams.org/embed/laliga/2026-01-10/vil-ala": "https://gg.poocloud.in/ll_vil/index.m3u8",
   "https://modistreams.org/embed/seriea/2026-01-10/roma-sas": "https://gg.poocloud.in/sa_roma/index.m3u8",
   "https://modistreams.org/embed/laliga/2026-01-10/gir-osa": "https://gg.poocloud.in/ll_gir/index.m3u8",
@@ -43,9 +42,9 @@
   "https://modistreams.org/embed/laliga/2026-01-11/lev-esp": "https://gg.poocloud.in/ll_lev/index.m3u8",
   "https://modistreams.org/embed/bundesliga/2026-01-11/mun-wob": "https://gg.poocloud.in/bl_mun/index.m3u8",
   "https://modistreams.org/embed/seriea/2026-01-11/ver-laz": "https://gg.poocloud.in/sa_ver/index.m3u8",
-  "https://modistreams.org/embed/seriea/2026-01-11/int-nap": "https://gg.poocloud.in/sa_int/index.m3u8",
+  "https://modistreams.org/embed/seriea/2026-01-11/int-nap": null,
   "https://modistreams.org/embed/seriea/2026-01-12/gen-cag": "https://gg.poocloud.in/sa_gen/index.m3u8",
-  "https://modistreams.org/embed/seriea/2026-01-12/juv-cre": null,
+  "https://modistreams.org/embed/seriea/2026-01-12/juv-cre": "https://gg.poocloud.in/sa_juv/index.m3u8",
   "https://modistreams.org/embed/laliga/2026-01-12/sev-cel": "https://gg.poocloud.in/ll_sev/index.m3u8",
   "https://modistreams.org/embed/nhl/2026-01-09/wsh-chi": "https://gg.poocloud.in/chicagoblackhawks/index.m3u8",
   "https://modistreams.org/embed/nhl/2026-01-09/la-wpg": "https://gg.poocloud.in/winnipegjets/index.m3u8",
@@ -57,5 +56,5 @@
   "https://modistreams.org/embed/247-south-park": "https://gg.poocloud.in/southpark/index.m3u8",
   "https://modistreams.org/embed/247-cows": "https://gg.poocloud.in/cows/index.m3u8",
   "https://modistreams.org/embed/247-family-guy": "https://gg.poocloud.in/familyguy/index.m3u8",
-  "https://modistreams.org/embed/247-the-simpsons": "https://gg.poocloud.in/thesimpsons/index.m3u8"
+  "https://modistreams.org/embed/247-the-simpsons": null
 }
