@@ -21,16 +21,26 @@ def parse_mapping_file(path):
             if line.startswith("HEADERS."):
                 k, v = line.split("=", 1)
                 headers[k.split("HEADERS.")[1]] = v
+
             elif line.startswith("default."):
                 k, v = line.split("=", 1)
                 default[k.split("default.")[1]] = v
-            elif "=" in line and not any(x in line for x in [".type", ".url", ".license"]):
+
+            # ✅ MAPPING ID HARUS DI ATAS
+            elif any(x in line for x in [
+                ".type", ".url", ".license",
+                ".user-agent", ".referer", ".license_type"
+            ]):
+                k, v = line.split("=", 1)
+                if "." in k:
+                    id_part, prop = k.split(".", 1)
+                    mapping.setdefault(id_part.strip(), {})[prop.strip()] = v.strip()
+
+            # ✅ BARU CONSTANTS
+            elif "=" in line:
                 k, v = line.split("=", 1)
                 constants[k.strip()] = v.strip()
-            elif any(k in line for k in [".type", ".url", ".license", ".user-agent", ".referer", ".license_type"]):
-                k, v = line.split("=", 1)
-                id_part, prop = k.split(".")
-                mapping.setdefault(id_part.strip(), {})[prop.strip()] = v.strip()
+
     return headers, constants, mapping, default
 
 def get_proxy_list(url):
