@@ -88,40 +88,54 @@ def tampilkan_playlist(data, constants, mapping, default):
             waktu = "JADWAL"
 
         print(f'#EXTINF:-1 tvg-logo="{logo}" group-title="⚽️| LIVE EVENT", {waktu} {title}')
-        print('#EXTVLCOPT:http-user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/534.24 (KHTML, like Gecko) Chrome/11.0.696.34 Safari/534.24')
+
+        # =============================
+        # PRIORITAS USER-AGENT
+        # 1. mapping[id].user-agent
+        # 2. default.user-agent
+        # =============================
+        ua = None
+        ref = None
 
         if livestreaming_id in mapping:
             stream = mapping[livestreaming_id]
             ua = stream.get("user-agent")
             ref = stream.get("referer")
+
+        if not ua:
+            ua = default.get("user-agent")
+
+        if ua:
+            print(f'#EXTVLCOPT:http-user-agent={ua}')
+        if ref:
+            print(f'#EXTVLCOPT:http-referrer={ref}')
+
+        # =============================
+        # STREAM HANDLING
+        # =============================
+        if livestreaming_id in mapping:
+            stream = mapping[livestreaming_id]
             license_type = stream.get("license_type", "com.widevine.alpha")
             license_key = stream.get("license", "").replace("{id}", livestreaming_id)
             stream_url = stream.get("url", "").replace("{id}", livestreaming_id)
             manifest_type = "dash" if stream.get("type") == "dash" else "hls"
 
-            if ua:
-                print(f'#EXTVLCOPT:http-user-agent={ua}')
-            if ref:
-                print(f'#EXTVLCOPT:http-referrer={ref}')
-            
             print(f'#KODIPROP:inputstream.adaptive.manifest_type={manifest_type}')
             print(f'#KODIPROP:inputstream.adaptive.license_type={license_type}')
             print(f'#KODIPROP:inputstream.adaptive.license_key={license_key}')
             print(stream_url)
 
-        elif livestreaming_id in constants:
-            print(constants[livestreaming_id])
-
         else:
             license_key = default.get("license", "").replace("{id}", livestreaming_id)
             dash_url = default.get("url", "").replace("{id}", livestreaming_id)
+
             print('#KODIPROP:inputstreamaddon=inputstream.adaptive')
             print('#KODIPROP:inputstream.adaptive.manifest_type=dash')
             print('#KODIPROP:inputstream.adaptive.license_type=com.widevine.alpha')
             print(f'#KODIPROP:inputstream.adaptive.license_key={license_key}')
             print(dash_url)
 
-        print()  # baris kosong antar channel
+        print()
 
 def main():
     headers, constants, mapping, default = parse_mapping_file(MAPPING_FILE)
