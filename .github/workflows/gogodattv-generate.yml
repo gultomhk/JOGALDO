@@ -1,0 +1,62 @@
+name: GOGODATV get
+
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  run-gogodatv:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: |
+          pip install beautifulsoup4 deep-translator aiohttp
+
+      - name: 📁 Ambil file konfigurasi dari repo privat
+        shell: bash
+        run: |
+          git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} configrepo
+          cp configrepo/gogodattvdata_file.txt $HOME/gogodattvdata_file.txt
+
+      - name: 🚀 Jalankan script Python
+        run: python gogodaftv.py
+
+      - name: 📤 Push output ke repo privat jika ada perubahan
+        shell: bash
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+
+          git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} repo-output
+
+          if [ ! -s gogodatv.m3u ]; then
+            echo "⚠️ gogodatv.m3u kosong, tidak ada push."
+            exit 0
+          fi
+
+          cp gogodatv.m3u repo-output/
+
+          cd repo-output
+          git add gogodatv.m3u
+
+          if git diff --cached --quiet; then
+            echo "✅ Tidak ada perubahan, skip push."
+          else
+            git commit -m "🔄 auto: update gogodatv.m3u"
+            git push
+          fi
