@@ -1,8 +1,6 @@
 name: 🕐 Generate CONGOR.m3u tiap jam
 
 on:
-  schedule:
-    - cron: "0 * * * *"   # tiap jam (menit 0)
   workflow_dispatch:       # bisa juga manual run
 
 jobs:
