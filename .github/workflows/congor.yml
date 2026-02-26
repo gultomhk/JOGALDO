@@ -26,7 +26,7 @@ jobs:
 
       - name: 📦 Install dependencies
         run: |
-          pip install requests deep-translator
+          pip install requests deep-translator pypinyin
 
       - name: 🚀 Jalankan script Python
         run: python chin22.py
