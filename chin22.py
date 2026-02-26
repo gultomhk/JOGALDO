@@ -1,61 +1,43 @@
-import json
-import re
-from pathlib import Path
-from datetime import datetime
-from playwright.sync_api import sync_playwright
+import requests
+from datetime import datetime, timedelta
 from deep_translator import GoogleTranslator
-from zoneinfo import ZoneInfo
+from pathlib import Path
 
 # ==========================
 # Load Config dari congordata_file.txt
 # ==========================
 CONGORDATA_FILE = Path.home() / "congordata_file.txt"
 
-config = {}
-current_key = None
-list_accumulator = []
+def load_config():
+    config = {}
+    if not CONGORDATA_FILE.exists():
+        raise FileNotFoundError(f"{CONGORDATA_FILE} tidak ditemukan!")
 
-with open(CONGORDATA_FILE, "r", encoding="utf-8") as f:
-    for raw_line in f:
-        line = raw_line.strip()
-        if not line or line.startswith("#"):
-            continue
-
-        if current_key:  # sedang dalam list multiline
-            if line.startswith("]"):
-                config[current_key] = list_accumulator
-                current_key, list_accumulator = None, []
-            else:
-                val = line.strip().strip(",").strip('"').strip("'")
-                if val:
-                    list_accumulator.append(val)
-            continue
-
-        if "=" in line:
-            key, val = line.split("=", 1)
-            key, val = key.strip(), val.strip()
-
-            if val.startswith("["):  # list multiline
-                current_key = key
-                list_accumulator = []
+    with open(CONGORDATA_FILE, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or "=" not in line:
                 continue
+            key, value = line.split("=", 1)
+            config[key.strip()] = value.strip()
 
-            if (val.startswith('"') and val.endswith('"')) or (val.startswith("'") and val.endswith("'")):
-                config[key] = val.strip('"\'')
-            else:
-                config[key] = val
+    return config
 
-UA = config.get("UA")
-REFERRER = config.get("REFERRER")
-WORKER_URL = config.get("WORKER_URL")
-logo = config.get("logo")
-urls = config.get("urls", [])
+config = load_config()
+
+USER_AGENT = config.get("User-Agent", "Mozilla/5.0")
+UAM3U = config.get("UAM3U", "")
+WORKER_URL = config.get("WORKER_URL", "")
+LOGO = config.get("logo", "")
+URL = config.get("URL", "")
+
+OUTPUT_FILE = "CONGOR.m3u"
 
 # ==========================
 # Translate Utility
 # ==========================
 translate_cache = {}
-TARGET_LANG = "en"  # ganti 
+TARGET_LANG = "en"  # bisa ganti ke id, ms, dll
 
 def is_ascii(s: str) -> bool:
     return all(ord(c) < 128 for c in s)
@@ -63,8 +45,10 @@ def is_ascii(s: str) -> bool:
 def translate_text(text: str, target=TARGET_LANG) -> str:
     if not text or text.isnumeric() or is_ascii(text):
         return text
+
     if text in translate_cache:
         return translate_cache[text]
+
     try:
         translated = GoogleTranslator(source="auto", target=target).translate(text)
         translate_cache[text] = translated
@@ -73,104 +57,68 @@ def translate_text(text: str, target=TARGET_LANG) -> str:
         print("⚠️ Translate error:", e, "=> pakai teks asli")
         return text
 
-def clean_title(title: str) -> str:
-    title = title.replace("vs.", "vs")
-    title = title.replace(",", " ")
-    title = re.sub(r"\s+", " ", title)
-    return title.strip()
+# ==========================
+# Time Convert
+# ==========================
+def to_wib(utc_time_str):
+    dt = datetime.strptime(utc_time_str, "%Y-%m-%dT%H:%M:%SZ")
+    dt_wib = dt + timedelta(hours=7)
+    return dt_wib.strftime("%d/%m-%H.%M")
 
 # ==========================
-# Ambil data anchor (__NEXT_DATA__)
+# Build Title
 # ==========================
-anchors = []
-with sync_playwright() as p:
-    browser = p.chromium.launch(headless=True)
-    context = browser.new_context(user_agent=UA)
-    page = context.new_page()
+def build_title(event):
+    home = translate_text(event.get("home", "").strip())
+    away = translate_text(event.get("away", "").strip())
+    title_raw = translate_text(event.get("title", "").strip())
 
-    for url in urls:
-        print(f"🌍 Load {url}")
-        page.goto(url, wait_until="domcontentloaded")
-        page.wait_for_timeout(4000)
+    if home and away:
+        return f"{home} VS {away}"
 
-        script = page.query_selector("#__NEXT_DATA__")
-        if script:
-            try:
-                raw_json = script.inner_text()
-                data = json.loads(raw_json)
-                records = data["props"]["pageProps"]["liveAnchorList"]["records"]
-                anchors.extend(records)
-            except Exception as e:
-                print("⚠️ Error parse __NEXT_DATA__:", e)
+    if title_raw:
+        return title_raw
 
-    browser.close()
-
-print(f"📊 Jumlah anchor ditemukan: {len(anchors)}")
+    return "Live Event"
 
 # ==========================
-# Build M3U
+# Main
 # ==========================
-lines = ["#EXTM3U"]
+def main():
+    headers = {
+        "User-Agent": USER_AGENT
+    }
 
-for a in anchors:
-    try:
-        anchor_id = a.get("anchorId")
-        dt = datetime.now(ZoneInfo("Asia/Jakarta"))
+    r = requests.get(URL, headers=headers, timeout=15)
+    r.raise_for_status()
 
-        title = (a.get("title") or "").strip()
-        competition_name = (a.get("competitionName") or "").strip()
-        game_type = (a.get("gameType") or "").strip()
-        
-        team_match = None
-        if "vs" in title or "VS" in title or "vs." in title:
-            team_match = title
-        
-        league_name = ""
-        if competition_name:
-            league_name = competition_name
-        elif a.get("mark") and a.get("mark").get("markName"):
-            league_name = a.get("mark").get("markName")
-        
-        extra_info = ""
-        if game_type:
-            extra_info = game_type
-        elif a.get("liveTypeName"):
-            extra_info = a.get("liveTypeName")
-        
-        components = []
-        if team_match:
-            team_match = team_match.replace("vs", " - ").replace("VS", " - ").replace("vs.", " - ")
-            components.append(team_match)
-        else:
-            components.append(title)
-        
-        if extra_info:
-            if not (extra_info.startswith("[") and extra_info.endswith("]")):
-                components.append(f"[{extra_info}]")
-            else:
-                components.append(extra_info)
-        
-        if league_name:
-            components.append(league_name)
-        
-        base_title = " ".join(components).strip()
-        base_title = re.sub(r'\s+', ' ', base_title)
-        base_title = translate_text(base_title, TARGET_LANG)
+    data = r.json()
+    events = data.get("events", [])
 
-        time_prefix = dt.strftime('%d/%m-%H.%M')
-        final_title = f"{time_prefix} {base_title}"
-        final_title = clean_title(final_title)
+    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+        f.write("#EXTM3U\n\n")
 
-        lines.append(f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{logo}",{final_title}')
-        lines.append(f"#EXTVLCOPT:http-user-agent={UA}")
-        lines.append(f"#EXTVLCOPT:http-referrer={REFERRER}")
-        lines.append(f"{WORKER_URL}/?anchorId={anchor_id}")
+        for event in events:
+            channels = event.get("channels", [])
+            if not channels:
+                continue
 
-    except Exception as e:
-        print("⚠️ Error build M3U:", e)
-        print(f"⚠️ Data yang error: {a}")
+            channel_id = channels[0]["id"]
+            time_wib = to_wib(event["startTs"])
+            match_title = build_title(event)
+            comp = event.get("competition_en") or translate_text(event.get("competition", ""))
 
-with open("CONGOR.m3u", "w", encoding="utf-8") as f:
-    f.write("\n".join(lines))
+            f.write(
+                f'#EXTINF:-1 tvg-logo="{LOGO}" '
+                f'group-title="⚽️| LIVE EVENT",{time_wib} {match_title} ({comp})\n'
+            )
 
-print("✅ File CONGOR.m3u berhasil dibuat")
+            if UAM3U:
+                f.write(f'#EXTVLCOPT:http-user-agent={UAM3U}\n')
+
+            f.write(f'{WORKER_URL}/index.m3u8?id={channel_id}\n\n')
+
+    print("✅ CONGOR.m3u berhasil dibuat dengan translate cache")
+
+if __name__ == "__main__":
+    main()
