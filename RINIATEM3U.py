@@ -246,3 +246,67 @@ def parse_playing():
             continue
 
     return items
+	
+# ==========================
+# 🎯 MAIN MATCH COLLECTOR
+# ==========================
+def get_aesport_matches():
+
+    fixture_items = parse_fixture()
+    upcoming_items = parse_upcoming()
+    playing_items = parse_playing()
+
+    today_items = [
+        i for i in fixture_items
+        if i.starttime.date() == date.today()
+    ]
+
+    all_items = playing_items + today_items + upcoming_items
+
+    # 🚨 Remove duplicate slug
+    unique = {}
+    for item in all_items:
+        unique[item.slug] = item
+
+    outputs = []
+
+    for item in unique.values():
+        waktu = item.starttime.astimezone(
+            ZoneInfo("Asia/Jakarta")
+        ).strftime("%d/%m-%H.%M")
+
+        nama = f"{waktu} {item.title}"
+        stream_url = AESPORT_WORKER_TEMPLATE2.format(slug=item.slug)
+
+        line = [
+            f'#EXTINF:-1 tvg-logo="{AESPORT_LOGO}" group-title="{GROUP}",{nama}',
+            f'#EXTVLCOPT:http-user-agent={AESPORT_HEADERS["User-Agent"]}',
+            f'#EXTVLCOPT:http-referrer={AESPORT_HEADERS["Referer"]}',
+            stream_url
+        ]
+
+        outputs.append("\n".join(line))
+
+    return outputs
+
+
+# ==========================
+# 📝 GENERATE M3U
+# ==========================
+def main():
+    matches = get_aesport_matches()
+
+    if not matches:
+        print("⚠️ Tidak ada match ditemukan, skip generate file.")
+        return
+
+    outfile = Path("matama.m3u")
+    with open(outfile, "w", encoding="utf-8") as f:
+        f.write("#EXTM3U\n")
+        f.write("\n".join(matches))
+
+    print(f"✅ Berhasil generate {outfile} dengan {len(matches)} channel")
+
+
+if __name__ == "__main__":
+    main()
