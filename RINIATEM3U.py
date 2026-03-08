@@ -4,6 +4,7 @@ from pathlib import Path
 import requests
 from bs4 import BeautifulSoup
 import urllib3
+import random
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -14,17 +15,47 @@ CONFIG = {}
 exec((Path.home() / "aebabami_file.txt").read_text(encoding="utf-8"), CONFIG)
 
 AESPORT_DOMAIN = CONFIG["AESPORT_DOMAIN"]
-AESPORT_PROXY = CONFIG.get("AESPORT_PROXY", None)
 AESPORT_WORKER_TEMPLATE2 = CONFIG["AESPORT_WORKER_TEMPLATE2"]
 AESPORT_LOGO = CONFIG["AESPORT_LOGO"]
-AESPORT_TIMEOUT = CONFIG.get("AESPORT_TIMEOUT", 20)
+AESPORT_TIMEOUT = CONFIG.get("AESPORT_TIMEOUT", 10)
 GROUP = CONFIG["GROUP"]
+
+PROXY_SOURCE = CONFIG["PROXY_SOURCE"]
 
 AESPORT_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36",
     "Referer": f"https://{AESPORT_DOMAIN}/",
     "Origin": f"https://{AESPORT_DOMAIN}"
 }
+
+# ==========================
+# 🌐 LOAD PROXY LIST
+# ==========================
+def load_proxies():
+    print("🌐 Mengambil proxy list...")
+    try:
+        r = requests.get(PROXY_SOURCE, timeout=20)
+        r.raise_for_status()
+
+        proxies = [p.strip() for p in r.text.splitlines() if p.strip()]
+        random.shuffle(proxies)
+
+        proxy_list = []
+        for p in proxies:
+            proxy_list.append({
+                "http": f"http://{p}",
+                "https": f"http://{p}"
+            })
+
+        print(f"✅ Proxy ditemukan: {len(proxy_list)}")
+        return proxy_list
+
+    except Exception as e:
+        print(f"⚠️ Gagal ambil proxylist: {e}")
+        return []
+
+
+PROXIES = load_proxies()
 
 
 # ==========================
@@ -39,21 +70,41 @@ class JetItem:
 
 
 # ==========================
-# 🌐 SAFE REQUEST
+# 🌐 SAFE REQUEST (WITH PROXY ROTATION)
 # ==========================
 def safe_get(url):
+
+    for proxy in PROXIES:
+
+        try:
+            r = requests.get(
+                url,
+                headers=AESPORT_HEADERS,
+                timeout=AESPORT_TIMEOUT,
+                proxies=proxy,
+                verify=False
+            )
+
+            if r.status_code == 200:
+                print(f"✅ OK via proxy {proxy['http']}")
+                return r.text
+
+        except Exception:
+            continue
+
+    # fallback tanpa proxy
     try:
+        print("⚠️ Semua proxy gagal, coba tanpa proxy...")
         r = requests.get(
             url,
             headers=AESPORT_HEADERS,
             timeout=AESPORT_TIMEOUT,
-            proxies=AESPORT_PROXY,
             verify=False
         )
         r.raise_for_status()
         return r.text
     except Exception as e:
-        print(f"⚠️ Gagal ambil {url}: {e}")
+        print(f"❌ Gagal ambil {url}: {e}")
         return None
 
 
@@ -98,8 +149,8 @@ def parse_fixture():
                     dt
                 )
             )
-        except Exception as e:
-            print(f"⚠️ Error parsing fixture: {e}")
+
+        except Exception:
             continue
 
     return items
@@ -142,15 +193,15 @@ def parse_upcoming():
                     dt
                 )
             )
-        except Exception as e:
-            print(f"⚠️ Error parsing upcoming: {e}")
+
+        except Exception:
             continue
 
     return items
 
 
 # ==========================
-# 🔴 PLAYING (LIVE NOW)
+# 🔴 PLAYING
 # ==========================
 def parse_playing():
     print("🔴 Mengambil playing (live now)...")
@@ -173,7 +224,6 @@ def parse_playing():
 
             slug = link.get("href").split("/")[-1].replace(".html", "")
 
-            # Jika tidak ada timestamp → pakai waktu sekarang
             timeTag = match.select_one(".time-format")
             if timeTag and timeTag.has_attr("data-time"):
                 ts = int(timeTag["data-time"]) // 1000
@@ -191,73 +241,8 @@ def parse_playing():
                     dt
                 )
             )
-        except Exception as e:
-            print(f"⚠️ Error parsing playing: {e}")
+
+        except Exception:
             continue
 
     return items
-
-
-# ==========================
-# 🎯 MAIN MATCH COLLECTOR
-# ==========================
-def get_aesport_matches():
-
-    fixture_items = parse_fixture()
-    upcoming_items = parse_upcoming()
-    playing_items = parse_playing()
-
-    today_items = [
-        i for i in fixture_items
-        if i.starttime.date() == date.today()
-    ]
-
-    all_items = playing_items + today_items + upcoming_items
-
-    # 🚨 Remove duplicate slug
-    unique = {}
-    for item in all_items:
-        unique[item.slug] = item
-
-    outputs = []
-
-    for item in unique.values():
-        waktu = item.starttime.astimezone(
-            ZoneInfo("Asia/Jakarta")
-        ).strftime("%d/%m-%H.%M")
-
-        nama = f"{waktu} {item.title}"
-        stream_url = AESPORT_WORKER_TEMPLATE2.format(slug=item.slug)
-
-        line = [
-            f'#EXTINF:-1 tvg-logo="{AESPORT_LOGO}" group-title="{GROUP}",{nama}',
-            f'#EXTVLCOPT:http-user-agent={AESPORT_HEADERS["User-Agent"]}',
-            f'#EXTVLCOPT:http-referrer={AESPORT_HEADERS["Referer"]}',
-            stream_url
-        ]
-
-        outputs.append("\n".join(line))
-
-    return outputs
-
-
-# ==========================
-# 📝 GENERATE M3U
-# ==========================
-def main():
-    matches = get_aesport_matches()
-
-    if not matches:
-        print("⚠️ Tidak ada match ditemukan, skip generate file.")
-        return
-
-    outfile = Path("matama.m3u")
-    with open(outfile, "w", encoding="utf-8") as f:
-        f.write("#EXTM3U\n")
-        f.write("\n".join(matches))
-
-    print(f"✅ Berhasil generate {outfile} dengan {len(matches)} channel")
-
-
-if __name__ == "__main__":
-    main()
