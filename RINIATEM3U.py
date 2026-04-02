@@ -40,12 +40,10 @@ def load_proxies():
         proxies = [p.strip() for p in r.text.splitlines() if p.strip()]
         random.shuffle(proxies)
 
-        proxy_list = []
-        for p in proxies:
-            proxy_list.append({
-                "http": f"http://{p}",
-                "https": f"http://{p}"
-            })
+        proxy_list = [{
+            "http": f"http://{p}",
+            "https": f"http://{p}"
+        } for p in proxies]
 
         print(f"✅ Proxy ditemukan: {len(proxy_list)}")
         return proxy_list
@@ -57,6 +55,74 @@ def load_proxies():
 
 PROXIES = load_proxies()
 
+# ==========================
+# 🌐 SESSION + ACTIVE PROXY
+# ==========================
+SESSION = requests.Session()
+SESSION.headers.update(AESPORT_HEADERS)
+
+ACTIVE_PROXY = None
+
+
+def get_working_proxy(test_url):
+    global ACTIVE_PROXY
+
+    print("🔎 Mencari proxy yang bisa dipakai...")
+
+    for proxy in PROXIES:
+        try:
+            r = SESSION.get(
+                test_url,
+                timeout=AESPORT_TIMEOUT,
+                proxies=proxy,
+                verify=False,
+                allow_redirects=True
+            )
+
+            if r.status_code in [200, 301, 302]:
+                ACTIVE_PROXY = proxy
+                print(f"✅ Proxy aktif: {proxy['http']}")
+                return True
+
+        except Exception:
+            continue
+
+    print("❌ Tidak ada proxy yang berhasil")
+    return False
+
+
+# ==========================
+# 🌐 SAFE REQUEST (PROXY ONLY)
+# ==========================
+def safe_get(url):
+    global ACTIVE_PROXY
+
+    if not ACTIVE_PROXY:
+        if not get_working_proxy(url):
+            return None
+
+    try:
+        r = SESSION.get(
+            url,
+            timeout=AESPORT_TIMEOUT,
+            proxies=ACTIVE_PROXY,
+            verify=False,
+            allow_redirects=True
+        )
+
+        if r.status_code == 200:
+            print(f"✅ OK {url}")
+            return r.text
+        else:
+            print(f"⚠️ Status {r.status_code}, ganti proxy...")
+            ACTIVE_PROXY = None
+            return safe_get(url)
+
+    except Exception:
+        print("⚠️ Proxy mati, cari proxy baru...")
+        ACTIVE_PROXY = None
+        return safe_get(url)
+
 
 # ==========================
 # 📦 MODEL
@@ -67,45 +133,6 @@ class JetItem:
         self.slug = slug
         self.league = league
         self.starttime = starttime
-
-
-# ==========================
-# 🌐 SAFE REQUEST (WITH PROXY ROTATION)
-# ==========================
-def safe_get(url):
-
-    for proxy in PROXIES:
-
-        try:
-            r = requests.get(
-                url,
-                headers=AESPORT_HEADERS,
-                timeout=AESPORT_TIMEOUT,
-                proxies=proxy,
-                verify=False
-            )
-
-            if r.status_code == 200:
-                print(f"✅ OK via proxy {proxy['http']}")
-                return r.text
-
-        except Exception:
-            continue
-
-    # fallback tanpa proxy
-    try:
-        print("⚠️ Semua proxy gagal, coba tanpa proxy...")
-        r = requests.get(
-            url,
-            headers=AESPORT_HEADERS,
-            timeout=AESPORT_TIMEOUT,
-            verify=False
-        )
-        r.raise_for_status()
-        return r.text
-    except Exception as e:
-        print(f"❌ Gagal ambil {url}: {e}")
-        return None
 
 
 # ==========================
@@ -141,14 +168,12 @@ def parse_fixture():
             slug = link.get("href").split("/")[-1].replace(".html", "")
             leagueTag = game.select_one("div.tournament")
 
-            items.append(
-                JetItem(
-                    f"{left.text.strip()} vs {right.text.strip()}",
-                    slug,
-                    leagueTag.text.strip() if leagueTag else "",
-                    dt
-                )
-            )
+            items.append(JetItem(
+                f"{left.text.strip()} vs {right.text.strip()}",
+                slug,
+                leagueTag.text.strip() if leagueTag else "",
+                dt
+            ))
 
         except Exception:
             continue
@@ -185,14 +210,12 @@ def parse_upcoming():
             slug = link.get("href").split("/")[-1].replace(".html", "")
             leagueTag = match.select_one("p.tour-name")
 
-            items.append(
-                JetItem(
-                    f"{left.text.strip()} vs {right.text.strip()}",
-                    slug,
-                    leagueTag.text.strip() if leagueTag else "",
-                    dt
-                )
-            )
+            items.append(JetItem(
+                f"{left.text.strip()} vs {right.text.strip()}",
+                slug,
+                leagueTag.text.strip() if leagueTag else "",
+                dt
+            ))
 
         except Exception:
             continue
@@ -233,25 +256,23 @@ def parse_playing():
 
             leagueTag = match.select_one("p.tour-name, div.tournament")
 
-            items.append(
-                JetItem(
-                    f"{left.text.strip()} vs {right.text.strip()}",
-                    slug,
-                    leagueTag.text.strip() if leagueTag else "LIVE",
-                    dt
-                )
-            )
+            items.append(JetItem(
+                f"{left.text.strip()} vs {right.text.strip()}",
+                slug,
+                leagueTag.text.strip() if leagueTag else "LIVE",
+                dt
+            ))
 
         except Exception:
             continue
 
     return items
-	
+
+
 # ==========================
 # 🎯 MAIN MATCH COLLECTOR
 # ==========================
 def get_aesport_matches():
-
     fixture_items = parse_fixture()
     upcoming_items = parse_upcoming()
     playing_items = parse_playing()
@@ -263,7 +284,6 @@ def get_aesport_matches():
 
     all_items = playing_items + today_items + upcoming_items
 
-    # 🚨 Remove duplicate slug
     unique = {}
     for item in all_items:
         unique[item.slug] = item
@@ -278,22 +298,26 @@ def get_aesport_matches():
         nama = f"{waktu} {item.title}"
         stream_url = AESPORT_WORKER_TEMPLATE2.format(slug=item.slug)
 
-        line = [
+        outputs.append("\n".join([
             f'#EXTINF:-1 tvg-logo="{AESPORT_LOGO}" group-title="{GROUP}",{nama}',
             f'#EXTVLCOPT:http-user-agent={AESPORT_HEADERS["User-Agent"]}',
             f'#EXTVLCOPT:http-referrer={AESPORT_HEADERS["Referer"]}',
             stream_url
-        ]
-
-        outputs.append("\n".join(line))
+        ]))
 
     return outputs
 
 
 # ==========================
-# 📝 GENERATE M3U
+# 📝 MAIN
 # ==========================
 def main():
+    test_url = f"https://{AESPORT_DOMAIN}/fixture/all.html"
+
+    if not get_working_proxy(test_url):
+        print("❌ Tidak ada proxy yang bisa dipakai")
+        return
+
     matches = get_aesport_matches()
 
     if not matches:
