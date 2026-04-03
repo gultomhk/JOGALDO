@@ -14,6 +14,7 @@ CONFIG = {}
 exec((Path.home() / "aebabami_file.txt").read_text(encoding="utf-8"), CONFIG)
 
 AESPORT_DOMAIN = CONFIG["AESPORT_DOMAIN"]  # domain worker
+DOMAIN = CONFIG["DOMAIN"]
 AESPORT_WORKER_TEMPLATE2 = CONFIG["AESPORT_WORKER_TEMPLATE2"]
 AESPORT_LOGO = CONFIG["AESPORT_LOGO"]
 AESPORT_TIMEOUT = CONFIG.get("AESPORT_TIMEOUT", 10)
@@ -21,8 +22,8 @@ GROUP = CONFIG["GROUP"]
 
 AESPORT_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120 Safari/537.36",
-    "Referer": f"https://{AESPORT_DOMAIN}/",
-    "Origin": f"https://{AESPORT_DOMAIN}",
+    "Referer": f"https://{DOMAIN}/",
+    "Origin": f"https://{DOMAIN}",
     "Accept": "text/html,application/xhtml+xml",
     "Accept-Language": "en-US,en;q=0.9"
 }
