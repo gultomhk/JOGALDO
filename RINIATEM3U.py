@@ -25,7 +25,10 @@ PROXY_SOURCE = CONFIG["PROXY_SOURCE"]
 AESPORT_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36",
     "Referer": f"https://{AESPORT_DOMAIN}/",
-    "Origin": f"https://{AESPORT_DOMAIN}"
+    "Origin": f"https://{AESPORT_DOMAIN}",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Connection": "keep-alive"
 }
 
 # ==========================
@@ -144,19 +147,21 @@ def parse_upcoming():
     soup = BeautifulSoup(html, "html.parser")
     items = []
 
-    matches = soup.select('a[href^="/match/"]')
+    matches = soup.select('a.match-card[href^="/match/"]')
 
     print(f"🎯 Match ditemukan: {len(matches)}")
 
     for m in matches:
         try:
+            # Ambil nama tim
             teams = m.select("p")
             if len(teams) < 2:
                 continue
 
-            home = teams[0].text.strip()
-            away = teams[1].text.strip()
+            home = teams[0].get_text(strip=True)
+            away = teams[1].get_text(strip=True)
 
+            # Ambil waktu UTC
             time_tag = m.select_one("[data-match-time]")
             if not time_tag:
                 continue
@@ -165,13 +170,14 @@ def parse_upcoming():
             dt = datetime.fromisoformat(utc_time.replace("Z", "+00:00"))
             dt = dt.astimezone(ZoneInfo("Asia/Jakarta"))
 
+            # Ambil slug
             href = m.get("href")
             slug = href.split("/")[-1]
 
             items.append(JetItem(
                 f"{home} vs {away}",
                 slug,
-                "",  # league sementara kosong (opsional bisa kita parse nanti)
+                "",
                 dt
             ))
 
@@ -180,7 +186,6 @@ def parse_upcoming():
             continue
 
     return items
-
 
 # ==========================
 # 🔴 PLAYING
@@ -195,7 +200,7 @@ def parse_playing():
     soup = BeautifulSoup(html, "html.parser")
     items = []
 
-    matches = soup.select('a[href^="/match/"]')
+    matches = soup.select('a.match-card[href^="/match/"]')
 
     print(f"🎯 LIVE ditemukan: {len(matches)}")
 
