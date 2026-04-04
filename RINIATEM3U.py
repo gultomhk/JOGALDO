@@ -135,12 +135,27 @@ def parse_playing():
 
     for m in matches:
         try:
-            imgs = m.select("img[alt]")
-            if len(imgs) < 2:
+            spans = m.select("span")
+            names = []
+
+            for s in spans:
+                text = s.get_text(strip=True)
+
+                # skip skor (angka)
+                if text.isdigit():
+                    continue
+
+                # skip viewer count dll
+                if len(text) < 3:
+                    continue
+
+                names.append(text)
+
+            if len(names) < 2:
                 continue
 
-            home = imgs[0]["alt"].strip()
-            away = imgs[1]["alt"].strip()
+            home = names[0]
+            away = names[1]
 
             slug = m.get("href").split("/")[-1]
 
