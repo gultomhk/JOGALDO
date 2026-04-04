@@ -172,9 +172,16 @@ def get_aesport_matches():
     print("DEBUG upcoming:", len(upcoming_items))
     print("DEBUG playing:", len(playing_items))
 
-    all_items = playing_items + upcoming_items
+    unique = {}
 
-    unique = {item.slug: item for item in all_items}
+    # LIVE priority
+    for item in playing_items:
+        unique[item.slug] = item
+
+    # Upcoming if not exist
+    for item in upcoming_items:
+        if item.slug not in unique:
+            unique[item.slug] = item
 
     outputs = []
 
@@ -192,7 +199,6 @@ def get_aesport_matches():
         ]))
 
     return outputs
-
 
 # ==========================
 # 📝 MAIN
