@@ -122,50 +122,29 @@ def parse_upcoming():
 def parse_playing():
     print("🔴 Mengambil playing...")
     url = f"https://{AESPORT_DOMAIN}/live-now"
-    html_text = safe_get(url)
-    if not html_text:
+    html = safe_get(url)
+    if not html:
         return []
 
-    soup = BeautifulSoup(html_text, "html.parser")
+    soup = BeautifulSoup(html, "html.parser")
     items = []
 
-    island = soup.find("astro-island")
-    if not island:
-        print("❌ Tidak menemukan astro-island")
-        return []
+    matches = soup.select('a[href^="/match/"]')
 
-    props_raw = island.get("props")
-    props_raw = html.unescape(props_raw)
+    print(f"🎯 LIVE ditemukan: {len(matches)}")
 
-    try:
-        data = json.loads(props_raw)
-
-        # Struktur Astro
-        initial = data.get("initialItems")
-        if not initial:
-            print("❌ initialItems tidak ada")
-            return []
-
-        matches = initial[1]  # list match
-
-        print(f"🎯 LIVE JSON ditemukan: {len(matches)}")
-
-        for m in matches:
-            obj = m[1]
-
-            home = obj.get("name_home")
-            away = obj.get("name_away")
-            slug = obj.get("slug")
-            start_at = obj.get("start_at")
-
-            if not slug:
+    for m in matches:
+        try:
+            imgs = m.select("img[alt]")
+            if len(imgs) < 2:
                 continue
 
-            if start_at:
-                dt = datetime.fromisoformat(start_at.replace("Z", "+00:00"))
-                dt = dt.astimezone(ZoneInfo("Asia/Jakarta"))
-            else:
-                dt = datetime.now(ZoneInfo("Asia/Jakarta"))
+            home = imgs[0]["alt"].strip()
+            away = imgs[1]["alt"].strip()
+
+            slug = m.get("href").split("/")[-1]
+
+            dt = datetime.now(ZoneInfo("Asia/Jakarta"))
 
             items.append(JetItem(
                 f"{home} vs {away}",
@@ -174,11 +153,10 @@ def parse_playing():
                 dt
             ))
 
-    except Exception as e:
-        print("Parse LIVE JSON error:", e)
+        except Exception as e:
+            print("Parse error:", e)
 
     return items
-
 
 # ==========================
 # 🎯 COMBINE
