@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup
 import urllib3
 import json
 import html
+import re
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -130,7 +131,7 @@ def parse_playing():
 
     island = soup.find("astro-island")
     if not island:
-        print("❌ Tidak menemukan astro-island live data")
+        print("❌ Tidak menemukan astro-island")
         return []
 
     props_raw = island.get("props")
@@ -138,20 +139,33 @@ def parse_playing():
 
     try:
         data = json.loads(props_raw)
-        matches = data["initialItems"][1]
+
+        # Struktur Astro
+        initial = data.get("initialItems")
+        if not initial:
+            print("❌ initialItems tidak ada")
+            return []
+
+        matches = initial[1]  # list match
 
         print(f"🎯 LIVE JSON ditemukan: {len(matches)}")
 
         for m in matches:
             obj = m[1]
 
-            home = obj["name_home"]
-            away = obj["name_away"]
-            slug = obj["slug"]
-            start_at = obj["start_at"]
+            home = obj.get("name_home")
+            away = obj.get("name_away")
+            slug = obj.get("slug")
+            start_at = obj.get("start_at")
 
-            dt = datetime.fromisoformat(start_at.replace("Z", "+00:00"))
-            dt = dt.astimezone(ZoneInfo("Asia/Jakarta"))
+            if not slug:
+                continue
+
+            if start_at:
+                dt = datetime.fromisoformat(start_at.replace("Z", "+00:00"))
+                dt = dt.astimezone(ZoneInfo("Asia/Jakarta"))
+            else:
+                dt = datetime.now(ZoneInfo("Asia/Jakarta"))
 
             items.append(JetItem(
                 f"{home} vs {away}",
