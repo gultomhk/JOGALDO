@@ -4,6 +4,8 @@ from pathlib import Path
 import requests
 from bs4 import BeautifulSoup
 import urllib3
+import json
+import html
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -119,35 +121,37 @@ def parse_upcoming():
 def parse_playing():
     print("🔴 Mengambil playing...")
     url = f"https://{AESPORT_DOMAIN}/live-now"
-    html = safe_get(url)
-    if not html:
+    html_text = safe_get(url)
+    if not html_text:
         return []
 
-    soup = BeautifulSoup(html, "html.parser")
+    soup = BeautifulSoup(html_text, "html.parser")
     items = []
 
-    matches = soup.select('a[href^="/match/"]')
+    island = soup.find("astro-island")
+    if not island:
+        print("❌ Tidak menemukan astro-island live data")
+        return []
 
-    print(f"🎯 LIVE ditemukan: {len(matches)}")
+    props_raw = island.get("props")
+    props_raw = html.unescape(props_raw)
 
-    for m in matches:
-        try:
-            teams = [p.get_text(strip=True) for p in m.select("p") if p.get_text(strip=True)]
-            if len(teams) < 2:
-                continue
+    try:
+        data = json.loads(props_raw)
+        matches = data["initialItems"][1]
 
-            home, away = teams[:2]
+        print(f"🎯 LIVE JSON ditemukan: {len(matches)}")
 
-            time_tag = m.select_one("[data-match-time]")
+        for m in matches:
+            obj = m[1]
 
-            if time_tag:
-                utc_time = time_tag.get("data-utc")
-                dt = datetime.fromisoformat(utc_time.replace("Z", "+00:00"))
-                dt = dt.astimezone(ZoneInfo("Asia/Jakarta"))
-            else:
-                dt = datetime.now(ZoneInfo("Asia/Jakarta"))
+            home = obj["name_home"]
+            away = obj["name_away"]
+            slug = obj["slug"]
+            start_at = obj["start_at"]
 
-            slug = m.get("href").split("/")[-1]
+            dt = datetime.fromisoformat(start_at.replace("Z", "+00:00"))
+            dt = dt.astimezone(ZoneInfo("Asia/Jakarta"))
 
             items.append(JetItem(
                 f"{home} vs {away}",
@@ -156,8 +160,8 @@ def parse_playing():
                 dt
             ))
 
-        except Exception as e:
-            print("Parse error:", e)
+    except Exception as e:
+        print("Parse LIVE JSON error:", e)
 
     return items
 
