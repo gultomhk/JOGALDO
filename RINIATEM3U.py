@@ -141,16 +141,19 @@ def parse_playing():
             for s in spans:
                 text = s.get_text(strip=True)
 
-                # skip skor (angka)
-                if text.isdigit():
+                # Filter teks yang bukan nama tim
+                if any(char.isdigit() for char in text):
                     continue
-
-                # skip viewer count dll
-                if len(text) < 3:
+                if "–" in text:
+                    continue
+                if len(text) < 4:
+                    continue
+                if text.lower() in ["live", "vs"]:
                     continue
 
                 names.append(text)
 
+            # Ambil hanya 2 nama pertama
             if len(names) < 2:
                 continue
 
