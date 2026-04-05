@@ -13,7 +13,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 CONFIG = {}
 exec((Path.home() / "aebabami2_file.txt").read_text(encoding="utf-8"), CONFIG)
 
-AESPORT_DOMAIN = CONFIG["AESPORT_DOMAIN"]
+AESPORT_DOMAIN = CONFIG["AESPORT_DOMAIN"]  # domain worker
 DOMAIN = CONFIG["DOMAIN"]
 AESPORT_WORKER_TEMPLATE2 = CONFIG["AESPORT_WORKER_TEMPLATE2"]
 AESPORT_LOGO = CONFIG["AESPORT_LOGO"]
@@ -21,13 +21,31 @@ AESPORT_TIMEOUT = CONFIG.get("AESPORT_TIMEOUT", 10)
 GROUP = CONFIG["GROUP"]
 
 AESPORT_HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120 Safari/537.36",
     "Referer": f"https://{DOMAIN}/",
-    "Origin": f"https://{DOMAIN}"
+    "Origin": f"https://{DOMAIN}",
+    "Accept": "text/html,application/xhtml+xml",
+    "Accept-Language": "en-US,en;q=0.9"
 }
 
 SESSION = requests.Session()
 SESSION.headers.update(AESPORT_HEADERS)
+
+# ==========================
+# 🌐 REQUEST (NO PROXY)
+# ==========================
+def safe_get(url):
+    try:
+        r = SESSION.get(url, timeout=AESPORT_TIMEOUT, verify=False)
+        if r.status_code == 200:
+            print(f"✅ OK {url}")
+            return r.text
+        else:
+            print(f"⚠️ Status {r.status_code} {url}")
+            return None
+    except Exception as e:
+        print(f"❌ Error {url}: {e}")
+        return None
 
 # ==========================
 # 📦 MODEL
@@ -44,27 +62,24 @@ class JetItem:
 # ==========================
 def parse_upcoming():
     print("📅 Mengambil upcoming...")
-    url = f"https://{AESPORT_DOMAIN}/upcoming.html"
-
-    r = SESSION.get(url, timeout=AESPORT_TIMEOUT, verify=False)
-    if r.status_code != 200:
-        print("❌ Gagal ambil upcoming")
+    url = f"https://{AESPORT_DOMAIN}/upcoming"
+    html = safe_get(url)
+    if not html:
         return []
 
-    soup = BeautifulSoup(r.text, "html.parser")
+    soup = BeautifulSoup(html, "html.parser")
     items = []
-    matches = soup.select('a[href^="/match/"]')
 
+    matches = soup.select('a[href^="/match/"]')
     print(f"🎯 Match ditemukan: {len(matches)}")
 
     for m in matches:
         try:
-            teams = m.select("p")
+            teams = [p.get_text(strip=True) for p in m.select("p") if p.get_text(strip=True)]
             if len(teams) < 2:
                 continue
 
-            home = teams[0].text.strip()
-            away = teams[1].text.strip()
+            home, away = teams[:2]
 
             time_tag = m.select_one("[data-match-time]")
             if not time_tag:
@@ -85,46 +100,56 @@ def parse_upcoming():
 
         except Exception as e:
             print("Parse error:", e)
-            continue
 
     return items
 
 # ==========================
-# 🔴 PLAYING
+# 🔴 LIVE
 # ==========================
 def parse_playing():
-    print("🔴 Mengambil playing (live now)...")
-    url = f"https://{AESPORT_DOMAIN}/playing.html"
-
-    r = SESSION.get(url, timeout=AESPORT_TIMEOUT, verify=False)
-    if r.status_code != 200:
-        print("❌ Gagal ambil playing")
+    print("🔴 Mengambil playing...")
+    url = f"https://{AESPORT_DOMAIN}/live-now"
+    html = safe_get(url)
+    if not html:
         return []
 
-    soup = BeautifulSoup(r.text, "html.parser")
+    soup = BeautifulSoup(html, "html.parser")
     items = []
+
     matches = soup.select('a[href^="/match/"]')
 
     print(f"🎯 LIVE ditemukan: {len(matches)}")
 
     for m in matches:
         try:
-            teams = m.select("p")
-            if len(teams) < 2:
+            spans = m.select("span")
+            names = []
+
+            for s in spans:
+                text = s.get_text(strip=True)
+
+                # Filter teks yang bukan nama tim
+                if any(char.isdigit() for char in text):
+                    continue
+                if "–" in text:
+                    continue
+                if len(text) < 4:
+                    continue
+                if text.lower() in ["live", "vs"]:
+                    continue
+
+                names.append(text)
+
+            # Ambil hanya 2 nama pertama
+            if len(names) < 2:
                 continue
 
-            home = teams[0].text.strip()
-            away = teams[1].text.strip()
-
-            time_tag = m.select_one("[data-match-time]")
-            if time_tag:
-                utc_time = time_tag.get("data-utc")
-                dt = datetime.fromisoformat(utc_time.replace("Z", "+00:00"))
-                dt = dt.astimezone(ZoneInfo("Asia/Jakarta"))
-            else:
-                dt = datetime.now(ZoneInfo("Asia/Jakarta"))
+            home = names[0]
+            away = names[1]
 
             slug = m.get("href").split("/")[-1]
+
+            dt = datetime.now(ZoneInfo("Asia/Jakarta"))
 
             items.append(JetItem(
                 f"{home} vs {away}",
@@ -135,12 +160,11 @@ def parse_playing():
 
         except Exception as e:
             print("Parse error:", e)
-            continue
 
     return items
 
 # ==========================
-# 🎯 MAIN MATCH COLLECTOR
+# 🎯 COMBINE
 # ==========================
 def get_aesport_matches():
     upcoming_items = parse_upcoming()
@@ -151,18 +175,15 @@ def get_aesport_matches():
 
     all_items = playing_items + upcoming_items
 
-    unique = {}
-    for item in all_items:
-        unique[item.slug] = item
+    # unik berdasarkan slug
+    unique = {item.slug: item for item in all_items}
 
     outputs = []
 
     for item in unique.values():
-        waktu = item.starttime.astimezone(
-            ZoneInfo("Asia/Jakarta")
-        ).strftime("%d/%m-%H.%M")
-
+        waktu = item.starttime.strftime("%d/%m-%H.%M")
         nama = f"{waktu} {item.title}"
+
         stream_url = AESPORT_WORKER_TEMPLATE2.format(slug=item.slug)
 
         outputs.append("\n".join([
@@ -181,10 +202,11 @@ def main():
     matches = get_aesport_matches()
 
     if not matches:
-        print("⚠️ Tidak ada match ditemukan.")
+        print("⚠️ Tidak ada match ditemukan, skip generate file.")
         return
 
     outfile = Path("matama2.m3u")
+
     with open(outfile, "w", encoding="utf-8") as f:
         f.write("#EXTM3U\n")
         f.write("\n".join(matches))
