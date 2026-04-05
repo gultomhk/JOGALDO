@@ -1,5 +1,5 @@
 from zoneinfo import ZoneInfo
-from datetime import datetime
+from datetime import datetime, timedelta, date
 from pathlib import Path
 import requests
 from bs4 import BeautifulSoup
@@ -26,9 +26,6 @@ AESPORT_HEADERS = {
     "Origin": f"https://{DOMAIN}"
 }
 
-SESSION = requests.Session()
-SESSION.headers.update(AESPORT_HEADERS)
-
 # ==========================
 # 📦 MODEL
 # ==========================
@@ -40,51 +37,107 @@ class JetItem:
         self.starttime = starttime
 
 # ==========================
+# 🌐 SIMPLE REQUEST (NO PROXY)
+# ==========================
+def safe_get(url):
+    try:
+        r = requests.get(
+            url,
+            headers=AESPORT_HEADERS,
+            timeout=AESPORT_TIMEOUT,
+            verify=False
+        )
+        r.raise_for_status()
+        print(f"✅ OK: {url}")
+        return r.text
+    except Exception as e:
+        print(f"❌ Gagal ambil {url}: {e}")
+        return None
+
+# ==========================
+# 📺 FIXTURE
+# ==========================
+def parse_fixture():
+    print("📺 Mengambil fixture...")
+    url = f"https://{AESPORT_DOMAIN}/fixture/all.html"
+    html = safe_get(url)
+    if not html:
+        return []
+
+    soup = BeautifulSoup(html, "html.parser")
+    items = []
+    max_date = datetime.now(ZoneInfo("Asia/Jakarta")) + timedelta(days=2)
+
+    for game in soup.select("div.fixture-page-item"):
+        try:
+            left = game.select_one("span.name-team-left")
+            right = game.select_one("span.name-team-right")
+            timeTag = game.select_one(".time-format")
+            link = game.select_one("a[href*='/live/']")
+
+            if not (left and right and timeTag and link):
+                continue
+
+            ts = int(timeTag["data-time"]) // 1000
+            dt = datetime.fromtimestamp(ts, tz=ZoneInfo("Asia/Jakarta"))
+
+            if dt > max_date:
+                continue
+
+            slug = link.get("href").split("/")[-1].replace(".html", "")
+            leagueTag = game.select_one("div.tournament")
+
+            items.append(
+                JetItem(
+                    f"{left.text.strip()} vs {right.text.strip()}",
+                    slug,
+                    leagueTag.text.strip() if leagueTag else "",
+                    dt
+                )
+            )
+        except Exception:
+            continue
+
+    return items
+
+# ==========================
 # 📅 UPCOMING
 # ==========================
 def parse_upcoming():
     print("📅 Mengambil upcoming...")
     url = f"https://{AESPORT_DOMAIN}/upcoming.html"
-
-    r = SESSION.get(url, timeout=AESPORT_TIMEOUT, verify=False)
-    if r.status_code != 200:
-        print("❌ Gagal ambil upcoming")
+    html = safe_get(url)
+    if not html:
         return []
 
-    soup = BeautifulSoup(r.text, "html.parser")
+    soup = BeautifulSoup(html, "html.parser")
     items = []
-    matches = soup.select('a[href^="/match/"]')
 
-    print(f"🎯 Match ditemukan: {len(matches)}")
-
-    for m in matches:
+    for match in soup.select("div.row-item-match"):
         try:
-            teams = m.select("p")
-            if len(teams) < 2:
+            left = match.select_one("span.name-team-left")
+            right = match.select_one("span.name-team-right")
+            timeTag = match.select_one(".time-format")
+            link = match.select_one("a.btn-watch")
+
+            if not (left and right and timeTag and link):
                 continue
 
-            home = teams[0].text.strip()
-            away = teams[1].text.strip()
+            ts = int(timeTag["data-time"]) // 1000
+            dt = datetime.fromtimestamp(ts, tz=ZoneInfo("Asia/Jakarta"))
 
-            time_tag = m.select_one("[data-match-time]")
-            if not time_tag:
-                continue
+            slug = link.get("href").split("/")[-1].replace(".html", "")
+            leagueTag = match.select_one("p.tour-name")
 
-            utc_time = time_tag.get("data-utc")
-            dt = datetime.fromisoformat(utc_time.replace("Z", "+00:00"))
-            dt = dt.astimezone(ZoneInfo("Asia/Jakarta"))
-
-            slug = m.get("href").split("/")[-1]
-
-            items.append(JetItem(
-                f"{home} vs {away}",
-                slug,
-                "",
-                dt
-            ))
-
-        except Exception as e:
-            print("Parse error:", e)
+            items.append(
+                JetItem(
+                    f"{left.text.strip()} vs {right.text.strip()}",
+                    slug,
+                    leagueTag.text.strip() if leagueTag else "",
+                    dt
+                )
+            )
+        except Exception:
             continue
 
     return items
@@ -95,46 +148,42 @@ def parse_upcoming():
 def parse_playing():
     print("🔴 Mengambil playing (live now)...")
     url = f"https://{AESPORT_DOMAIN}/playing.html"
-
-    r = SESSION.get(url, timeout=AESPORT_TIMEOUT, verify=False)
-    if r.status_code != 200:
-        print("❌ Gagal ambil playing")
+    html = safe_get(url)
+    if not html:
         return []
 
-    soup = BeautifulSoup(r.text, "html.parser")
+    soup = BeautifulSoup(html, "html.parser")
     items = []
-    matches = soup.select('a[href^="/match/"]')
 
-    print(f"🎯 LIVE ditemukan: {len(matches)}")
-
-    for m in matches:
+    for match in soup.select("div.row-item-match, div.fixture-page-item"):
         try:
-            teams = m.select("p")
-            if len(teams) < 2:
+            left = match.select_one("span.name-team-left")
+            right = match.select_one("span.name-team-right")
+            link = match.select_one("a[href*='/live/']")
+
+            if not (left and right and link):
                 continue
 
-            home = teams[0].text.strip()
-            away = teams[1].text.strip()
+            slug = link.get("href").split("/")[-1].replace(".html", "")
 
-            time_tag = m.select_one("[data-match-time]")
-            if time_tag:
-                utc_time = time_tag.get("data-utc")
-                dt = datetime.fromisoformat(utc_time.replace("Z", "+00:00"))
-                dt = dt.astimezone(ZoneInfo("Asia/Jakarta"))
+            timeTag = match.select_one(".time-format")
+            if timeTag and timeTag.has_attr("data-time"):
+                ts = int(timeTag["data-time"]) // 1000
+                dt = datetime.fromtimestamp(ts, tz=ZoneInfo("Asia/Jakarta"))
             else:
                 dt = datetime.now(ZoneInfo("Asia/Jakarta"))
 
-            slug = m.get("href").split("/")[-1]
+            leagueTag = match.select_one("p.tour-name, div.tournament")
 
-            items.append(JetItem(
-                f"{home} vs {away}",
-                slug,
-                "LIVE",
-                dt
-            ))
-
-        except Exception as e:
-            print("Parse error:", e)
+            items.append(
+                JetItem(
+                    f"{left.text.strip()} vs {right.text.strip()}",
+                    slug,
+                    leagueTag.text.strip() if leagueTag else "LIVE",
+                    dt
+                )
+            )
+        except Exception:
             continue
 
     return items
@@ -143,20 +192,23 @@ def parse_playing():
 # 🎯 MAIN MATCH COLLECTOR
 # ==========================
 def get_aesport_matches():
+    fixture_items = parse_fixture()
     upcoming_items = parse_upcoming()
     playing_items = parse_playing()
 
-    print("DEBUG upcoming:", len(upcoming_items))
-    print("DEBUG playing:", len(playing_items))
+    today_items = [
+        i for i in fixture_items
+        if i.starttime.date() == date.today()
+    ]
 
-    all_items = playing_items + upcoming_items
+    all_items = playing_items + today_items + upcoming_items
 
+    # 🚨 Remove duplicate slug
     unique = {}
     for item in all_items:
         unique[item.slug] = item
 
     outputs = []
-
     for item in unique.values():
         waktu = item.starttime.astimezone(
             ZoneInfo("Asia/Jakarta")
@@ -165,26 +217,29 @@ def get_aesport_matches():
         nama = f"{waktu} {item.title}"
         stream_url = AESPORT_WORKER_TEMPLATE2.format(slug=item.slug)
 
-        outputs.append("\n".join([
+        line = [
             f'#EXTINF:-1 tvg-logo="{AESPORT_LOGO}" group-title="{GROUP}",{nama}',
             f'#EXTVLCOPT:http-user-agent={AESPORT_HEADERS["User-Agent"]}',
             f'#EXTVLCOPT:http-referrer={AESPORT_HEADERS["Referer"]}',
             stream_url
-        ]))
+        ]
+
+        outputs.append("\n".join(line))
 
     return outputs
 
 # ==========================
-# 📝 MAIN
+# 📝 GENERATE M3U
 # ==========================
 def main():
     matches = get_aesport_matches()
 
     if not matches:
-        print("⚠️ Tidak ada match ditemukan.")
+        print("⚠️ Tidak ada match ditemukan, skip generate file.")
         return
 
     outfile = Path("matama.m3u")
+
     with open(outfile, "w", encoding="utf-8") as f:
         f.write("#EXTM3U\n")
         f.write("\n".join(matches))
