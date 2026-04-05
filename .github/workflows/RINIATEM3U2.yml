@@ -1,0 +1,62 @@
+name: 🔄 Generate m3u RINIATE2 setiap jam
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate-m3u:
+    runs-on: ubuntu-latest
+    steps:
+      - name: ⬇️ Checkout repo publik ini
+        uses: actions/checkout@v3
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: 📁 Ambil file konfigurasi dari repo privat
+        shell: bash
+        run: |
+          git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} configrepo
+          cp configrepo/aebabami2_file.txt $HOME/aebabami2_file.txt
+
+      - name: 📦 Install dependensi
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests beautifulsoup4 pytz
+
+      - name: 🚀 Jalankan script Python
+        run: python RINIATEM3U2.py
+
+      - name: 📤 Push output ke repo privat jika ada perubahan
+        shell: bash
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+
+          git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} repo-output
+
+          # 🚫 Skip kalau matama2.m3u kosong
+          if [ ! -f matama2.m3u ] || ! grep -q "#EXTINF" matama2.m3u; then
+            echo "⚠️ matama2.m3u tidak ada channel valid, skip push dan file lama aman."
+            exit 0
+          fi
+
+          # ✅ Hanya copy kalau ada isi
+          cp matama2.m3u repo-output/
+
+          cd repo-output
+          git add matama2.m3u
+
+          if git diff --cached --quiet; then
+            echo "✅ Tidak ada perubahan pada matama2.m3u, skip push."
+          else
+            git commit -m "🔄 auto: update matama2.m3u"
+            git push
+          fi
