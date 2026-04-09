@@ -10,8 +10,13 @@ MAPPING_FILE = Path.home() / "cool_mapping.txt"
 CACHE_FILE = Path("proxy_cache.txt")
 FAILED_FILE = Path("proxy_failed.txt")
 
+
+# ===============================
+# PARSE MAPPING (SUPPORT MULTI STREAM)
+# ===============================
 def parse_mapping_file(path):
     headers, mapping, default, constants = {}, {}, {}, {}
+
     with open(path) as f:
         for line in f:
             line = line.strip()
@@ -26,7 +31,6 @@ def parse_mapping_file(path):
                 k, v = line.split("=", 1)
                 default[k.split("default.")[1]] = v
 
-            # ✅ MAPPING ID HARUS DI ATAS
             elif any(x in line for x in [
                 ".type", ".url", ".license",
                 ".user-agent", ".referer", ".license_type"
@@ -34,15 +38,29 @@ def parse_mapping_file(path):
                 k, v = line.split("=", 1)
                 if "." in k:
                     id_part, prop = k.split(".", 1)
-                    mapping.setdefault(id_part.strip(), {})[prop.strip()] = v.strip()
 
-            # ✅ BARU CONSTANTS
+                    id_part = id_part.strip()
+                    prop = prop.strip()
+                    v = v.strip()
+
+                    mapping.setdefault(id_part, [])
+
+                    # bikin entry baru kalau belum ada atau ketemu type baru
+                    if not mapping[id_part] or prop == "type":
+                        mapping[id_part].append({})
+
+                    mapping[id_part][-1][prop] = v
+
             elif "=" in line:
                 k, v = line.split("=", 1)
                 constants[k.strip()] = v.strip()
 
     return headers, constants, mapping, default
 
+
+# ===============================
+# PROXY
+# ===============================
 def get_proxy_list(url):
     try:
         res = requests.get(url, timeout=10)
@@ -51,6 +69,7 @@ def get_proxy_list(url):
     except Exception as e:
         print(f"[!] Gagal ambil proxy list: {e}", file=sys.stderr)
         return []
+
 
 def try_proxy(api_url, proxy, headers):
     proxies = {"http": proxy, "https": proxy}
@@ -63,16 +82,23 @@ def try_proxy(api_url, proxy, headers):
         print(f"[×] Proxy gagal: {proxy} → {e}", file=sys.stderr)
         return None
 
+
 def simpan_cache_berhasil(proxy):
     CACHE_FILE.write_text(proxy)
     print(f"[✓] Proxy disimpan ke cache: {proxy}", file=sys.stderr)
+
 
 def simpan_cache_gagal(proxy):
     with FAILED_FILE.open("a") as f:
         f.write(proxy + "\n")
 
+
+# ===============================
+# OUTPUT PLAYLIST (MULTI STREAM)
+# ===============================
 def tampilkan_playlist(data, constants, mapping, default):
     print("#EXTM3U")
+
     for item in data.get("included", []):
         if not isinstance(item, dict):
             continue
@@ -97,56 +123,61 @@ def tampilkan_playlist(data, constants, mapping, default):
         except Exception:
             waktu = "JADWAL"
 
-        print(f'#EXTINF:-1 tvg-logo="{logo}" group-title="⚽️| LIVE EVENT", {waktu} {title}')
-
         # =============================
-        # PRIORITAS USER-AGENT
-        # 1. mapping[id].user-agent
-        # 2. default.user-agent
+        # USER-AGENT PRIORITY
         # =============================
-        ua = None
+        ua = default.get("user-agent")
         ref = None
 
         if livestreaming_id in mapping:
-            stream = mapping[livestreaming_id]
-            ua = stream.get("user-agent")
-            ref = stream.get("referer")
-
-        if not ua:
-            ua = default.get("user-agent")
-
-        if ua:
-            print(f'#EXTVLCOPT:http-user-agent={ua}')
-        if ref:
-            print(f'#EXTVLCOPT:http-referrer={ref}')
+            first_stream = mapping[livestreaming_id][0]
+            ua = first_stream.get("user-agent") or ua
+            ref = first_stream.get("referer")
 
         # =============================
-        # STREAM HANDLING
+        # MULTI STREAM OUTPUT
         # =============================
         if livestreaming_id in mapping:
-            stream = mapping[livestreaming_id]
-            license_type = stream.get("license_type", "com.widevine.alpha")
-            license_key = stream.get("license", "").replace("{id}", livestreaming_id)
-            stream_url = stream.get("url", "").replace("{id}", livestreaming_id)
-            manifest_type = "dash" if stream.get("type") == "dash" else "hls"
+            streams = mapping[livestreaming_id]
 
-            print(f'#KODIPROP:inputstream.adaptive.manifest_type={manifest_type}')
-            print(f'#KODIPROP:inputstream.adaptive.license_type={license_type}')
-            print(f'#KODIPROP:inputstream.adaptive.license_key={license_key}')
-            print(stream_url)
+            for stream in streams:
+                license_type = stream.get("license_type", "com.widevine.alpha")
+                license_key = stream.get("license", "").replace("{id}", livestreaming_id)
+                stream_url = stream.get("url", "").replace("{id}", livestreaming_id)
+                manifest_type = "dash" if stream.get("type") == "dash" else "hls"
+
+                label = f" [{manifest_type.upper()}]" if len(streams) > 1 else ""
+
+                print(f'#EXTINF:-1 tvg-logo="{logo}" group-title="⚽️| LIVE EVENT",{waktu} {title}{label}')
+
+                if ua:
+                    print(f'#EXTVLCOPT:http-user-agent={ua}')
+                if ref:
+                    print(f'#EXTVLCOPT:http-referrer={ref}')
+
+                print(f'#KODIPROP:inputstream.adaptive.manifest_type={manifest_type}')
+                print(f'#KODIPROP:inputstream.adaptive.license_type={license_type}')
+                print(f'#KODIPROP:inputstream.adaptive.license_key={license_key}')
+                print(stream_url)
+                print()
 
         else:
+            # fallback default
             license_key = default.get("license", "").replace("{id}", livestreaming_id)
             dash_url = default.get("url", "").replace("{id}", livestreaming_id)
 
+            print(f'#EXTINF:-1 tvg-logo="{logo}" group-title="⚽️| LIVE EVENT",{waktu} {title}')
             print('#KODIPROP:inputstreamaddon=inputstream.adaptive')
             print('#KODIPROP:inputstream.adaptive.manifest_type=dash')
             print('#KODIPROP:inputstream.adaptive.license_type=com.widevine.alpha')
             print(f'#KODIPROP:inputstream.adaptive.license_key={license_key}')
             print(dash_url)
+            print()
 
-        print()
 
+# ===============================
+# MAIN
+# ===============================
 def main():
     headers, constants, mapping, default = parse_mapping_file(MAPPING_FILE)
     proxy_url = constants.get("PROXY_LIST_URL")
@@ -174,17 +205,21 @@ def main():
     for proxy in proxies:
         if proxy in tried:
             continue
+
         data = try_proxy(api_url, proxy, headers)
+
         if data:
             simpan_cache_berhasil(proxy)
             tampilkan_playlist(data, constants, mapping, default)
             return 0
+
         simpan_cache_gagal(proxy)
         tried.add(proxy)
         time.sleep(1)
 
     print("❌ Semua proxy gagal.", file=sys.stderr)
     return 1
+
 
 if __name__ == "__main__":
     sys.exit(main())
