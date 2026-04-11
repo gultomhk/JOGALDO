@@ -167,6 +167,10 @@ def tampilkan_playlist(data, constants, mapping, default):
             dash_url = default.get("url", "").replace("{id}", livestreaming_id)
 
             print(f'#EXTINF:-1 tvg-logo="{logo}" group-title="⚽️| LIVE EVENT",{waktu} {title}')
+            if ua:
+                print(f'#EXTVLCOPT:http-user-agent={ua}')
+            if ref:
+                print(f'#EXTVLCOPT:http-referrer={ref}')
             print('#KODIPROP:inputstreamaddon=inputstream.adaptive')
             print('#KODIPROP:inputstream.adaptive.manifest_type=dash')
             print('#KODIPROP:inputstream.adaptive.license_type=com.widevine.alpha')
