@@ -190,6 +190,7 @@ def get_aesport_matches():
             f'#EXTINF:-1 tvg-logo="{AESPORT_LOGO}" group-title="{GROUP}",{nama}',
             f'#EXTVLCOPT:http-user-agent={AESPORT_HEADERS["User-Agent"]}',
             f'#EXTVLCOPT:http-referrer={AESPORT_HEADERS["Referer"]}',
+            f'#EXTVLCOPT:http-origin={AESPORT_HEADERS["Origin"]}',
             stream_url
         ]))
 
