@@ -180,18 +180,26 @@ def get_aesport_matches():
 
     outputs = []
 
+    # 🔥 Pakai UA mobile biar lebih tembus CDN
+    UA_MOBILE = "Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1"
+
     for item in unique.values():
         waktu = item.starttime.strftime("%d/%m-%H.%M")
         nama = f"{waktu} {item.title}"
 
         stream_url = AESPORT_WORKER_TEMPLATE2.format(slug=item.slug)
 
+        # ✅ format final pakai pipe
+        final_url = (
+            f"{stream_url}"
+            f"|referer={AESPORT_HEADERS['Referer']}"
+            f"&origin={AESPORT_HEADERS['Origin']}"
+            f"&user-agent={UA_MOBILE}"
+        )
+
         outputs.append("\n".join([
             f'#EXTINF:-1 tvg-logo="{AESPORT_LOGO}" group-title="{GROUP}",{nama}',
-            f'#EXTVLCOPT:http-user-agent={AESPORT_HEADERS["User-Agent"]}',
-            f'#EXTVLCOPT:http-referrer={AESPORT_HEADERS["Referer"]}',
-            f'#EXTVLCOPT:http-origin={AESPORT_HEADERS["Origin"]}',
-            stream_url
+            final_url
         ]))
 
     return outputs
