@@ -1,12 +1,10 @@
 import requests
 from bs4 import BeautifulSoup
 import re
-from deep_translator import GoogleTranslator
 from pathlib import Path
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin, urlparse, quote
 import urllib3
 
-# Disable SSL warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # ====== Load konfigurasi ======
@@ -26,7 +24,7 @@ LOGO_URL      = clean_value(config_globals.get("LOGO_URL"))
 MY_WEBSITE    = clean_value(config_globals.get("MY_WEBSITE"))
 CF_CLEARANCE  = clean_value(config_globals.get("CF_CLEARANCE"))
 
-# Session dengan bypass Cloudflare
+# ====== SESSION ======
 session = requests.Session()
 session.verify = False
 session.headers.update({
@@ -36,21 +34,34 @@ session.headers.update({
 })
 session.cookies.set("cf_clearance", CF_CLEARANCE)
 
-translator = GoogleTranslator(source="vi", target="en")
+# ====== PROXY GET (opsional tapi aman) ======
+def proxied_get(url):
+    return session.get(url, timeout=10)
 
-# ====== Ambil halaman utama ======
-print("🌐 Mengambil halaman utama (dengan bypass Cloudflare)...")
+# ====== TRANSLATE FUNCTION (PUNYAMU - FIXED) ======
+def translate(text):
+    if not text:
+        return text
+    try:
+        url = (
+            "https://translate.googleapis.com/translate_a/single"
+            f"?client=gtx&sl=vi&tl=en&dt=t&q={quote(text)}"
+        )
+        data = proxied_get(url).json()
+        return data[0][0][0]
+    except:
+        return text
+
+# ====== MAIN PAGE ======
+print("🌐 Mengambil halaman utama...")
 resp = session.get(BASE_URL, timeout=15)
 resp.raise_for_status()
 soup = BeautifulSoup(resp.text, "html.parser")
 
-
-# ====== Fungsi bantu ======
+# ====== HELPERS ======
 def extract_slug(url):
-
-    if url.startswith("http://") or url.startswith("https://"):
-        parsed = urlparse(url)
-        return parsed.path.lstrip("/")
+    if url.startswith("http"):
+        return urlparse(url).path.lstrip("/")
     return url.lstrip("/")
 
 def parse_time_from_slug(slug: str):
@@ -60,49 +71,38 @@ def parse_time_from_slug(slug: str):
         return f"{int(d):02d}/{int(mo):02d}-{int(h):02d}.{mm}"
     return "??/??-??.??"
 
+def clean_text(text):
+    text = text.replace(",", "")
+    text = text.replace(":", "")
+    text = re.sub(r"\s{2,}", " ", text)
+    return text.strip()
 
 def clean_parentheses(text: str):
     def repl(m):
-        inner = m.group(1)
-        inner = inner.replace(",", "")                # ❌ hapus koma
-        inner = inner.replace(":", "")                # ❌ hapus titik dua sekalian
-        inner = re.sub(r"\s{2,}", " ", inner)         # rapikan spasi
-        return f"({inner.strip()})"
+        inner = clean_text(m.group(1))
+        return f"({inner})"
     return re.sub(r"\((.*?)\)", repl, text)
 
-
 def parse_title_from_slug(slug: str):
-    # =========================
-    # BASE TITLE
-    # =========================
     title_part = re.sub(r"^truc-tiep[-/]*", "", slug)
     title_part = re.sub(r"-luc-\d{3,4}-ngay-\d{1,2}-\d{1,2}-\d{4}$", "", title_part)
     title_part = re.sub(r"[-_/]+", " ", title_part).strip()
+    title_part = clean_text(title_part)
 
-    # rapikan spasi awal
-    title_part = re.sub(r"\s{2,}", " ", title_part)
+    # ===== TRANSLATE =====
+    translated = translate(title_part)
 
-    try:
-        translated = translator.translate(title_part)
-
-        # 🔥 CLEAN TRANSLATION
-        translated = translated.replace(",", "")
-        translated = translated.replace(":", "")
-        translated = re.sub(r"\s{2,}", " ", translated).strip()
-
+    # hindari hasil aneh (kadang sama persis)
+    if translated and translated.lower() != title_part.lower():
+        translated = clean_text(translated)
         full_title = f"{title_part} ({translated})"
-
-    except Exception:
+    else:
         full_title = title_part
 
-    # 🔥 FINAL CLEAN (antisipasi semua kasus)
     full_title = clean_parentheses(full_title)
-    full_title = re.sub(r"\s{3,}", "  ", full_title).strip()
-
     return full_title
 
-
-# ====== Mulai proses tab ======
+# ====== PROCESS ======
 output_lines = ["#EXTM3U"]
 seen_full_slugs = set()
 
@@ -112,7 +112,7 @@ for tab_id in TABS:
         print(f"⚠️ Tab '{tab_id}' tidak ditemukan.")
         continue
 
-    print(f"✅ Memproses tab '{tab_id}' ...")
+    print(f"✅ Tab '{tab_id}'")
 
     for a in tab_section.select("a[href*='/truc-tiep/']"):
         href_main = a.get("href")
@@ -120,22 +120,18 @@ for tab_id in TABS:
             continue
 
         full_main_url = urljoin(BASE_URL, href_main)
-        slug_main = extract_slug(href_main)
 
         try:
             page = session.get(full_main_url, timeout=15)
             page.raise_for_status()
         except Exception as e:
-            print(f"❌ Gagal load halaman {full_main_url}: {e}")
+            print(f"❌ Gagal: {e}")
             continue
 
         detail = BeautifulSoup(page.text, "html.parser")
+        tv_links = detail.select("div#tv_links a.player-link") or [{"href": href_main}]
 
-        tv_links = detail.select("div#tv_links a.player-link")
-        if not tv_links:
-            tv_links = [{"href": href_main}]
-
-        print(f"🎬 Ditemukan {len(tv_links)} player pada {full_main_url}")
+        print(f"🎬 {len(tv_links)} player")
 
         for idx, pl in enumerate(tv_links):
             href_player = pl["href"] if isinstance(pl, dict) else pl.get("href")
@@ -148,15 +144,9 @@ for tab_id in TABS:
                 continue
             seen_full_slugs.add(slug_full)
 
-            # =========================
-            # PARSE
-            # =========================
             match_time = parse_time_from_slug(slug_full)
             title = parse_title_from_slug(slug_full)
 
-            # =========================
-            # URL Worker
-            # =========================
             if "?slug=" in MY_WEBSITE:
                 final_url = f"{MY_WEBSITE}{slug_full}"
             else:
@@ -164,9 +154,6 @@ for tab_id in TABS:
 
             label = (pl.get_text(strip=True) if not isinstance(pl, dict) else "") or f"Server {idx+1}"
 
-            # =========================
-            # OUTPUT
-            # =========================
             output_lines.append(
                 f'#EXTINF:-1 group-title="⚽️| LIVE EVENT" tvg-logo="{LOGO_URL}",{match_time} {title} [{label}]'
             )
@@ -174,9 +161,9 @@ for tab_id in TABS:
             output_lines.append(f"#EXTVLCOPT:http-referrer={REFERRER}")
             output_lines.append(final_url)
 
-# ====== Simpan ke file ======
+# ====== SAVE ======
 filename = "Keongphut_sport.m3u"
 with open(filename, "w", encoding="utf-8") as f:
     f.write("\n".join(output_lines) + "\n")
 
-print(f"\n✅ File M3U berhasil disimpan: {filename}")
+print(f"\n✅ Selesai: {filename}")
