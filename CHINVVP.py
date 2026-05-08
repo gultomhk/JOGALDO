@@ -1,8 +1,10 @@
 import requests
-import json
-import asyncio
+import random
+import sys
+import urllib3
 from pathlib import Path
-from playwright.async_api import async_playwright, TimeoutError
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # ==========================
 # KONFIGURASI
@@ -10,129 +12,181 @@ from playwright.async_api import async_playwright, TimeoutError
 cvvpdata_FILE = Path.home() / "cvvpdata_file.txt"
 config_vars = {}
 
-with open(cvvpdata_FILE, "r", encoding="utf-8") as f:
-    code = f.read()
-    exec(code, config_vars)
+try:
+    with open(cvvpdata_FILE, "r", encoding="utf-8") as f:
+        code = f.read()
+        exec(code, config_vars)
 
-PPV_API_URL = config_vars.get("PPV_API_URL")
-OUTPUT_FILE = Path("map8.json")
+except Exception as e:
+    print(f"[!] Gagal membaca config: {e}")
+    sys.exit()
 
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-    "Accept": "application/json"
-}
+API_URL = config_vars.get("API_URL")
+PROXY_LIST_URL = config_vars.get("PROXY_LIST_URL")
 
-# ============================================================
-# Ambil semua iframe dari PPV API
-# ============================================================
-def get_all_iframes():
-    print("📺 Mengambil event dari PPV.to...")
+if not API_URL:
+    print("[!] API_URL tidak ditemukan di config")
+    sys.exit()
 
-    r = requests.get(PPV_API_URL, headers=HEADERS, timeout=20)
-    r.raise_for_status()
+if not PROXY_LIST_URL:
+    print("[!] PROXY_LIST_URL tidak ditemukan di config")
+    sys.exit()
 
-    results = []
-    data = r.json()
-
-    for cat in data.get("streams", []):
-        for stream in cat.get("streams", []):
-            iframe = stream.get("iframe")
-            if iframe:
-                results.append(iframe)
-
-    print(f"✅ Total iframe ditemukan: {len(results)}")
-    return results
-
-
-# ============================================================
-# Resolver SINGLE (gunakan browser yang sama)
-# ============================================================
-async def resolve_single(browser, url):
-    context = await browser.new_context(
-        user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                   "AppleWebKit/537.36 (KHTML, like Gecko) "
-                   "Chrome/120.0.0.0 Safari/537.36"
-    )
-    page = await context.new_page()
-
-    await page.add_init_script("""
-    Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
-    """)
-
-    found = None
-
-    def on_request(req):
-        nonlocal found
-        if ".m3u8" in req.url:
-            found = req.url
-
-    page.on("request", on_request)
-
+# ===============================
+# AMBIL LIST PROXY
+# ===============================
+def get_proxy_list(url):
     try:
-        await page.goto(url, timeout=0)
-    except:
-        pass
+        print("[*] Mengambil proxy list...")
 
-    for _ in range(60):
-        if found:
-            break
-        await asyncio.sleep(0.5)
+        res = requests.get(url, timeout=15)
+        res.raise_for_status()
 
-    await context.close()
-    return found
+        proxies = res.text.strip().splitlines()
+
+        print(f"[✓] Total proxy: {len(proxies)}")
+
+        return proxies
+
+    except Exception as e:
+        print(f"[!] Gagal ambil proxy list: {e}")
+        return []
 
 
-# ============================================================
-# Resolver TANPA PARALEL (SEQUENTIAL)
-# ============================================================
-async def resolve_all(iframes):
-    results = {}
-    print("🚀 Resolving semua iframe (NON-PARALEL)...")
+# ===============================
+# FETCH PLAYLIST VIA PROXY
+# ===============================
+def fetch_with_proxy(url, proxies_list):
 
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(
-            executable_path="/usr/bin/google-chrome",
-            headless=True,
-            args=[
-                "--disable-gpu-sandbox",
-                "--disable-setuid-sandbox",
-                "--disable-blink-features=AutomationControlled",
-                "--disable-web-security",
-                "--disable-infobars",
-                "--ignore-certificate-errors",
-                "--use-gl=swiftshader",
-                "--no-sandbox",
-                "--window-size=1280,720",
-            ]
+    headers = {
+        "User-Agent": "Mozilla/5.0"
+    }
+
+    for proxy in proxies_list:
+
+        proxy = proxy.strip()
+
+        if not proxy:
+            continue
+
+        if not proxy.startswith("http"):
+            proxy = "http://" + proxy
+
+        proxies = {
+            "http": proxy,
+            "https": proxy
+        }
+
+        try:
+            print(f"[+] Coba proxy: {proxy}")
+
+            res = requests.get(
+                url,
+                headers=headers,
+                proxies=proxies,
+                timeout=20,
+                verify=False,
+                allow_redirects=True
+            )
+
+            # validasi playlist
+            if (
+                res.status_code == 200
+                and "#EXTM3U" in res.text
+            ):
+
+                print(f"[✓] Berhasil pakai proxy: {proxy}")
+
+                return res.text
+
+            else:
+                print(f"[x] Bukan playlist valid")
+
+        except Exception as e:
+            print(f"[x] Proxy gagal: {proxy} -> {e}")
+
+    return None
+
+
+# ===============================
+# AMBIL PROXY
+# ===============================
+proxy_list = get_proxy_list(PROXY_LIST_URL)
+
+if not proxy_list:
+    print("[!] Proxy kosong")
+    sys.exit()
+
+random.shuffle(proxy_list)
+
+# ===============================
+# AMBIL PLAYLIST
+# ===============================
+playlist_text = fetch_with_proxy(API_URL, proxy_list)
+
+if not playlist_text:
+    print("[!] Semua proxy gagal")
+    sys.exit()
+
+# ===============================
+# PARSE PLAYLIST
+# ===============================
+lines = playlist_text.splitlines()
+
+output = []
+
+i = 0
+
+while i < len(lines):
+
+    line = lines[i].strip()
+
+    # filter CH CUBMU
+    if (
+        line.startswith("#EXTINF")
+        and 'group-title="CH CUBMU"' in line
+    ):
+
+        # ubah group-title
+        line = line.replace(
+            'group-title="CH CUBMU"',
+            'group-title="🧧|CH CUBMU"'
         )
 
-        total = len(iframes)
+        output.append(line)
 
-        for idx, iframe in enumerate(iframes, start=1):
-            print(f"\n[{idx}/{total}] ▶ {iframe}")
-            try:
-                m3u8 = await resolve_single(browser, iframe)
-                print("🔥 M3U8:", m3u8)
-                results[iframe] = m3u8
-            except Exception as e:
-                print("❌ ERROR:", e)
-                results[iframe] = None
+        j = i + 1
 
-        await browser.close()
+        while j < len(lines):
 
-    print("🎯 Semua selesai (NON-PARALEL).")
-    return results
+            next_line = lines[j].strip()
+
+            # stop jika channel baru
+            if next_line.startswith("#EXTINF"):
+                break
+
+            if next_line:
+                output.append(next_line)
+
+            # stop jika URL stream
+            if next_line.startswith("http"):
+                break
+
+            j += 1
+
+        output.append("")
+
+        i = j
+
+    i += 1
 
 
-# ============================================================
-# MAIN
-# ============================================================
-if __name__ == "__main__":
-    iframes = get_all_iframes()
+# ===============================
+# SIMPAN FILE
+# ===============================
+OUTPUT_FILE = "ZIGZAGO.m3u"
 
-    data = asyncio.run(resolve_all(iframes))
+with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+    f.write("\n".join(output))
 
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
-
-    print(f"\n💾 map8.json berhasil dibuat → {OUTPUT_FILE.absolute()}")
+print(f"✅ Berhasil simpan {OUTPUT_FILE}")
