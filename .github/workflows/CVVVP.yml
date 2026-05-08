@@ -2,6 +2,8 @@ name: Cvvp Auto Fetch
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '0 * * * *'  # Setiap 1 jam
 
 jobs:
   run-script:
@@ -20,53 +22,34 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install Google Chrome Stable
-        run: |
-          wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-          sudo apt-get install -y ./google-chrome-stable_current_amd64.deb
-
       - name: Install Python dependencies
         run: |
-          pip install requests
-
-      - name: Install system deps
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y xvfb
-
-      - name: Install Playwright
-        run: |
-          pip install playwright
-          python -m playwright install-deps
-          python -m playwright install chromium
-
-      - name: Start virtual display
-        run: |
-          export DISPLAY=:99
-          Xvfb :99 -ac -screen 0 1280x720x16 &
-          sleep 2
+          pip install requests urllib3
 
       - name: 📁 Ambil file konfigurasi dari repo privat
         run: |
           git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} configrepo
           cp configrepo/cvvpdata_file.txt $HOME/cvvpdata_file.txt
 
-      - name: ▶️ Jalankan script Python
+      - name: ▶️ Generate M3U
         run: |
           python CHINVVP.py
 
-      - name: 🚀 Commit & Push changes if any
+      - name: 📤 Push output ke repo privat jika ada perubahan
+        shell: bash
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
 
-          git add map8.json || true
+          git clone --depth=1 https://x-access-token:${{ secrets.TOKEN_PRIVATE }}@github.com/${{ secrets.REPO_PRIVATE }} repo-output
+          cp ZIGZAGO.m3u repo-output/
 
-          if git diff --staged --quiet; then
-            echo "✅ Tidak ada perubahan, skip push."
+          cd repo-output
+          git add ZIGZAGO.m3u
+
+          if git diff --cached --quiet; then
+            echo "✅ Tidak ada perubahan pada ZIGZAGO.m3u, skip push."
           else
-            git commit -m "🔄 Update map8.json [bot]"
-            git fetch origin master
-            git rebase origin/master || git rebase --abort
-            git push origin HEAD:master
+            git commit -m "🔄 auto: update ZIGZAGO.m3u"
+            git push
           fi
