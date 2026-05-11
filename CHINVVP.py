@@ -2,6 +2,7 @@ import requests
 import random
 import sys
 import urllib3
+import re
 from pathlib import Path
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -22,10 +23,15 @@ except Exception as e:
     sys.exit()
 
 API_URL = config_vars.get("API_URL")
+API_URL2 = config_vars.get("API_URL2")
 PROXY_LIST_URL = config_vars.get("PROXY_LIST_URL")
 
 if not API_URL:
     print("[!] API_URL tidak ditemukan di config")
+    sys.exit()
+
+if not API_URL2:
+    print("[!] API_URL2 tidak ditemukan di config")
     sys.exit()
 
 if not PROXY_LIST_URL:
@@ -109,6 +115,22 @@ def fetch_with_proxy(url, proxies_list):
 
 
 # ===============================
+# GANTI GROUP TITLE
+# ===============================
+def replace_group_title(content: str, new_group: str):
+
+    pattern = r'group-title="[^"]*"'
+
+    replaced = re.sub(
+        pattern,
+        f'group-title="{new_group}"',
+        content
+    )
+
+    return replaced
+
+
+# ===============================
 # AMBIL PROXY
 # ===============================
 proxy_list = get_proxy_list(PROXY_LIST_URL)
@@ -120,20 +142,19 @@ if not proxy_list:
 random.shuffle(proxy_list)
 
 # ===============================
-# AMBIL PLAYLIST
+# PLAYLIST 1 (FILTER CH CUBMU)
 # ===============================
+print("\n▶️ Mengambil playlist 1...")
+
 playlist_text = fetch_with_proxy(API_URL, proxy_list)
 
 if not playlist_text:
-    print("[!] Semua proxy gagal")
+    print("[!] Semua proxy gagal untuk playlist 1")
     sys.exit()
 
-# ===============================
-# PARSE PLAYLIST
-# ===============================
 lines = playlist_text.splitlines()
 
-output = []
+output1 = []
 
 i = 0
 
@@ -153,7 +174,7 @@ while i < len(lines):
             'group-title="🧧|CH CUBMU"'
         )
 
-        output.append(line)
+        output1.append(line)
 
         j = i + 1
 
@@ -166,7 +187,7 @@ while i < len(lines):
                 break
 
             if next_line:
-                output.append(next_line)
+                output1.append(next_line)
 
             # stop jika URL stream
             if next_line.startswith("http"):
@@ -174,12 +195,45 @@ while i < len(lines):
 
             j += 1
 
-        output.append("")
+        output1.append("")
 
         i = j
 
     i += 1
 
+# ===============================
+# PLAYLIST 2 (SEMUA GROUP DIGANTI)
+# ===============================
+print("\n▶️ Mengambil playlist 2...")
+
+playlist2_text = fetch_with_proxy(API_URL2, proxy_list)
+
+if not playlist2_text:
+    print("[!] Semua proxy gagal untuk playlist 2")
+    sys.exit()
+
+print("▶️ Mengganti semua group-title playlist 2...")
+
+modified_playlist2 = replace_group_title(
+    playlist2_text,
+    "🧧|CH CUBMU2"
+)
+
+# ===============================
+# GABUNGKAN OUTPUT
+# ===============================
+final_output = []
+
+# header
+final_output.append("#EXTM3U")
+final_output.append("")
+
+# playlist 1
+final_output.extend(output1)
+
+# playlist 2
+final_output.append("")
+final_output.append(modified_playlist2)
 
 # ===============================
 # SIMPAN FILE
@@ -187,6 +241,6 @@ while i < len(lines):
 OUTPUT_FILE = "ZIGZAGO.m3u"
 
 with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-    f.write("\n".join(output))
+    f.write("\n".join(final_output))
 
-print(f"✅ Berhasil simpan {OUTPUT_FILE}")
+print(f"\n✅ Berhasil simpan {OUTPUT_FILE}")
