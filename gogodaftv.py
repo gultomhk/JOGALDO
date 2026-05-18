@@ -4,7 +4,7 @@ from datetime import datetime, timezone, timedelta
 from deep_translator import GoogleTranslator
 from pathlib import Path
 from charset_normalizer import from_bytes
-from curl_cffi import requests
+from curl_cffi.requests.exceptions import RequestsError
 
 # ==========================
 # Timezone
@@ -168,7 +168,10 @@ async def fetch_html(url):
 
     proxy_list = get_proxy_list(PROXY_URL)
 
-    # coba cache dulu
+    # limit proxy biar tidak terlalu lama
+    proxy_list = proxy_list[:25]
+
+    # cache proxy berhasil
     if CACHE_FILE.exists():
 
         cached_proxy = CACHE_FILE.read_text().strip()
@@ -188,11 +191,11 @@ async def fetch_html(url):
         tested.add(proxy)
 
         try:
-            print(f"\n[•] Mencoba proxy: {proxy}")
+            print(f"[•] Mencoba proxy: {proxy}")
 
             proxies = {
-                "http": proxy,
-                "https": proxy
+                "http": f"http://{proxy}",
+                "https": f"http://{proxy}"
             }
 
             response = requests.get(
@@ -204,7 +207,7 @@ async def fetch_html(url):
 
                 impersonate="chrome136",
 
-                timeout=20,
+                timeout=10,
 
                 verify=False,
 
@@ -214,11 +217,8 @@ async def fetch_html(url):
             )
 
             print(f"HTTP Status: {response.status_code}")
-            print(f"Final URL: {response.url}")
 
-            raw = response.content
-
-            # bypass fake 502
+            # fake 502 bypass
             text_preview = response.text[:3000]
 
             if (
@@ -234,11 +234,13 @@ async def fetch_html(url):
 
             if response.status_code != 200:
 
-                print("⚠️ Non-200 response")
+                print(f"⚠️ Status {response.status_code}")
 
                 simpan_cache_gagal(proxy)
 
                 continue
+
+            raw = response.content
 
             # auto detect encoding
             try:
@@ -251,8 +253,8 @@ async def fetch_html(url):
                     if "<html" in html.lower():
 
                         print(
-                            f"✅ Success with encoding: "
-                            f"{detected.encoding}"
+                            f"✅ Success "
+                            f"({detected.encoding})"
                         )
 
                         simpan_cache_berhasil(proxy)
@@ -262,7 +264,7 @@ async def fetch_html(url):
             except Exception:
                 pass
 
-            # manual fallback
+            # fallback decode
             for enc in [
                 "utf-8",
                 "gbk",
@@ -279,7 +281,7 @@ async def fetch_html(url):
 
                     if "<html" in html.lower():
 
-                        print(f"✅ Success with {enc}")
+                        print(f"✅ Success ({enc})")
 
                         simpan_cache_berhasil(proxy)
 
@@ -290,10 +292,21 @@ async def fetch_html(url):
 
             simpan_cache_gagal(proxy)
 
+        except RequestsError as e:
+
+            print(
+                f"[×] Proxy timeout/error: {proxy}",
+                file=sys.stderr
+            )
+
+            simpan_cache_gagal(proxy)
+
+            continue
+
         except Exception as e:
 
             print(
-                f"[×] Proxy gagal: {proxy} → {e}",
+                f"[×] Proxy gagal: {proxy}",
                 file=sys.stderr
             )
 
