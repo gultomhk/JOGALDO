@@ -34,10 +34,15 @@ with open(GOGODATTVDATA_FILE, "r", encoding="utf-8") as f:
 BASE_URL = config_vars.get("BASE_URL", "").strip()
 WORKER_URL = config_vars.get("WORKER_URL", "").strip()
 LOGO_URL = config_vars.get("LOGO_URL", "").strip()
+PROXY_URL = config_vars.get("PROXY_URL", "").strip()
 
 TARGET_URL = BASE_URL
 
 OUTPUT_FILE = Path(__file__).parent / "gogodatv.m3u"
+
+CACHE_FILE = Path(__file__).parent / "proxy_cache.txt"
+
+FAILED_FILE = Path(__file__).parent / "proxy_failed.txt"
 
 HEADERS = {
     "User-Agent": (
@@ -64,6 +69,63 @@ HEADERS = {
     "Origin": BASE_URL.rstrip("/")
 }
 
+
+# ===============================
+# PROXY
+# ===============================
+def get_proxy_list(url):
+
+    try:
+        res = requests.get(
+            url,
+            impersonate="chrome136",
+            timeout=15,
+            verify=False
+        )
+
+        res.raise_for_status()
+
+        proxies = [
+            p.strip()
+            for p in res.text.splitlines()
+            if p.strip()
+        ]
+
+        print(f"[✓] Total proxy loaded: {len(proxies)}")
+
+        return proxies
+
+    except Exception as e:
+        print(
+            f"[!] Gagal ambil proxy list: {e}",
+            file=sys.stderr
+        )
+
+        return []
+
+
+def simpan_cache_berhasil(proxy):
+
+    try:
+        CACHE_FILE.write_text(proxy)
+
+        print(
+            f"[✓] Proxy disimpan ke cache: {proxy}",
+            file=sys.stderr
+        )
+
+    except Exception:
+        pass
+
+
+def simpan_cache_gagal(proxy):
+
+    try:
+        with FAILED_FILE.open("a") as f:
+            f.write(proxy + "\n")
+
+    except Exception:
+        pass
 
 # ==========================
 # Translation Cache
@@ -104,25 +166,45 @@ async def translate_zh_to_en(text):
 # ==========================
 async def fetch_html(url):
 
-    test_urls = [
-        url,
-        url.replace("https://", "http://"),
-        url.replace("www.", ""),
-    ]
+    proxy_list = get_proxy_list(PROXY_URL)
 
-    for test_url in test_urls:
+    # coba cache dulu
+    if CACHE_FILE.exists():
+
+        cached_proxy = CACHE_FILE.read_text().strip()
+
+        if cached_proxy:
+            proxy_list.insert(0, cached_proxy)
+
+    tested = set()
+
+    for proxy in proxy_list:
+
+        proxy = proxy.strip()
+
+        if not proxy or proxy in tested:
+            continue
+
+        tested.add(proxy)
 
         try:
-            print(f"\nTrying: {test_url}")
+            print(f"\n[•] Mencoba proxy: {proxy}")
+
+            proxies = {
+                "http": proxy,
+                "https": proxy
+            }
 
             response = requests.get(
-                test_url,
+                url,
 
                 headers=HEADERS,
 
+                proxies=proxies,
+
                 impersonate="chrome136",
 
-                timeout=30,
+                timeout=20,
 
                 verify=False,
 
@@ -134,25 +216,92 @@ async def fetch_html(url):
             print(f"HTTP Status: {response.status_code}")
             print(f"Final URL: {response.url}")
 
-            # kadang 502 tapi html asli tetap ada
-            text = response.text
+            raw = response.content
+
+            # bypass fake 502
+            text_preview = response.text[:3000]
 
             if (
-                "a.clearfix" in text
-                or "jiabifeng" in text
-                or "eventtime_wuy" in text
+                "a.clearfix" in text_preview
+                or "jiabifeng" in text_preview
+                or "eventtime_wuy" in text_preview
             ):
-                print("✅ Real HTML detected")
-                return text
+                print("✅ HTML valid ditemukan")
 
-            if response.status_code == 200:
-                print("✅ Success")
-                return text
+                simpan_cache_berhasil(proxy)
 
-            print("⚠️ Invalid response")
+                return response.text
+
+            if response.status_code != 200:
+
+                print("⚠️ Non-200 response")
+
+                simpan_cache_gagal(proxy)
+
+                continue
+
+            # auto detect encoding
+            try:
+                detected = from_bytes(raw).best()
+
+                if detected:
+
+                    html = str(detected)
+
+                    if "<html" in html.lower():
+
+                        print(
+                            f"✅ Success with encoding: "
+                            f"{detected.encoding}"
+                        )
+
+                        simpan_cache_berhasil(proxy)
+
+                        return html
+
+            except Exception:
+                pass
+
+            # manual fallback
+            for enc in [
+                "utf-8",
+                "gbk",
+                "gb2312",
+                "big5",
+                "latin-1"
+            ]:
+
+                try:
+                    html = raw.decode(
+                        enc,
+                        errors="ignore"
+                    )
+
+                    if "<html" in html.lower():
+
+                        print(f"✅ Success with {enc}")
+
+                        simpan_cache_berhasil(proxy)
+
+                        return html
+
+                except Exception:
+                    continue
+
+            simpan_cache_gagal(proxy)
 
         except Exception as e:
-            print(f"Fetch error: {e}")
+
+            print(
+                f"[×] Proxy gagal: {proxy} → {e}",
+                file=sys.stderr
+            )
+
+            simpan_cache_gagal(proxy)
+
+            continue
+
+    print("⚠️ Semua proxy gagal")
 
     return ""
 
