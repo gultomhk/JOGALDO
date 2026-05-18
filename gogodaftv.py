@@ -173,43 +173,16 @@ async def parse_matches(html):
 
     lines = []
 
-    # FLEXIBLE SELECTOR
-    a_tags = soup.select(
-        "a.clearfix, a[href*='match'], a[href*='live'], div.list a"
+    # ambil semua a yang punya href detail
+    a_tags = soup.find_all(
+        "a",
+        href=lambda x: x and "/detail/" in x
     )
-
-    # filter duplicate
-    seen = set()
-    filtered = []
-
-    for a in a_tags:
-
-        href = a.get("href", "").strip()
-
-        if not href:
-            continue
-
-        if href in seen:
-            continue
-
-        seen.add(href)
-        filtered.append(a)
-
-    a_tags = filtered
 
     print(f"Found possible matches: {len(a_tags)}")
 
     if not a_tags:
         print("⚠️ No matches found.")
-
-        # DEBUG SAVE
-        debug_file = Path(__file__).parent / "debug.html"
-
-        with open(debug_file, "w", encoding="utf-8") as f:
-            f.write(html)
-
-        print(f"⚠️ HTML dumped: {debug_file}")
-
         return lines
 
     for a_tag in a_tags:
@@ -226,21 +199,149 @@ async def parse_matches(html):
                 .split("/")[-1]
             )
 
-            text = a_tag.get_text(" ", strip=True)
+            # ==========================
+            # HOME TEAM
+            # ==========================
+            home_team = ""
 
-            if len(text) < 5:
+            home_div = a_tag.find(
+                "div",
+                class_="team zhudui"
+            )
+
+            if home_div:
+
+                p = home_div.find("p")
+
+                if p:
+                    home_team = p.get_text(
+                        strip=True
+                    )
+
+            # ==========================
+            # AWAY TEAM
+            # ==========================
+            away_team = ""
+
+            away_div = a_tag.find(
+                "div",
+                class_="team kedui"
+            )
+
+            if away_div:
+
+                p = away_div.find("p")
+
+                if p:
+                    away_team = p.get_text(
+                        strip=True
+                    )
+
+            if not home_team and not away_team:
                 continue
 
-            # coba ambil team
-            parts = text.split()
+            # ==========================
+            # LEAGUE + TIME
+            # ==========================
+            liga_name = ""
+            event_time = ""
 
-            title = " ".join(parts[:10])
+            center_div = a_tag.find(
+                "div",
+                class_="center"
+            )
 
+            if center_div:
+
+                liga_tag = center_div.find(
+                    "p",
+                    class_="eventtime_wuy"
+                )
+
+                if liga_tag:
+
+                    em = liga_tag.find("em")
+                    i_tag = liga_tag.find("i")
+
+                    if em:
+                        liga_name = em.get_text(
+                            strip=True
+                        )
+
+                    if i_tag:
+                        event_time = i_tag.get_text(
+                            strip=True
+                        )
+
+            # ==========================
+            # TRANSLATE
+            # ==========================
+            home_team_en = await translate_zh_to_en(
+                home_team
+            )
+
+            away_team_en = await translate_zh_to_en(
+                away_team
+            )
+
+            liga_name_en = await translate_zh_to_en(
+                liga_name
+            )
+
+            # ==========================
+            # TIME
+            # ==========================
+            data_time = a_tag.get(
+                "data-time",
+                ""
+            ).strip()
+
+            try:
+
+                dt_obj = datetime.strptime(
+                    f"{data_time} {event_time}",
+                    "%Y-%m-%d %H:%M"
+                )
+
+                dt_obj = dt_obj.replace(
+                    tzinfo=SHANGHAI
+                )
+
+                dt_obj = dt_obj.astimezone(
+                    JAKARTA
+                )
+
+                dt_str = dt_obj.strftime(
+                    "%d/%m-%H.%M"
+                )
+
+            except Exception as e:
+
+                print(
+                    f"⚠️ Time parse error: {e}"
+                )
+
+                dt_str = (
+                    f"{data_time} {event_time}"
+                )
+
+            # ==========================
+            # TITLE
+            # ==========================
+            title = (
+                f"{home_team_en} vs "
+                f"{away_team_en} "
+                f"({liga_name_en})"
+            )
+
+            # ==========================
+            # M3U
+            # ==========================
             lines.append(
                 f'#EXTINF:-1 '
                 f'group-title="⚽️| LIVE EVENT" '
                 f'tvg-logo="{LOGO_URL}",'
-                f'{title}'
+                f'{dt_str} {title}'
             )
 
             lines.append(
