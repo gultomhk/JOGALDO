@@ -11,8 +11,10 @@ from curl_cffi import requests
 # ==========================
 try:
     from zoneinfo import ZoneInfo
+
     SHANGHAI = ZoneInfo("Asia/Shanghai")  # UTC+8
     JAKARTA = ZoneInfo("Asia/Jakarta")    # UTC+7
+
 except Exception:
     SHANGHAI = timezone(timedelta(hours=8))
     JAKARTA = timezone(timedelta(hours=7))
@@ -24,6 +26,7 @@ except Exception:
 GOGODATTVDATA_FILE = Path.home() / "gogodattvdata_file.txt"
 
 config_vars = {}
+
 with open(GOGODATTVDATA_FILE, "r", encoding="utf-8") as f:
     code = f.read()
     exec(code, config_vars)
@@ -33,35 +36,46 @@ WORKER_URL = config_vars.get("WORKER_URL", "").strip()
 LOGO_URL = config_vars.get("LOGO_URL", "").strip()
 
 TARGET_URL = BASE_URL
+
 OUTPUT_FILE = Path(__file__).parent / "gogodatv.m3u"
 
 HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
         "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/140.0.0.0 Safari/537.36"
+        "Chrome/136.0.0.0 Safari/537.36"
     ),
-    "Referer": BASE_URL,
-    "Origin": BASE_URL.rstrip("/"),
+
     "Accept": (
         "text/html,application/xhtml+xml,"
         "application/xml;q=0.9,image/webp,*/*;q=0.8"
     ),
+
     "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+
     "Accept-Encoding": "gzip, deflate, br",
-    "Connection": "keep-alive",
+
     "Cache-Control": "no-cache",
     "Pragma": "no-cache",
+
+    "Connection": "keep-alive",
+
+    "Referer": BASE_URL,
+    "Origin": BASE_URL.rstrip("/")
 }
+
+
+# ==========================
+# Translation Cache
+# ==========================
+translation_cache = {}
 
 
 # ==========================
 # Translate
 # ==========================
-translation_cache = {}
-
-
 async def translate_zh_to_en(text):
+
     if not text:
         return ""
 
@@ -75,7 +89,8 @@ async def translate_zh_to_en(text):
         ).translate(text)
 
         translation_cache[text] = translated
-        await asyncio.sleep(0.2)
+
+        await asyncio.sleep(0.15)
 
         return translated
 
@@ -87,66 +102,83 @@ async def translate_zh_to_en(text):
 # ==========================
 # Fetch HTML
 # ==========================
-async def fetch_html(session, url):
+async def fetch_html(url):
+
     try:
-        timeout = aiohttp.ClientTimeout(total=20)
-
-        async with session.get(
+        response = requests.get(
             url,
+
             headers=HEADERS,
-            ssl=False,
-            timeout=timeout,
+
+            impersonate="chrome136",
+
+            timeout=30,
+
+            verify=False,
+
             allow_redirects=True
-        ) as response:
+        )
 
-            print(f"HTTP Status: {response.status}")
-            print(f"Final URL: {response.url}")
-            print(f"Content-Type: {response.headers.get('Content-Type')}")
+        print(f"HTTP Status: {response.status_code}")
+        print(f"Final URL: {response.url}")
+        print(f"Content-Type: {response.headers.get('Content-Type')}")
 
-            if response.status != 200:
-                print("⚠️ Non-200 response")
-                return ""
+        if response.status_code != 200:
+            print("⚠️ Non-200 response")
 
-            raw = await response.read()
-
-            print(f"Downloaded bytes: {len(raw)}")
-
-            # Auto detect encoding
             try:
-                detected = from_bytes(raw).best()
+                print(response.text[:1000])
+            except:
+                pass
 
-                if detected:
-                    html = str(detected)
-                    print(f"Detected encoding: {detected.encoding}")
+            return ""
 
-                    if "<html" in html.lower():
-                        return html
+        raw = response.content
 
-            except Exception as e:
-                print(f"Charset detect error: {e}")
+        print(f"Downloaded bytes: {len(raw)}")
 
-            # Manual fallback
-            encodings = [
-                "utf-8",
-                "gbk",
-                "gb2312",
-                "big5",
-                "latin-1"
-            ]
+        # ==========================
+        # Auto Detect Encoding
+        # ==========================
+        try:
+            detected = from_bytes(raw).best()
 
-            for enc in encodings:
-                try:
-                    html = raw.decode(enc, errors="ignore")
+            if detected:
+                html = str(detected)
 
-                    if "<html" in html.lower():
-                        print(f"Fallback encoding success: {enc}")
-                        return html
+                print(f"Detected encoding: {detected.encoding}")
 
-                except Exception:
-                    continue
+                if "<html" in html.lower():
+                    return html
 
-            # Last fallback
-            return raw.decode("utf-8", errors="replace")
+        except Exception as e:
+            print(f"Charset detect error: {e}")
+
+        # ==========================
+        # Manual Fallback
+        # ==========================
+        encodings = [
+            "utf-8",
+            "gbk",
+            "gb2312",
+            "big5",
+            "latin-1"
+        ]
+
+        for enc in encodings:
+
+            try:
+                html = raw.decode(enc, errors="ignore")
+
+                if "<html" in html.lower():
+                    print(f"Fallback encoding success: {enc}")
+                    return html
+
+            except Exception:
+                continue
+
+        # last fallback
+        return response.text
 
     except Exception as e:
         print(f"Fetch error: {e}")
@@ -157,7 +189,9 @@ async def fetch_html(session, url):
 # Parse Matches
 # ==========================
 async def parse_matches(html):
+
     soup = BeautifulSoup(html, "html.parser")
+
     lines = []
 
     a_tags = soup.select("a.clearfix")
@@ -187,6 +221,7 @@ async def parse_matches(html):
             # Teams
             # ==========================
             home_div = section.find("div", class_="team zhudui")
+
             away_div = section.find("div", class_="team kedui")
 
             home_team = (
@@ -202,24 +237,33 @@ async def parse_matches(html):
             if not home_team and not away_team:
                 continue
 
-            # Translate
+            # ==========================
+            # Translate Teams
+            # ==========================
             home_team_en = await translate_zh_to_en(home_team)
+
             away_team_en = await translate_zh_to_en(away_team)
 
             # ==========================
             # League & Time
             # ==========================
             liga_name = ""
+
             event_time = ""
 
             center_div = section.find("div", class_="center")
 
             if center_div:
-                liga_tag = center_div.find("p", class_="eventtime_wuy")
+
+                liga_tag = center_div.find(
+                    "p",
+                    class_="eventtime_wuy"
+                )
 
                 if liga_tag:
 
                     em = liga_tag.find("em")
+
                     i_tag = liga_tag.find("i")
 
                     liga_name = (
@@ -232,11 +276,10 @@ async def parse_matches(html):
                         if i_tag else ""
                     )
 
-            # Translate league
             liga_name_en = await translate_zh_to_en(liga_name)
 
             # ==========================
-            # Convert Time
+            # Time Convert
             # ==========================
             data_time = a_tag.get("data-time", "").strip()
 
@@ -246,21 +289,29 @@ async def parse_matches(html):
                     "%Y-%m-%d %H:%M"
                 )
 
-                dt_obj = dt_obj.replace(tzinfo=SHANGHAI)
-                dt_obj = dt_obj.astimezone(JAKARTA)
+                dt_obj = dt_obj.replace(
+                    tzinfo=SHANGHAI
+                )
 
-                dt_str = dt_obj.strftime("%d/%m-%H.%M")
+                dt_obj = dt_obj.astimezone(
+                    JAKARTA
+                )
+
+                dt_str = dt_obj.strftime(
+                    "%d/%m-%H.%M"
+                )
 
             except Exception as e:
+
                 print(
                     f"⚠️ Time parse error "
-                    f"for {data_time} {event_time}: {e}"
+                    f"{data_time} {event_time}: {e}"
                 )
 
                 dt_str = f"{data_time}-{event_time}"
 
             # ==========================
-            # Build Title
+            # Title
             # ==========================
             title = (
                 f"{home_team_en} vs "
@@ -288,7 +339,9 @@ async def parse_matches(html):
                 f'{BASE_URL}'
             )
 
-            lines.append(f"{WORKER_URL}{match_id}")
+            lines.append(
+                f"{WORKER_URL}{match_id}"
+            )
 
             print(f"✅ Parsed: {title}")
 
@@ -304,35 +357,34 @@ async def parse_matches(html):
 # ==========================
 async def main():
 
-    connector = aiohttp.TCPConnector(ssl=False)
+    html = await fetch_html(TARGET_URL)
 
-    async with aiohttp.ClientSession(
-        connector=connector
-    ) as session:
+    if not html:
+        print("⚠️ Failed to fetch HTML. Exiting.")
+        return
 
-        html = await fetch_html(session, TARGET_URL)
+    print(f"HTML length: {len(html)}")
 
-        if not html:
-            print("⚠️ Failed to fetch HTML. Exiting.")
-            return
+    lines = await parse_matches(html)
 
-        print(f"HTML length: {len(html)}")
+    with open(
+        OUTPUT_FILE,
+        "w",
+        encoding="utf-8"
+    ) as f:
 
-        lines = await parse_matches(html)
-
-        with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-
-            f.write("#EXTM3U\n")
-
-            if lines:
-                f.write("\n".join(lines))
+        f.write("#EXTM3U\n")
 
         if lines:
-            print(f"✅ Total matches parsed: {len(lines)//4}")
-            print(f"✅ M3U saved: {OUTPUT_FILE.resolve()}")
-        else:
-            print("⚠️ No valid matches found.")
-            print(f"⚠️ Empty M3U created: {OUTPUT_FILE.resolve()}")
+            f.write("\n".join(lines))
+
+    if lines:
+        print(f"✅ Total matches parsed: {len(lines)//4}")
+        print(f"✅ M3U saved: {OUTPUT_FILE.resolve()}")
+
+    else:
+        print("⚠️ No valid matches found.")
+        print(f"⚠️ Empty M3U created: {OUTPUT_FILE.resolve()}")
 
 
 # ==========================
