@@ -1,10 +1,14 @@
 import asyncio
+import sys
+
 from bs4 import BeautifulSoup
 from datetime import datetime, timezone, timedelta
 from deep_translator import GoogleTranslator
 from pathlib import Path
 from charset_normalizer import from_bytes
-from curl_cffi.requests.exceptions import RequestsError
+
+from curl_cffi import requests, CurlError
+
 
 # ==========================
 # Timezone
@@ -12,8 +16,8 @@ from curl_cffi.requests.exceptions import RequestsError
 try:
     from zoneinfo import ZoneInfo
 
-    SHANGHAI = ZoneInfo("Asia/Shanghai")  # UTC+8
-    JAKARTA = ZoneInfo("Asia/Jakarta")    # UTC+7
+    SHANGHAI = ZoneInfo("Asia/Shanghai")
+    JAKARTA = ZoneInfo("Asia/Jakarta")
 
 except Exception:
     SHANGHAI = timezone(timedelta(hours=8))
@@ -34,6 +38,7 @@ with open(GOGODATTVDATA_FILE, "r", encoding="utf-8") as f:
 BASE_URL = config_vars.get("BASE_URL", "").strip()
 WORKER_URL = config_vars.get("WORKER_URL", "").strip()
 LOGO_URL = config_vars.get("LOGO_URL", "").strip()
+
 PROXY_URL = config_vars.get("PROXY_URL", "").strip()
 
 TARGET_URL = BASE_URL
@@ -44,6 +49,10 @@ CACHE_FILE = Path(__file__).parent / "proxy_cache.txt"
 
 FAILED_FILE = Path(__file__).parent / "proxy_failed.txt"
 
+
+# ==========================
+# Headers
+# ==========================
 HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -61,11 +70,13 @@ HEADERS = {
     "Accept-Encoding": "gzip, deflate, br",
 
     "Cache-Control": "no-cache",
+
     "Pragma": "no-cache",
 
     "Connection": "keep-alive",
 
     "Referer": BASE_URL,
+
     "Origin": BASE_URL.rstrip("/")
 }
 
@@ -96,6 +107,7 @@ def get_proxy_list(url):
         return proxies
 
     except Exception as e:
+
         print(
             f"[!] Gagal ambil proxy list: {e}",
             file=sys.stderr
@@ -121,11 +133,12 @@ def simpan_cache_berhasil(proxy):
 def simpan_cache_gagal(proxy):
 
     try:
-        with FAILED_FILE.open("a") as f:
+        with FAILED_FILE.open("a", encoding="utf-8") as f:
             f.write(proxy + "\n")
 
     except Exception:
         pass
+
 
 # ==========================
 # Translation Cache
@@ -157,7 +170,9 @@ async def translate_zh_to_en(text):
         return translated
 
     except Exception as e:
+
         print(f"Translate error for '{text}': {e}")
+
         return text
 
 
@@ -168,10 +183,10 @@ async def fetch_html(url):
 
     proxy_list = get_proxy_list(PROXY_URL)
 
-    # limit proxy biar tidak terlalu lama
+    # limit biar github action tidak timeout
     proxy_list = proxy_list[:25]
 
-    # cache proxy berhasil
+    # proxy cache prioritas pertama
     if CACHE_FILE.exists():
 
         cached_proxy = CACHE_FILE.read_text().strip()
@@ -218,14 +233,15 @@ async def fetch_html(url):
 
             print(f"HTTP Status: {response.status_code}")
 
-            # fake 502 bypass
             text_preview = response.text[:3000]
 
+            # bypass fake 502
             if (
                 "a.clearfix" in text_preview
                 or "jiabifeng" in text_preview
                 or "eventtime_wuy" in text_preview
             ):
+
                 print("✅ HTML valid ditemukan")
 
                 simpan_cache_berhasil(proxy)
@@ -264,7 +280,7 @@ async def fetch_html(url):
             except Exception:
                 pass
 
-            # fallback decode
+            # manual fallback
             for enc in [
                 "utf-8",
                 "gbk",
@@ -292,7 +308,7 @@ async def fetch_html(url):
 
             simpan_cache_gagal(proxy)
 
-        except RequestsError as e:
+        except CurlError:
 
             print(
                 f"[×] Proxy timeout/error: {proxy}",
@@ -306,7 +322,7 @@ async def fetch_html(url):
         except Exception as e:
 
             print(
-                f"[×] Proxy gagal: {proxy}",
+                f"[×] Proxy gagal: {proxy} → {e}",
                 file=sys.stderr
             )
 
@@ -351,12 +367,15 @@ async def parse_matches(html):
             if not section:
                 continue
 
-            # ==========================
-            # Teams
-            # ==========================
-            home_div = section.find("div", class_="team zhudui")
+            home_div = section.find(
+                "div",
+                class_="team zhudui"
+            )
 
-            away_div = section.find("div", class_="team kedui")
+            away_div = section.find(
+                "div",
+                class_="team kedui"
+            )
 
             home_team = (
                 home_div.p.get_text(strip=True)
@@ -371,21 +390,18 @@ async def parse_matches(html):
             if not home_team and not away_team:
                 continue
 
-            # ==========================
-            # Translate Teams
-            # ==========================
             home_team_en = await translate_zh_to_en(home_team)
 
             away_team_en = await translate_zh_to_en(away_team)
 
-            # ==========================
-            # League & Time
-            # ==========================
             liga_name = ""
 
             event_time = ""
 
-            center_div = section.find("div", class_="center")
+            center_div = section.find(
+                "div",
+                class_="center"
+            )
 
             if center_div:
 
@@ -410,12 +426,14 @@ async def parse_matches(html):
                         if i_tag else ""
                     )
 
-            liga_name_en = await translate_zh_to_en(liga_name)
+            liga_name_en = await translate_zh_to_en(
+                liga_name
+            )
 
-            # ==========================
-            # Time Convert
-            # ==========================
-            data_time = a_tag.get("data-time", "").strip()
+            data_time = a_tag.get(
+                "data-time",
+                ""
+            ).strip()
 
             try:
                 dt_obj = datetime.strptime(
@@ -444,18 +462,12 @@ async def parse_matches(html):
 
                 dt_str = f"{data_time}-{event_time}"
 
-            # ==========================
-            # Title
-            # ==========================
             title = (
                 f"{home_team_en} vs "
                 f"{away_team_en} "
                 f"({liga_name_en})"
             )
 
-            # ==========================
-            # M3U
-            # ==========================
             lines.append(
                 f'#EXTINF:-1 '
                 f'group-title="⚽️| LIVE EVENT" '
@@ -480,7 +492,9 @@ async def parse_matches(html):
             print(f"✅ Parsed: {title}")
 
         except Exception as e:
+
             print(f"Parse match error: {e}")
+
             continue
 
     return lines
@@ -493,7 +507,6 @@ async def main():
 
     html = ""
 
-    # retry fetch
     for i in range(3):
 
         print(f"\nRetry {i+1}/3")
@@ -506,7 +519,9 @@ async def main():
         await asyncio.sleep(5)
 
     if not html:
+
         print("⚠️ Failed to fetch HTML. Exiting.")
+
         return
 
     print(f"HTML length: {len(html)}")
@@ -525,12 +540,19 @@ async def main():
             f.write("\n".join(lines))
 
     if lines:
+
         print(f"✅ Total matches parsed: {len(lines)//4}")
+
         print(f"✅ M3U saved: {OUTPUT_FILE.resolve()}")
 
     else:
+
         print("⚠️ No valid matches found.")
-        print(f"⚠️ Empty M3U created: {OUTPUT_FILE.resolve()}")
+
+        print(
+            f"⚠️ Empty M3U created: "
+            f"{OUTPUT_FILE.resolve()}"
+        )
 
 
 # ==========================
