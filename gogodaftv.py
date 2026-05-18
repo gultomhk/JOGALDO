@@ -129,35 +129,30 @@ async def fetch_html(url):
 
             response = requests.get(
                 test_url,
-
                 headers=HEADERS,
-
                 impersonate="chrome136",
-
                 timeout=30,
-
                 verify=False,
-
                 allow_redirects=True,
-
                 http_version=1
             )
 
             print(f"HTTP Status: {response.status_code}")
             print(f"Final URL: {response.url}")
 
-            # kadang 502 tapi html asli tetap ada
-            text = response.text
+            # FIX ENCODING
+            raw = response.content
 
-            if (
-                "a.clearfix" in text
-                or "jiabifeng" in text
-                or "eventtime_wuy" in text
-            ):
-                print("✅ Real HTML detected")
-                return text
+            detected = from_bytes(raw).best()
 
-            if response.status_code == 200:
+            if detected:
+                text = str(detected)
+            else:
+                text = raw.decode("utf-8", errors="ignore")
+
+            print(text[:500])
+
+            if response.status_code == 200 and len(text) > 5000:
                 print("✅ Success")
                 return text
 
@@ -178,135 +173,74 @@ async def parse_matches(html):
 
     lines = []
 
-    a_tags = soup.select("a.clearfix")
+    # FLEXIBLE SELECTOR
+    a_tags = soup.select(
+        "a.clearfix, a[href*='match'], a[href*='live'], div.list a"
+    )
+
+    # filter duplicate
+    seen = set()
+    filtered = []
+
+    for a in a_tags:
+
+        href = a.get("href", "").strip()
+
+        if not href:
+            continue
+
+        if href in seen:
+            continue
+
+        seen.add(href)
+        filtered.append(a)
+
+    a_tags = filtered
+
+    print(f"Found possible matches: {len(a_tags)}")
 
     if not a_tags:
         print("⚠️ No matches found.")
-        return lines
 
-    print(f"Found matches: {len(a_tags)}")
+        # DEBUG SAVE
+        debug_file = Path(__file__).parent / "debug.html"
+
+        with open(debug_file, "w", encoding="utf-8") as f:
+            f.write(html)
+
+        print(f"⚠️ HTML dumped: {debug_file}")
+
+        return lines
 
     for a_tag in a_tags:
 
         try:
+
             match_url = a_tag.get("href", "").strip()
 
             if not match_url:
                 continue
 
-            match_id = match_url.rstrip("/").split("/")[-1]
+            match_id = (
+                match_url.rstrip("/")
+                .split("/")[-1]
+            )
 
-            section = a_tag.find("section", class_="jiabifeng")
+            text = a_tag.get_text(" ", strip=True)
 
-            if not section:
+            if len(text) < 5:
                 continue
 
-            home_div = section.find(
-                "div",
-                class_="team zhudui"
-            )
+            # coba ambil team
+            parts = text.split()
 
-            away_div = section.find(
-                "div",
-                class_="team kedui"
-            )
-
-            home_team = (
-                home_div.p.get_text(strip=True)
-                if home_div and home_div.p else ""
-            )
-
-            away_team = (
-                away_div.p.get_text(strip=True)
-                if away_div and away_div.p else ""
-            )
-
-            if not home_team and not away_team:
-                continue
-
-            home_team_en = await translate_zh_to_en(home_team)
-
-            away_team_en = await translate_zh_to_en(away_team)
-
-            liga_name = ""
-
-            event_time = ""
-
-            center_div = section.find(
-                "div",
-                class_="center"
-            )
-
-            if center_div:
-
-                liga_tag = center_div.find(
-                    "p",
-                    class_="eventtime_wuy"
-                )
-
-                if liga_tag:
-
-                    em = liga_tag.find("em")
-
-                    i_tag = liga_tag.find("i")
-
-                    liga_name = (
-                        em.get_text(strip=True)
-                        if em else ""
-                    )
-
-                    event_time = (
-                        i_tag.get_text(strip=True)
-                        if i_tag else ""
-                    )
-
-            liga_name_en = await translate_zh_to_en(
-                liga_name
-            )
-
-            data_time = a_tag.get(
-                "data-time",
-                ""
-            ).strip()
-
-            try:
-                dt_obj = datetime.strptime(
-                    f"{data_time} {event_time}",
-                    "%Y-%m-%d %H:%M"
-                )
-
-                dt_obj = dt_obj.replace(
-                    tzinfo=SHANGHAI
-                )
-
-                dt_obj = dt_obj.astimezone(
-                    JAKARTA
-                )
-
-                dt_str = dt_obj.strftime(
-                    "%d/%m-%H.%M"
-                )
-
-            except Exception as e:
-
-                print(
-                    f"⚠️ Time parse error "
-                    f"{data_time} {event_time}: {e}"
-                )
-
-                dt_str = f"{data_time}-{event_time}"
-
-            title = (
-                f"{home_team_en} vs "
-                f"{away_team_en} "
-                f"({liga_name_en})"
-            )
+            title = " ".join(parts[:10])
 
             lines.append(
                 f'#EXTINF:-1 '
                 f'group-title="⚽️| LIVE EVENT" '
                 f'tvg-logo="{LOGO_URL}",'
-                f'{dt_str} {title}'
+                f'{title}'
             )
 
             lines.append(
