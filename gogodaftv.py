@@ -39,15 +39,9 @@ BASE_URL = config_vars.get("BASE_URL", "").strip()
 WORKER_URL = config_vars.get("WORKER_URL", "").strip()
 LOGO_URL = config_vars.get("LOGO_URL", "").strip()
 
-PROXY_URL = config_vars.get("PROXY_URL", "").strip()
-
 TARGET_URL = BASE_URL
 
 OUTPUT_FILE = Path(__file__).parent / "gogodatv.m3u"
-
-CACHE_FILE = Path(__file__).parent / "proxy_cache.txt"
-
-FAILED_FILE = Path(__file__).parent / "proxy_failed.txt"
 
 
 # ==========================
@@ -79,65 +73,6 @@ HEADERS = {
 
     "Origin": BASE_URL.rstrip("/")
 }
-
-
-# ===============================
-# PROXY
-# ===============================
-def get_proxy_list(url):
-
-    try:
-        res = requests.get(
-            url,
-            impersonate="chrome136",
-            timeout=15,
-            verify=False
-        )
-
-        res.raise_for_status()
-
-        proxies = [
-            p.strip()
-            for p in res.text.splitlines()
-            if p.strip()
-        ]
-
-        print(f"[✓] Total proxy loaded: {len(proxies)}")
-
-        return proxies
-
-    except Exception as e:
-
-        print(
-            f"[!] Gagal ambil proxy list: {e}",
-            file=sys.stderr
-        )
-
-        return []
-
-
-def simpan_cache_berhasil(proxy):
-
-    try:
-        CACHE_FILE.write_text(proxy)
-
-        print(
-            f"[✓] Proxy disimpan ke cache: {proxy}",
-            file=sys.stderr
-        )
-
-    except Exception:
-        pass
-
-
-def simpan_cache_gagal(proxy):
-
-    try:
-        with FAILED_FILE.open("a", encoding="utf-8") as f:
-            f.write(proxy + "\n")
-
-    except Exception:
-        pass
 
 
 # ==========================
@@ -181,48 +116,25 @@ async def translate_zh_to_en(text):
 # ==========================
 async def fetch_html(url):
 
-    proxy_list = get_proxy_list(PROXY_URL)
+    test_urls = [
+        url,
+        url.replace("https://", "http://"),
+        url.replace("www.", ""),
+    ]
 
-    # limit biar github action tidak timeout
-    proxy_list = proxy_list[:25]
-
-    # proxy cache prioritas pertama
-    if CACHE_FILE.exists():
-
-        cached_proxy = CACHE_FILE.read_text().strip()
-
-        if cached_proxy:
-            proxy_list.insert(0, cached_proxy)
-
-    tested = set()
-
-    for proxy in proxy_list:
-
-        proxy = proxy.strip()
-
-        if not proxy or proxy in tested:
-            continue
-
-        tested.add(proxy)
+    for test_url in test_urls:
 
         try:
-            print(f"[•] Mencoba proxy: {proxy}")
-
-            proxies = {
-                "http": f"http://{proxy}",
-                "https": f"http://{proxy}"
-            }
+            print(f"\nTrying: {test_url}")
 
             response = requests.get(
-                url,
+                test_url,
 
                 headers=HEADERS,
 
-                proxies=proxies,
-
                 impersonate="chrome136",
 
-                timeout=10,
+                timeout=30,
 
                 verify=False,
 
@@ -232,105 +144,27 @@ async def fetch_html(url):
             )
 
             print(f"HTTP Status: {response.status_code}")
+            print(f"Final URL: {response.url}")
 
-            text_preview = response.text[:3000]
+            # kadang 502 tapi html asli tetap ada
+            text = response.text
 
-            # bypass fake 502
             if (
-                "a.clearfix" in text_preview
-                or "jiabifeng" in text_preview
-                or "eventtime_wuy" in text_preview
+                "a.clearfix" in text
+                or "jiabifeng" in text
+                or "eventtime_wuy" in text
             ):
+                print("✅ Real HTML detected")
+                return text
 
-                print("✅ HTML valid ditemukan")
+            if response.status_code == 200:
+                print("✅ Success")
+                return text
 
-                simpan_cache_berhasil(proxy)
-
-                return response.text
-
-            if response.status_code != 200:
-
-                print(f"⚠️ Status {response.status_code}")
-
-                simpan_cache_gagal(proxy)
-
-                continue
-
-            raw = response.content
-
-            # auto detect encoding
-            try:
-                detected = from_bytes(raw).best()
-
-                if detected:
-
-                    html = str(detected)
-
-                    if "<html" in html.lower():
-
-                        print(
-                            f"✅ Success "
-                            f"({detected.encoding})"
-                        )
-
-                        simpan_cache_berhasil(proxy)
-
-                        return html
-
-            except Exception:
-                pass
-
-            # manual fallback
-            for enc in [
-                "utf-8",
-                "gbk",
-                "gb2312",
-                "big5",
-                "latin-1"
-            ]:
-
-                try:
-                    html = raw.decode(
-                        enc,
-                        errors="ignore"
-                    )
-
-                    if "<html" in html.lower():
-
-                        print(f"✅ Success ({enc})")
-
-                        simpan_cache_berhasil(proxy)
-
-                        return html
-
-                except Exception:
-                    continue
-
-            simpan_cache_gagal(proxy)
-
-        except CurlError:
-
-            print(
-                f"[×] Proxy timeout/error: {proxy}",
-                file=sys.stderr
-            )
-
-            simpan_cache_gagal(proxy)
-
-            continue
+            print("⚠️ Invalid response")
 
         except Exception as e:
-
-            print(
-                f"[×] Proxy gagal: {proxy} → {e}",
-                file=sys.stderr
-            )
-
-            simpan_cache_gagal(proxy)
-
-            continue
-
-    print("⚠️ Semua proxy gagal")
+            print(f"Fetch error: {e}")
 
     return ""
 
@@ -507,6 +341,7 @@ async def main():
 
     html = ""
 
+    # retry fetch
     for i in range(3):
 
         print(f"\nRetry {i+1}/3")
@@ -519,9 +354,7 @@ async def main():
         await asyncio.sleep(5)
 
     if not html:
-
         print("⚠️ Failed to fetch HTML. Exiting.")
-
         return
 
     print(f"HTML length: {len(html)}")
@@ -540,20 +373,12 @@ async def main():
             f.write("\n".join(lines))
 
     if lines:
-
         print(f"✅ Total matches parsed: {len(lines)//4}")
-
         print(f"✅ M3U saved: {OUTPUT_FILE.resolve()}")
 
     else:
-
         print("⚠️ No valid matches found.")
-
-        print(
-            f"⚠️ Empty M3U created: "
-            f"{OUTPUT_FILE.resolve()}"
-        )
-
+        print(f"⚠️ Empty M3U created: {OUTPUT_FILE.resolve()}")
 
 # ==========================
 # Start
