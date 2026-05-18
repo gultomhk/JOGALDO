@@ -1,10 +1,10 @@
-import aiohttp
 import asyncio
 from bs4 import BeautifulSoup
 from datetime import datetime, timezone, timedelta
 from deep_translator import GoogleTranslator
 from pathlib import Path
 from charset_normalizer import from_bytes
+from curl_cffi import requests
 
 # ==========================
 # Timezone
