@@ -25,7 +25,7 @@ jobs:
 
       - name: Install Python dependencies
         run: |
-          pip install beautifulsoup4 deep-translator aiohttp charset-normalizer
+          pip install beautifulsoup4 deep-translator charset-normalizer curl_cffi
 
       - name: 📁 Ambil file konfigurasi dari repo privat
         shell: bash
