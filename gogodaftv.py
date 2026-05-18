@@ -104,85 +104,57 @@ async def translate_zh_to_en(text):
 # ==========================
 async def fetch_html(url):
 
-    try:
-        response = requests.get(
-            url,
+    test_urls = [
+        url,
+        url.replace("https://", "http://"),
+        url.replace("www.", ""),
+    ]
 
-            headers=HEADERS,
+    for test_url in test_urls:
 
-            impersonate="chrome136",
-
-            timeout=30,
-
-            verify=False,
-
-            allow_redirects=True
-        )
-
-        print(f"HTTP Status: {response.status_code}")
-        print(f"Final URL: {response.url}")
-        print(f"Content-Type: {response.headers.get('Content-Type')}")
-
-        if response.status_code != 200:
-            print("⚠️ Non-200 response")
-
-            try:
-                print(response.text[:1000])
-            except:
-                pass
-
-            return ""
-
-        raw = response.content
-
-        print(f"Downloaded bytes: {len(raw)}")
-
-        # ==========================
-        # Auto Detect Encoding
-        # ==========================
         try:
-            detected = from_bytes(raw).best()
+            print(f"\nTrying: {test_url}")
 
-            if detected:
-                html = str(detected)
+            response = requests.get(
+                test_url,
 
-                print(f"Detected encoding: {detected.encoding}")
+                headers=HEADERS,
 
-                if "<html" in html.lower():
-                    return html
+                impersonate="chrome136",
+
+                timeout=30,
+
+                verify=False,
+
+                allow_redirects=True,
+
+                http_version=1
+            )
+
+            print(f"HTTP Status: {response.status_code}")
+            print(f"Final URL: {response.url}")
+
+            # kadang 502 tapi html asli tetap ada
+            text = response.text
+
+            if (
+                "a.clearfix" in text
+                or "jiabifeng" in text
+                or "eventtime_wuy" in text
+            ):
+                print("✅ Real HTML detected")
+                return text
+
+            if response.status_code == 200:
+                print("✅ Success")
+                return text
+
+            print("⚠️ Invalid response")
 
         except Exception as e:
-            print(f"Charset detect error: {e}")
+            print(f"Fetch error: {e}")
 
-        # ==========================
-        # Manual Fallback
-        # ==========================
-        encodings = [
-            "utf-8",
-            "gbk",
-            "gb2312",
-            "big5",
-            "latin-1"
-        ]
-
-        for enc in encodings:
-
-            try:
-                html = raw.decode(enc, errors="ignore")
-
-                if "<html" in html.lower():
-                    print(f"Fallback encoding success: {enc}")
-                    return html
-
-            except Exception:
-                continue
-
-        # last fallback
-        return response.text
-
-    except Exception as e:
-        print(f"Fetch error: {e}")
-        return ""
+    return ""
 
 
 # ==========================
@@ -357,7 +329,19 @@ async def parse_matches(html):
 # ==========================
 async def main():
 
-    html = await fetch_html(TARGET_URL)
+    html = ""
+
+    # retry fetch
+    for i in range(3):
+
+        print(f"\nRetry {i+1}/3")
+
+        html = await fetch_html(TARGET_URL)
+
+        if html:
+            break
+
+        await asyncio.sleep(5)
 
     if not html:
         print("⚠️ Failed to fetch HTML. Exiting.")
