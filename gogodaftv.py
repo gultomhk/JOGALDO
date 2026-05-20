@@ -1,13 +1,11 @@
 import asyncio
-import sys
 
 from bs4 import BeautifulSoup
 from datetime import datetime, timezone, timedelta
 from deep_translator import GoogleTranslator
 from pathlib import Path
-from charset_normalizer import from_bytes
 
-from curl_cffi import requests, CurlError
+from curl_cffi import requests
 
 
 # ==========================
@@ -61,7 +59,9 @@ HEADERS = {
 
     "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
 
-    "Accept-Encoding": "gzip, deflate, br",
+    # IMPORTANT:
+    # jangan pakai br karena sering bikin encoding rusak
+    "Accept-Encoding": "gzip, deflate",
 
     "Cache-Control": "no-cache",
 
@@ -89,26 +89,80 @@ async def translate_zh_to_en(text):
     if not text:
         return ""
 
+    text = text.strip()
+
     if text in translation_cache:
         return translation_cache[text]
 
     try:
+
         translated = GoogleTranslator(
             source="zh-CN",
             target="en"
         ).translate(text)
 
-        translation_cache[text] = translated
+        if translated:
+            translation_cache[text] = translated
 
-        await asyncio.sleep(0.15)
+            await asyncio.sleep(0.15)
 
-        return translated
+            return translated
 
     except Exception as e:
 
         print(f"Translate error for '{text}': {e}")
 
-        return text
+    return text
+
+
+# ==========================
+# Decode HTML
+# ==========================
+def decode_html(raw):
+
+    encodings = [
+        "utf-8",
+        "gb18030",
+        "gbk",
+        "gb2312",
+        "big5"
+    ]
+
+    for enc in encodings:
+
+        try:
+
+            decoded = raw.decode(enc)
+
+            # validasi chinese
+            if any(
+                x in decoded
+                for x in [
+                    "直播",
+                    "足球",
+                    "联赛",
+                    "女",
+                    "队",
+                    "VS"
+                ]
+            ):
+
+                print(f"✅ Decoded with: {enc}")
+
+                return decoded
+
+        except Exception:
+            pass
+
+    # fallback terakhir
+    try:
+        return raw.decode(
+            "utf-8",
+            errors="ignore"
+        )
+
+    except Exception:
+        return ""
 
 
 # ==========================
@@ -125,6 +179,7 @@ async def fetch_html(url):
     for test_url in test_urls:
 
         try:
+
             print(f"\nTrying: {test_url}")
 
             response = requests.get(
@@ -140,25 +195,27 @@ async def fetch_html(url):
             print(f"HTTP Status: {response.status_code}")
             print(f"Final URL: {response.url}")
 
-            # FIX ENCODING
             raw = response.content
 
-            detected = from_bytes(raw).best()
+            text = decode_html(raw)
 
-            if detected:
-                text = str(detected)
-            else:
-                text = raw.decode("utf-8", errors="ignore")
-
+            print("\n===== HTML PREVIEW =====")
             print(text[:500])
+            print("========================\n")
 
-            if response.status_code == 200 and len(text) > 5000:
+            if (
+                response.status_code == 200
+                and len(text) > 5000
+            ):
+
                 print("✅ Success")
+
                 return text
 
             print("⚠️ Invalid response")
 
         except Exception as e:
+
             print(f"Fetch error: {e}")
 
     return ""
@@ -169,11 +226,13 @@ async def fetch_html(url):
 # ==========================
 async def parse_matches(html):
 
-    soup = BeautifulSoup(html, "html.parser")
+    soup = BeautifulSoup(
+        html,
+        "html.parser"
+    )
 
     lines = []
 
-    # ambil semua a yang punya href detail
     a_tags = soup.find_all(
         "a",
         href=lambda x: x and "/detail/" in x
@@ -182,14 +241,21 @@ async def parse_matches(html):
     print(f"Found possible matches: {len(a_tags)}")
 
     if not a_tags:
+
         print("⚠️ No matches found.")
+
         return lines
+
+    parsed_ids = set()
 
     for a_tag in a_tags:
 
         try:
 
-            match_url = a_tag.get("href", "").strip()
+            match_url = (
+                a_tag.get("href", "")
+                .strip()
+            )
 
             if not match_url:
                 continue
@@ -198,6 +264,12 @@ async def parse_matches(html):
                 match_url.rstrip("/")
                 .split("/")[-1]
             )
+
+            # skip duplicate
+            if match_id in parsed_ids:
+                continue
+
+            parsed_ids.add(match_id)
 
             # ==========================
             # HOME TEAM
@@ -264,14 +336,21 @@ async def parse_matches(html):
                     i_tag = liga_tag.find("i")
 
                     if em:
+
                         liga_name = em.get_text(
                             strip=True
                         )
 
                     if i_tag:
+
                         event_time = i_tag.get_text(
                             strip=True
                         )
+
+            print(
+                f"RAW: {home_team} vs "
+                f"{away_team} ({liga_name})"
+            )
 
             # ==========================
             # TRANSLATE
@@ -291,10 +370,13 @@ async def parse_matches(html):
             # ==========================
             # TIME
             # ==========================
-            data_time = a_tag.get(
-                "data-time",
-                ""
-            ).strip()
+            data_time = (
+                a_tag.get(
+                    "data-time",
+                    ""
+                )
+                .strip()
+            )
 
             try:
 
@@ -330,9 +412,12 @@ async def parse_matches(html):
             # ==========================
             title = (
                 f"{home_team_en} vs "
-                f"{away_team_en} "
-                f"({liga_name_en})"
+                f"{away_team_en}"
             )
+
+            if liga_name_en:
+
+                title += f" ({liga_name_en})"
 
             # ==========================
             # M3U
@@ -389,7 +474,9 @@ async def main():
         await asyncio.sleep(5)
 
     if not html:
+
         print("⚠️ Failed to fetch HTML. Exiting.")
+
         return
 
     print(f"HTML length: {len(html)}")
@@ -408,15 +495,30 @@ async def main():
             f.write("\n".join(lines))
 
     if lines:
-        print(f"✅ Total matches parsed: {len(lines)//4}")
-        print(f"✅ M3U saved: {OUTPUT_FILE.resolve()}")
+
+        print(
+            f"✅ Total matches parsed: "
+            f"{len(lines)//4}"
+        )
+
+        print(
+            f"✅ M3U saved: "
+            f"{OUTPUT_FILE.resolve()}"
+        )
 
     else:
+
         print("⚠️ No valid matches found.")
-        print(f"⚠️ Empty M3U created: {OUTPUT_FILE.resolve()}")
+
+        print(
+            f"⚠️ Empty M3U created: "
+            f"{OUTPUT_FILE.resolve()}"
+        )
+
 
 # ==========================
 # Start
 # ==========================
 if __name__ == "__main__":
+
     asyncio.run(main())
