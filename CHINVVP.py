@@ -1,5 +1,4 @@
 import requests
-import random
 import sys
 import urllib3
 import re
@@ -24,7 +23,6 @@ except Exception as e:
 
 API_URL = config_vars.get("API_URL")
 API_URL2 = config_vars.get("API_URL2")
-PROXY_LIST_URL = config_vars.get("PROXY_LIST_URL")
 
 if not API_URL:
     print("[!] API_URL tidak ditemukan di config")
@@ -34,84 +32,55 @@ if not API_URL2:
     print("[!] API_URL2 tidak ditemukan di config")
     sys.exit()
 
-if not PROXY_LIST_URL:
-    print("[!] PROXY_LIST_URL tidak ditemukan di config")
-    sys.exit()
-
-# ===============================
-# AMBIL LIST PROXY
-# ===============================
-def get_proxy_list(url):
-    try:
-        print("[*] Mengambil proxy list...")
-
-        res = requests.get(url, timeout=15)
-        res.raise_for_status()
-
-        proxies = res.text.strip().splitlines()
-
-        print(f"[✓] Total proxy: {len(proxies)}")
-
-        return proxies
-
-    except Exception as e:
-        print(f"[!] Gagal ambil proxy list: {e}")
-        return []
-
-
-# ===============================
-# FETCH PLAYLIST VIA PROXY
-# ===============================
-def fetch_with_proxy(url, proxies_list):
+# ==========================
+# FETCH PLAYLIST
+# ==========================
+def fetch_playlist(url):
 
     headers = {
         "User-Agent": "Mozilla/5.0"
     }
 
-    for proxy in proxies_list:
+    try:
+        response = requests.get(
+            url,
+            headers=headers,
+            timeout=30,
+            verify=False
+        )
 
-        proxy = proxy.strip()
+        response.raise_for_status()
 
-        if not proxy:
-            continue
+        return response.text
 
-        if not proxy.startswith("http"):
-            proxy = "http://" + proxy
+    except Exception as e:
+        print(f"[!] Gagal fetch: {url}")
+        print(e)
+        return None
 
-        proxies = {
-            "http": proxy,
-            "https": proxy
-        }
 
-        try:
-            print(f"[+] Coba proxy: {proxy}")
+# ===============================
+# PLAYLIST 1 (AMBIL SEMUA DATA)
+# ===============================
+print("\n▶️ Mengambil playlist 1...")
 
-            res = requests.get(
-                url,
-                headers=headers,
-                proxies=proxies,
-                timeout=20,
-                verify=False,
-                allow_redirects=True
-            )
+playlist1_text = fetch_playlist(API_URL)
 
-            # validasi playlist
-            if (
-                res.status_code == 200
-                and "#EXTM3U" in res.text
-            ):
+if not playlist1_text:
+    print("[!] Playlist 1 gagal diambil")
+    sys.exit()
 
-                print(f"[✓] Berhasil pakai proxy: {proxy}")
+print("✅ Playlist 1 berhasil diambil")
 
-                return res.text
+# hapus header bawaan
+output1 = []
 
-            else:
-                print(f"[x] Bukan playlist valid")
+for line in playlist1_text.splitlines():
 
-        except Exception as e:
-            print(f"[x] Proxy gagal: {proxy} -> {e}")
+    if line.strip().startswith("#EXTM3U"):
+        continue
 
-    return None
+    output1.append(line)
 
 
 # ===============================
@@ -131,85 +100,14 @@ def replace_group_title(content: str, new_group: str):
 
 
 # ===============================
-# AMBIL PROXY
-# ===============================
-proxy_list = get_proxy_list(PROXY_LIST_URL)
-
-if not proxy_list:
-    print("[!] Proxy kosong")
-    sys.exit()
-
-random.shuffle(proxy_list)
-
-# ===============================
-# PLAYLIST 1 (FILTER CH CUBMU)
-# ===============================
-print("\n▶️ Mengambil playlist 1...")
-
-playlist_text = fetch_with_proxy(API_URL, proxy_list)
-
-if not playlist_text:
-    print("[!] Semua proxy gagal untuk playlist 1")
-    sys.exit()
-
-lines = playlist_text.splitlines()
-
-output1 = []
-
-i = 0
-
-while i < len(lines):
-
-    line = lines[i].strip()
-
-    # filter CH CUBMU
-    if (
-        line.startswith("#EXTINF")
-        and 'group-title="CH CUBMU"' in line
-    ):
-
-        # ubah group-title
-        line = line.replace(
-            'group-title="CH CUBMU"',
-            'group-title="🧧|CH CUBMU"'
-        )
-
-        output1.append(line)
-
-        j = i + 1
-
-        while j < len(lines):
-
-            next_line = lines[j].strip()
-
-            # stop jika channel baru
-            if next_line.startswith("#EXTINF"):
-                break
-
-            if next_line:
-                output1.append(next_line)
-
-            # stop jika URL stream
-            if next_line.startswith("http"):
-                break
-
-            j += 1
-
-        output1.append("")
-
-        i = j
-
-    i += 1
-
-# ===============================
 # PLAYLIST 2 (SEMUA GROUP DIGANTI)
 # ===============================
 print("\n▶️ Mengambil playlist 2...")
 
-playlist2_text = fetch_with_proxy(API_URL2, proxy_list)
+playlist2_text = fetch_playlist(API_URL2)
 
 if not playlist2_text:
-    print("[!] Semua proxy gagal untuk playlist 2")
+    print("[!] Playlist 2 gagal diambil")
     sys.exit()
 
 print("▶️ Mengganti semua group-title playlist 2...")
@@ -219,12 +117,23 @@ modified_playlist2 = replace_group_title(
     "🧧|CH CUBMU2"
 )
 
+# hapus header playlist2
+playlist2_lines = []
+
+for line in modified_playlist2.splitlines():
+
+    if line.strip().startswith("#EXTM3U"):
+        continue
+
+    playlist2_lines.append(line)
+
+
 # ===============================
 # GABUNGKAN OUTPUT
 # ===============================
 final_output = []
 
-# header
+# header utama
 final_output.append("#EXTM3U")
 final_output.append("")
 
@@ -233,7 +142,7 @@ final_output.extend(output1)
 
 # playlist 2
 final_output.append("")
-final_output.append(modified_playlist2)
+final_output.extend(playlist2_lines)
 
 # ===============================
 # SIMPAN FILE
