@@ -24,7 +24,7 @@ jobs:
 
       - name: Install Python dependencies
         run: |
-          pip install requests urllib3
+          pip install requests urllib3 cryptography
 
       - name: 📁 Ambil file konfigurasi dari repo privat
         run: |
