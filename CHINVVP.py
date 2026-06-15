@@ -147,62 +147,136 @@ def get_playlist3():
 
     try:
 
-        print("\n▶️ Mengambil playlist 3...")
+        print("\n▶️ Mengambil Playlist 3...")
 
-        response = requests.get(
+        r = requests.get(
             TARGET_URL,
+            timeout=30,
             headers={
                 "User-Agent": "Mozilla/5.0"
             },
-            timeout=30,
             verify=False
         )
 
-        response.raise_for_status()
+        r.raise_for_status()
 
-        enc_data, enc_iv = extract_enc_values(
-            response.text
-        )
+        text = r.text
 
-        decrypted = decrypt_data(
-            enc_data,
-            enc_iv
-        )
-
-        # Cari initializePlayer(...)
-        match = re.search(
-            r"initializePlayer\(\s*'[^']+'\s*,\s*'([^']+)'\s*,\s*'([^']+)'",
-            decrypted,
+        m = re.search(
+            r'"uel1"\s*:\s*(\[[^\]]+\])',
+            text,
             re.S
         )
 
-        if not match:
-            print("[!] URL MPD atau DRM tidak ditemukan")
+        if not m:
+            print("[!] uel1 tidak ditemukan")
             return []
 
-        mpd_url = match.group(1).strip()
-        drm_key = match.group(2).strip()
+        channel_ids = json.loads(
+            m.group(1)
+        )
 
-        if ":" not in drm_key:
-            print("[!] DRM Key tidak valid")
-            return []
+        print(
+            f"[+] Total ID uel1: {len(channel_ids)}"
+        )
 
-        kid, key = drm_key.split(":", 1)
+        playlist = []
+        total_ok = 0
 
-        playlist = [
-            '#EXTINF:-1 tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/TVRI_Sport_2022.svg/1280px-TVRI_Sport_2022.svg.png" group-title="⚽⚽⚽|TV WORLDCUP 2026",TVRI SPORT',
-            '#KODIPROP:inputstream.adaptive.license_type=clearkey',
-            f'#KODIPROP:inputstream.adaptive.license_key={kid}:{key}',
-            mpd_url
-        ]
+        for channel_id in channel_ids:
 
-        print("✅ Playlist 3 berhasil dibuat")
+            try:
+
+                print(f"   ↳ {channel_id}")
+
+                url = SHAKA_URL.format(
+                    channel_id
+                )
+
+                response = requests.get(
+                    url,
+                    headers={
+                        "User-Agent": "Mozilla/5.0"
+                    },
+                    timeout=20,
+                    verify=False
+                )
+
+                response.raise_for_status()
+
+                enc_data, enc_iv = extract_enc_values(
+                    response.text
+                )
+
+                decrypted = decrypt_data(
+                    enc_data,
+                    enc_iv
+                )
+
+                # skip cepat jika bukan CDN Tencent
+                if "tencent-css.byteplaycdn.com" not in decrypted:
+                    print("      ⏭ Skip non-tencent")
+                    continue
+
+                match = re.search(
+                    r'initializePlayer\s*\(\s*[\'"]([^\'"]+)[\'"]\s*,\s*[\'"]([^\'"]+)[\'"]\s*,\s*[\'"]([^\'"]+)[\'"]',
+                    decrypted,
+                    re.S
+                )
+
+                if not match:
+                    print("      ⏭ initializePlayer tidak ditemukan")
+                    continue
+
+                player_name = match.group(1).strip()
+                mpd_url = match.group(2).strip()
+                drm_key = match.group(3).strip()
+
+                if not mpd_url.startswith(
+                    "https://tencent-css.byteplaycdn.com/"
+                ):
+                    print("      ⏭ Skip non-tencent URL")
+                    continue
+
+                if ":" not in drm_key:
+                    print("      ⏭ DRM invalid")
+                    continue
+
+                kid, key = drm_key.split(
+                    ":",
+                    1
+                )
+
+                playlist.extend([
+                    f'#EXTINF:-1 tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/TVRI_Sport_2022.svg/1280px-TVRI_Sport_2022.svg.png" group-title="⚽⚽⚽|TV WORLDCUP 2026",{channel_id.upper()}',
+                    '#KODIPROP:inputstream.adaptive.license_type=clearkey',
+                    f'#KODIPROP:inputstream.adaptive.license_key={kid}:{key}',
+                    mpd_url
+                ])
+
+                total_ok += 1
+
+                print(
+                    f"      ✅ {channel_id} -> {player_name}"
+                )
+
+            except Exception as e:
+
+                print(
+                    f"      ❌ {channel_id}: {e}"
+                )
+
+        print(
+            f"\n✅ Playlist 3 selesai ({total_ok} channel)"
+        )
 
         return playlist
 
     except Exception as e:
 
-        print(f"[!] Playlist 3 gagal: {e}")
+        print(
+            f"[!] Playlist 3 gagal: {e}"
+        )
 
         return []
 
