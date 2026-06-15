@@ -7,6 +7,8 @@ import base64
 from pathlib import Path
 from hashlib import pbkdf2_hmac
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -151,11 +153,17 @@ def get_playlist3():
 
         print("\n▶️ Mengambil Playlist 3...")
 
+        UA = (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/149.0.0.0 Safari/537.36"
+        )
+
         r = requests.get(
             TARGET_URL,
             timeout=30,
             headers={
-                "User-Agent": "Mozilla/5.0"
+                "User-Agent": UA
             },
             verify=False
         )
@@ -164,22 +172,51 @@ def get_playlist3():
 
         text = r.text
 
-        m = re.search(
-            r'"uel1"\s*:\s*(\[[^\]]+\])',
-            text,
-            re.S
-        )
+        # =====================
+        # Ambil uel1 - uel4
+        # =====================
+        all_ids = []
 
-        if not m:
-            print("[!] uel1 tidak ditemukan")
-            return []
+        for key_name in (
+            "uel1",
+            "uel2",
+            "uel3",
+            "uel4"
+        ):
 
-        channel_ids = json.loads(
-            m.group(1)
+            m = re.search(
+                rf'"{key_name}"\s*:\s*(\[[^\]]+\])',
+                text,
+                re.S
+            )
+
+            if not m:
+                continue
+
+            try:
+
+                ids = json.loads(
+                    m.group(1)
+                )
+
+                print(
+                    f"[+] Total ID {key_name}: {len(ids)}"
+                )
+
+                all_ids.extend(ids)
+
+            except Exception as e:
+
+                print(
+                    f"[!] Gagal parsing {key_name}: {e}"
+                )
+
+        channel_ids = list(
+            dict.fromkeys(all_ids)
         )
 
         print(
-            f"[+] Total ID uel1: {len(channel_ids)}"
+            f"[+] Total unique ID: {len(channel_ids)}"
         )
 
         playlist = []
@@ -189,60 +226,166 @@ def get_playlist3():
 
             try:
 
-                print(f"   ↳ {channel_id}")
-
-                url = SHAKA_URL.format(
-                    channel_id
+                print(
+                    f"   ↳ {channel_id}"
                 )
 
-                response = requests.get(
-                    url,
-                    headers={
-                        "User-Agent": "Mozilla/5.0"
-                    },
-                    timeout=20,
-                    verify=False
+                player_name = (
+                    channel_id.upper()
                 )
 
-                response.raise_for_status()
+                mpd_url = ""
+                drm_key = ""
 
-                enc_data, enc_iv = extract_enc_values(
-                    response.text
-                )
+                # =====================
+                # SHAKA
+                # =====================
+                try:
 
-                decrypted = decrypt_data(
-                    enc_data,
-                    enc_iv
-                )
+                    response = requests.get(
+                        SHAKA_URL.format(
+                            channel_id
+                        ),
+                        headers={
+                            "User-Agent": UA
+                        },
+                        timeout=20,
+                        verify=False
+                    )
 
-                # skip cepat jika bukan CDN Tencent
-                if "tencent-css.byteplaycdn.com" not in decrypted:
-                    print("      ⏭ Skip non-tencent")
-                    continue
+                    response.raise_for_status()
 
-                match = re.search(
-                    r'initializePlayer\s*\(\s*[\'"]([^\'"]+)[\'"]\s*,\s*[\'"]([^\'"]+)[\'"]\s*,\s*[\'"]([^\'"]+)[\'"]',
-                    decrypted,
-                    re.S
-                )
+                    enc_data, enc_iv = (
+                        extract_enc_values(
+                            response.text
+                        )
+                    )
 
-                if not match:
-                    print("      ⏭ initializePlayer tidak ditemukan")
-                    continue
+                    if not enc_data:
+                        raise Exception(
+                            "ENC_DATA tidak ditemukan"
+                        )
 
-                player_name = match.group(1).strip()
-                mpd_url = match.group(2).strip()
-                drm_key = match.group(3).strip()
+                    if not enc_iv:
+                        raise Exception(
+                            "ENC_IV tidak ditemukan"
+                        )
 
-                if not mpd_url.startswith(
-                    "https://tencent-css.byteplaycdn.com/"
-                ):
-                    print("      ⏭ Skip non-tencent URL")
-                    continue
+                    decrypted = decrypt_data(
+                        enc_data,
+                        enc_iv
+                    )
+
+                    match = re.search(
+                        r'initializePlayer\s*\(\s*[\'"]([^\'"]+)[\'"]\s*,\s*[\'"]([^\'"]+)[\'"]\s*,\s*[\'"]([^\'"]+)[\'"]',
+                        decrypted,
+                        re.S
+                    )
+
+                    if not match:
+                        raise Exception(
+                            "initializePlayer tidak ditemukan"
+                        )
+
+                    player_name = (
+                        match.group(1)
+                        .strip()
+                    )
+
+                    mpd_url = (
+                        match.group(2)
+                        .strip()
+                    )
+
+                    drm_key = (
+                        match.group(3)
+                        .strip()
+                    )
+
+                    print(
+                        "      ✅ SHAKA"
+                    )
+
+                except Exception as shaka_error:
+
+                    print(
+                        f"      ⚠ SHAKA gagal: {shaka_error}"
+                    )
+
+                    print(
+                        "      🔄 Fallback BITMOVIN..."
+                    )
+
+                    payload = requests.get(
+                        MOVIN_URL.format(
+                            channel_id
+                        ),
+                        headers={
+                            "User-Agent": UA
+                        },
+                        timeout=20,
+                        verify=False
+                    ).json()
+
+                    kdf = PBKDF2HMAC(
+                        algorithm=hashes.SHA256(),
+                        length=32,
+                        salt=SALT,
+                        iterations=ITERATIONS,
+                    )
+
+                    aes_key = kdf.derive(
+                        PASSWORD.encode()
+                    )
+
+                    iv = base64.b64decode(
+                        payload["iv"]
+                    )
+
+                    ciphertext = (
+                        base64.b64decode(
+                            payload["data"]
+                        )
+                    )
+
+                    plain = AESGCM(
+                        aes_key
+                    ).decrypt(
+                        iv,
+                        ciphertext,
+                        None
+                    )
+
+                    data = json.loads(
+                        plain.decode()
+                    )
+
+                    mpd_url = data.get(
+                        "dash",
+                        ""
+                    )
+
+                    drm_key = data.get(
+                        "drm",
+                        ""
+                    )
+
+                    print(
+                        "      ✅ BITMOVIN"
+                    )
+
+                # =====================
+                # VALIDASI
+                # =====================
+                if not mpd_url:
+                    raise Exception(
+                        "MPD kosong"
+                    )
 
                 if ":" not in drm_key:
-                    print("      ⏭ DRM invalid")
-                    continue
+                    raise Exception(
+                        "DRM invalid"
+                    )
 
                 kid, key = drm_key.split(
                     ":",
@@ -250,7 +393,8 @@ def get_playlist3():
                 )
 
                 playlist.extend([
-                    f'#EXTINF:-1 tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/TVRI_Sport_2022.svg/1280px-TVRI_Sport_2022.svg.png" group-title="⚽⚽⚽|TV WORLDCUP 2026",{channel_id.upper()}',
+                    f'#EXTINF:-1 tvg-logo="https://images.mlssoccer.com/image/private/t_editorial_landscape_8_desktop_mobile/mls/gxw8xgtyy9x6ukgyrdny.png" group-title="⚽⚽⚽|TV WORLDCUP 2026",{channel_id.upper()}',
+                    f'#EXTVLCOPT:http-user-agent={UA}',
                     '#KODIPROP:inputstream.adaptive.license_type=clearkey',
                     f'#KODIPROP:inputstream.adaptive.license_key={kid}:{key}',
                     mpd_url
