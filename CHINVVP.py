@@ -174,9 +174,6 @@ def get_playlist3():
 
         text = r.text
 
-        # =====================
-        # Ambil uel1 - uel4
-        # =====================
         all_ids = []
 
         for key_name in (
@@ -216,6 +213,41 @@ def get_playlist3():
         channel_ids = list(
             dict.fromkeys(all_ids)
         )
+
+        # =====================
+        # channel_id -> href
+        # =====================
+        channel_href_map = {}
+
+        for m in re.finditer(
+            r'"([^"]+)"\s*:\s*\{(.*?)\}',
+            text,
+            re.S
+        ):
+
+            cid = m.group(1)
+            block = m.group(2)
+
+            href_match = re.search(
+                r'"href"\s*:\s*"([^"]+)"',
+                block
+            )
+
+            if href_match:
+
+                href = (
+                    href_match.group(1)
+                    .strip()
+                )
+
+                if href.startswith(
+                    "go:"
+                ):
+                    href = href[3:]
+
+                channel_href_map[
+                    cid
+                ] = href
 
         print(
             f"[+] Total unique ID: {len(channel_ids)}"
@@ -263,14 +295,9 @@ def get_playlist3():
                         )
                     )
 
-                    if not enc_data:
+                    if not enc_data or not enc_iv:
                         raise Exception(
-                            "ENC_DATA tidak ditemukan"
-                        )
-
-                    if not enc_iv:
-                        raise Exception(
-                            "ENC_IV tidak ditemukan"
+                            "ENC_DATA / ENC_IV tidak ditemukan"
                         )
 
                     decrypted = decrypt_data(
@@ -318,16 +345,40 @@ def get_playlist3():
                         "      🔄 Fallback BITMOVIN..."
                     )
 
-                    payload = requests.get(
-                        MOVIN_URL.format(
+                    movin_id = (
+                        channel_href_map.get(
+                            channel_id,
                             channel_id
+                        )
+                    )
+
+                    print(
+                        f"      🔍 BITMOVIN ID: {movin_id}"
+                    )
+
+                    resp = requests.get(
+                        MOVIN_URL.format(
+                            movin_id
                         ),
                         headers={
                             "User-Agent": UA
                         },
                         timeout=20,
                         verify=False
-                    ).json()
+                    )
+
+                    resp.raise_for_status()
+
+                    payload = resp.json()
+
+                    if (
+                        "iv" not in payload
+                        or
+                        "data" not in payload
+                    ):
+                        raise Exception(
+                            f"Payload invalid: {payload}"
+                        )
 
                     kdf = PBKDF2HMAC(
                         algorithm=hashes.SHA256(),
@@ -344,8 +395,10 @@ def get_playlist3():
                         payload["iv"]
                     )
 
-                    ciphertext = base64.b64decode(
-                        payload["data"]
+                    ciphertext = (
+                        base64.b64decode(
+                            payload["data"]
+                        )
                     )
 
                     plain = AESGCM(
@@ -369,21 +422,32 @@ def get_playlist3():
 
                     except Exception:
 
-                        data = ast.literal_eval(
-                            plain_text
-                        )
+                        try:
+
+                            data = ast.literal_eval(
+                                plain_text
+                            )
+
+                        except Exception:
+
+                            print(
+                                f"      🔍 DECRYPTED: {plain_text[:500]}"
+                            )
+
+                            raise
 
                     mpd_url = (
                         data.get("dash")
                         or data.get("hls")
                         or data.get("mpd")
                         or data.get("manifest")
+                        or data.get("url")
                         or ""
                     )
 
-                    drm_key = data.get(
-                        "drm",
-                        ""
+                    drm_key = (
+                        data.get("drm")
+                        or ""
                     )
 
                     print(
@@ -395,7 +459,7 @@ def get_playlist3():
                 # =====================
                 if not mpd_url:
                     raise Exception(
-                        "MPD kosong"
+                        "URL stream kosong"
                     )
 
                 if ":" not in drm_key:
@@ -441,7 +505,6 @@ def get_playlist3():
         )
 
         return []
-
 
 # ===============================
 # PLAYLIST 1 (AMBIL SEMUA DATA)
