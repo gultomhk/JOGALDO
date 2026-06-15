@@ -41,6 +41,7 @@ if not API_URL2:
 # ==========================
 
 TARGET_URL = config_vars.get("TARGET_URL")
+SHAKA_URL = config_vars.get("SHAKA_URL")
 PASSWORD = config_vars.get("PASSWORD")
 SALT = config_vars.get("SALT")
 ITERATIONS = config_vars.get("ITERATIONS")
