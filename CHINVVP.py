@@ -4,6 +4,7 @@ import urllib3
 import json
 import re
 import base64
+import ast
 from pathlib import Path
 from hashlib import pbkdf2_hmac
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -343,10 +344,8 @@ def get_playlist3():
                         payload["iv"]
                     )
 
-                    ciphertext = (
-                        base64.b64decode(
-                            payload["data"]
-                        )
+                    ciphertext = base64.b64decode(
+                        payload["data"]
                     )
 
                     plain = AESGCM(
@@ -357,13 +356,29 @@ def get_playlist3():
                         None
                     )
 
-                    data = json.loads(
+                    plain_text = (
                         plain.decode()
+                        .strip()
                     )
 
-                    mpd_url = data.get(
-                        "dash",
-                        ""
+                    try:
+
+                        data = json.loads(
+                            plain_text
+                        )
+
+                    except Exception:
+
+                        data = ast.literal_eval(
+                            plain_text
+                        )
+
+                    mpd_url = (
+                        data.get("dash")
+                        or data.get("hls")
+                        or data.get("mpd")
+                        or data.get("manifest")
+                        or ""
                     )
 
                     drm_key = data.get(
@@ -372,7 +387,7 @@ def get_playlist3():
                     )
 
                     print(
-                        "      ✅ BITMOVIN"
+                        f"      ✅ BITMOVIN ({'HLS' if 'hls' in data else 'DASH'})"
                     )
 
                 # =====================
