@@ -46,6 +46,7 @@ if not API_URL2:
 TARGET_URL = config_vars.get("TARGET_URL")
 SHAKA_URL = config_vars.get("SHAKA_URL")
 MOVIN_URL = config_vars.get("MOVIN_URL")
+JSON_URL = config_vars.get("JSON_URL")
 PASSWORD = config_vars.get("PASSWORD")
 SALT = config_vars.get("SALT")
 ITERATIONS = config_vars.get("ITERATIONS")
@@ -568,6 +569,88 @@ def get_playlist3():
 
         return []
 
+
+# ==========================
+# PLAYLIST 4 (REPLAY)
+# ==========================
+def get_playlist4():
+
+    try:
+
+        print("\n▶️ Mengambil Playlist 4...")
+
+        UA = (
+            "Mozilla/5.0 (X11; Linux x86_64) "
+            "AppleWebKit/534.24 (KHTML, like Gecko) "
+            "Chrome/11.0.696.34 Safari/534.24"
+        )
+
+        r = requests.get(
+            JSON_URL,
+            headers={
+                "User-Agent": UA
+            },
+            timeout=30,
+            verify=False
+        )
+
+        r.raise_for_status()
+
+        data = r.json()
+
+        playlist = []
+        total_ok = 0
+
+        for item in data:
+
+            try:
+
+                title = (
+                    item.get("title", "")
+                    .strip()
+                )
+
+                logo = (
+                    item.get("image", "")
+                    .strip()
+                )
+
+                video_url = (
+                    item.get("url", "")
+                    .strip()
+                )
+
+                if not video_url:
+                    continue
+
+                playlist.extend([
+                    f'#EXTINF:-1 tvg-logo="{logo}" group-title="⚽⚽⚽| TV REPLAY WORLDCUP 2026",{title}',
+                    f'#EXTVLCOPT:http-user-agent={UA}',
+                    video_url
+                ])
+
+                total_ok += 1
+
+            except Exception as e:
+
+                print(
+                    f"   ❌ Replay gagal: {e}"
+                )
+
+        print(
+            f"✅ Playlist 4 selesai ({total_ok} replay)"
+        )
+
+        return playlist
+
+    except Exception as e:
+
+        print(
+            f"[!] Playlist 4 gagal: {e}"
+        )
+
+        return []
+
 # ===============================
 # PLAYLIST 1 (AMBIL SEMUA DATA)
 # ===============================
@@ -640,6 +723,12 @@ playlist3_lines = get_playlist3()
 
 
 # ===============================
+# PLAYLIST 4
+# ===============================
+playlist4_lines = get_playlist4()
+
+
+# ===============================
 # GABUNGKAN OUTPUT
 # ===============================
 final_output = []
@@ -660,6 +749,10 @@ if playlist3_lines:
     final_output.append("")
     final_output.extend(playlist3_lines)
 
+# Playlist 4
+if playlist4_lines:
+    final_output.append("")
+    final_output.extend(playlist4_lines)
 
 # ===============================
 # SIMPAN FILE
