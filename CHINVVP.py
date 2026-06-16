@@ -462,21 +462,83 @@ def get_playlist3():
                         "URL stream kosong"
                     )
 
-                if ":" not in drm_key:
+                # skip worker jwt
+                if "pisionpluss14.workers.dev" in mpd_url.lower():
                     raise Exception(
-                        "DRM invalid"
+                        "Skip pisionpluss14 worker"
                     )
 
-                kid, key = drm_key.split(
-                    ":",
-                    1
-                )
+                drm_key = drm_key.strip()
+
+                if not drm_key:
+                    raise Exception(
+                        "DRM kosong"
+                    )
+
+                # =====================
+                # FORMAT LICENSE
+                # =====================
+                if ";" in drm_key:
+
+                    pairs = []
+
+                    for item in drm_key.split(";"):
+
+                        item = item.strip()
+
+                        if not item:
+                            continue
+
+                        if ":" not in item:
+                            continue
+
+                        kid, key = item.split(
+                            ":",
+                            1
+                        )
+
+                        kid = kid.strip()
+                        key = key.strip()
+
+                        if not kid or not key:
+                            continue
+
+                        pairs.append(
+                            f'"{kid}":"{key}"'
+                        )
+
+                    if not pairs:
+                        raise Exception(
+                            "DRM multi-key invalid"
+                        )
+
+                    license_key_line = (
+                        '#KODIPROP:inputstream.adaptive.license_key={'
+                        + ";".join(pairs)
+                        + '}'
+                    )
+
+                else:
+
+                    if ":" not in drm_key:
+                        raise Exception(
+                            "DRM invalid"
+                        )
+
+                    kid, key = drm_key.split(
+                        ":",
+                        1
+                    )
+
+                    license_key_line = (
+                        f'#KODIPROP:inputstream.adaptive.license_key={kid}:{key}'
+                    )
 
                 playlist.extend([
                     f'#EXTINF:-1 tvg-logo="https://images.mlssoccer.com/image/private/t_editorial_landscape_8_desktop_mobile/mls/gxw8xgtyy9x6ukgyrdny.png" group-title="⚽⚽⚽|TV WORLDCUP 2026",{channel_id.upper()}',
                     f'#EXTVLCOPT:http-user-agent={UA}',
                     '#KODIPROP:inputstream.adaptive.license_type=clearkey',
-                    f'#KODIPROP:inputstream.adaptive.license_key={kid}:{key}',
+                    license_key_line,
                     mpd_url
                 ])
 
