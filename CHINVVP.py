@@ -47,6 +47,7 @@ TARGET_URL = config_vars.get("TARGET_URL")
 SHAKA_URL = config_vars.get("SHAKA_URL")
 MOVIN_URL = config_vars.get("MOVIN_URL")
 JSON_URL = config_vars.get("JSON_URL")
+REPLAY_WORKER = config_vars.get("REPLAY_WORKER")
 PASSWORD = config_vars.get("PASSWORD")
 SALT = config_vars.get("SALT")
 ITERATIONS = config_vars.get("ITERATIONS")
@@ -587,15 +588,12 @@ def get_playlist4():
 
         r = requests.get(
             JSON_URL,
-            headers={
-                "User-Agent": UA
-            },
+            headers={"User-Agent": UA},
             timeout=30,
             verify=False
         )
 
         r.raise_for_status()
-
         data = r.json()
 
         playlist = []
@@ -603,52 +601,27 @@ def get_playlist4():
 
         for item in data:
 
-            try:
+            title = item.get("title", "").strip()
+            logo = item.get("image", "").strip()
+            replay_id = item.get("id")
 
-                title = (
-                    item.get("title", "")
-                    .strip()
-                )
+            if replay_id is None:
+                continue
 
-                logo = (
-                    item.get("image", "")
-                    .strip()
-                )
+            playlist.extend([
+                f'#EXTINF:-1 tvg-logo="{logo}" group-title="⚽⚽⚽| TV REPLAY WORLDCUP 2026",{title}',
+                f'#EXTVLCOPT:http-user-agent={UA}',
+                f'{REPLAY_WORKER}/?id={replay_id}'
+            ])
 
-                video_url = (
-                    item.get("url", "")
-                    .strip()
-                )
+            total_ok += 1
 
-                if not video_url:
-                    continue
-
-                playlist.extend([
-                    f'#EXTINF:-1 tvg-logo="{logo}" group-title="⚽⚽⚽| TV REPLAY WORLDCUP 2026",{title}',
-                    f'#EXTVLCOPT:http-user-agent={UA}',
-                    video_url
-                ])
-
-                total_ok += 1
-
-            except Exception as e:
-
-                print(
-                    f"   ❌ Replay gagal: {e}"
-                )
-
-        print(
-            f"✅ Playlist 4 selesai ({total_ok} replay)"
-        )
-
+        print(f"✅ Playlist 4 selesai ({total_ok} replay)")
         return playlist
 
     except Exception as e:
 
-        print(
-            f"[!] Playlist 4 gagal: {e}"
-        )
-
+        print(f"[!] Playlist 4 gagal: {e}")
         return []
 
 # ===============================
