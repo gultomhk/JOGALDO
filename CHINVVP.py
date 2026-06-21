@@ -465,9 +465,9 @@ def get_playlist3():
                     )
 
                 # skip worker jwt
-                if "pisionpluss14.workers.dev" in mpd_url.lower():
+                if "pisionpluss15.workers.dev" in mpd_url.lower():
                     raise Exception(
-                        "Skip pisionpluss14 worker"
+                        "Skip pisionpluss15 worker"
                     )
 
                 drm_key = drm_key.strip()
