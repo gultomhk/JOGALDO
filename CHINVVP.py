@@ -179,10 +179,12 @@ def get_playlist3():
         all_ids = []
 
         for key_name in (
-            "uel1",
-            "uel2",
-            "uel3",
-            "uel4"
+            "ucl1",
+            "ucl2",
+            "ucl3",
+            "ucl4",
+            "ucl5",
+            "ucl6"
         ):
 
             m = re.search(
