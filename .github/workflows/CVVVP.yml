@@ -33,6 +33,7 @@ jobs:
 
       - name: ▶️ Generate M3U
         run: |
+          set -e
           python CHINVVP.py
 
       - name: 📤 Push output ke repo privat jika ada perubahan
