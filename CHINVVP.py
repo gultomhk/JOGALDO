@@ -467,9 +467,9 @@ def get_playlist3():
                     )
 
                 # skip worker jwt
-                if "01anutv.workers.dev" in mpd_url.lower():
+                if "02anutv.workers.dev" in mpd_url.lower():
                     raise Exception(
-                        "Skip 01anutv worker"
+                        "Skip 02anutv worker"
                     )
 
                 drm_key = drm_key.strip()
