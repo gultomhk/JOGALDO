@@ -467,9 +467,9 @@ def get_playlist3():
                     )
 
                 # skip worker jwt
-                if "02anutv.workers.dev" in mpd_url.lower():
+                if re.search(r"\b\d{2}anutv\.workers\.dev\b", mpd_url.lower()):
                     raise Exception(
-                        "Skip 02anutv worker"
+                        "Skip anutv worker"
                     )
 
                 drm_key = drm_key.strip()
