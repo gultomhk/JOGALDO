@@ -466,10 +466,28 @@ def get_playlist3():
                         "URL stream kosong"
                     )
 
-                # skip worker jwt
-                if re.search(r"\b\d{2}anutv\.workers\.dev\b", mpd_url.lower()):
+                # =====================
+                # SKIP WORKERS
+                # =====================
+                SKIP_WORKERS = (
+                    r"\b\d{2}anutv\.workers\.dev\b",   # 01anutv, 02anutv, dst
+                    r"\bhbx2\.workers\.dev\b",         # hbx2.workers.dev
+                )
+
+                mpd_lower = mpd_url.lower()
+
+                matched_worker = next(
+                    (
+                        pattern
+                        for pattern in SKIP_WORKERS
+                        if re.search(pattern, mpd_lower)
+                    ),
+                    None
+                )
+
+                if matched_worker:
                     raise Exception(
-                        "Skip anutv worker"
+                        f"Skip worker: {mpd_url}"
                     )
 
                 drm_key = drm_key.strip()
