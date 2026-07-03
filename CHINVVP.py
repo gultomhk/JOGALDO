@@ -471,7 +471,8 @@ def get_playlist3():
                 # =====================
                 SKIP_WORKERS = (
                     r"\b\d{2}anutv\.workers\.dev\b",   # 01anutv, 02anutv, dst
-                    r"\bhbx2\.workers\.dev\b",         # hbx2.workers.dev
+                    r"\bhbx2\.workers\.dev\b",  # hbx2.workers.dev
+                    r"\bhbx\.workers\.dev\b",
                 )
 
                 mpd_lower = mpd_url.lower()
