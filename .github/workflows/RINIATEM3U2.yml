@@ -1,8 +1,6 @@
 name: 🔄 Generate m3u RINIATE2 setiap jam
 
 on:
-  schedule:
-    - cron: '0 * * * *'
   workflow_dispatch:
 
 permissions:
