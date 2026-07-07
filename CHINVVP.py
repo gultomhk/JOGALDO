@@ -473,6 +473,7 @@ def get_playlist3():
                     r"\b\d{2}anutv\.workers\.dev\b",   # 01anutv, 02anutv, dst
                     r"\bhbx2\.workers\.dev\b",  # hbx2.workers.dev
                     r"\bhbx\.workers\.dev\b",
+                    r"\bhbx4\.workers\.dev\b",
                 )
 
                 mpd_lower = mpd_url.lower()
