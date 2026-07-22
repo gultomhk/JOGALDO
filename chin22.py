@@ -12,18 +12,22 @@ CONGORDATA_FILE = Path.home() / "congordata_file.txt"
 
 def load_config():
     config = {}
+
     if not CONGORDATA_FILE.exists():
         raise FileNotFoundError(f"{CONGORDATA_FILE} tidak ditemukan!")
 
     with open(CONGORDATA_FILE, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
+
             if not line or "=" not in line:
                 continue
+
             key, value = line.split("=", 1)
             config[key.strip()] = value.strip()
 
     return config
+
 
 config = load_config()
 
@@ -36,157 +40,220 @@ URL = config.get("URL", "")
 OUTPUT_FILE = "CONGOR.m3u"
 
 # ==========================
-# Translate Utility
+# Translate
 # ==========================
 translate_cache = {}
+
 TARGET_LANG = "en"
+
 LIBRE_URL = "https://libretranslate.de/translate"
 
-def is_ascii(s: str) -> bool:
+
+def is_ascii(s):
     return all(ord(c) < 128 for c in s)
 
-def to_pinyin(text: str) -> str:
+
+def to_pinyin(text):
     try:
         return " ".join(lazy_pinyin(text)).title()
     except:
         return text
 
-def libre_translate(text: str, target=TARGET_LANG):
+
+def libre_translate(text, target=TARGET_LANG):
     try:
-        payload = {
-            "q": text,
-            "source": "auto",
-            "target": target,
-            "format": "text"
-        }
-        r = requests.post(LIBRE_URL, data=payload, timeout=10)
+        r = requests.post(
+            LIBRE_URL,
+            data={
+                "q": text,
+                "source": "auto",
+                "target": target,
+                "format": "text"
+            },
+            timeout=10
+        )
+
         r.raise_for_status()
-        data = r.json()
-        return data.get("translatedText")
+
+        return r.json().get("translatedText")
+
     except:
         return None
 
-def translate_text(text: str, target=TARGET_LANG) -> str:
+
+def translate_text(text, target=TARGET_LANG):
+
     if not text:
         return ""
+
     text = text.strip()
 
-    if not text or text.isnumeric() or is_ascii(text):
-        return text
+    if text == "":
+        return ""
 
     if text in translate_cache:
         return translate_cache[text]
 
-    # Layer 1: Google
+    if is_ascii(text):
+        return text
+
     try:
-        translated = GoogleTranslator(source="auto", target=target).translate(text)
-        if translated:
-            translate_cache[text] = translated
-            return translated
+        result = GoogleTranslator(
+            source="auto",
+            target=target
+        ).translate(text)
+
+        if result:
+            translate_cache[text] = result
+            return result
+
     except:
         pass
 
-    # Layer 2: LibreTranslate
-    libre_result = libre_translate(text, target)
-    if libre_result:
-        translate_cache[text] = libre_result
-        return libre_result
+    result = libre_translate(text, target)
 
-    # Layer 3: Pinyin
-    pinyin_text = to_pinyin(text)
-    translate_cache[text] = pinyin_text
-    return pinyin_text
+    if result:
+        translate_cache[text] = result
+        return result
+
+    result = to_pinyin(text)
+
+    translate_cache[text] = result
+
+    return result
+
 
 # ==========================
-# Time Convert
+# Time
 # ==========================
-def to_wib(utc_time_str):
+def to_wib(time_str):
     try:
-        dt = datetime.strptime(utc_time_str, "%Y-%m-%dT%H:%M:%SZ")
-        dt_wib = dt + timedelta(hours=7)
-        return dt_wib.strftime("%d/%m-%H.%M")
+        dt = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%SZ")
+        dt += timedelta(hours=7)
+        return dt.strftime("%d/%m-%H.%M")
     except:
         return "00/00-00.00"
+
 
 # ==========================
 # Build Title
 # ==========================
 def build_title(event):
-    home = translate_text(event.get("home", ""))
-    away = translate_text(event.get("away", ""))
-    title_raw = translate_text(event.get("title", ""))
+
+    home = (
+        event.get("home_en")
+        or translate_text(event.get("home", ""))
+    ).strip()
+
+    away = (
+        event.get("away_en")
+        or translate_text(event.get("away", ""))
+    ).strip()
 
     if home and away:
         return f"{home} VS {away}"
 
-    if title_raw:
-        return title_raw
+    title = (
+        event.get("title_en")
+        or translate_text(event.get("title", ""))
+    ).strip()
+
+    if title:
+        return title
 
     return "Live Event"
 
+
 # ==========================
-# Safe JSON Fetch
+# Fetch JSON
 # ==========================
 def safe_json_request(url, headers):
+
     try:
-        r = requests.get(url, headers=headers, timeout=20)
+
+        r = requests.get(
+            url,
+            headers=headers,
+            timeout=20
+        )
+
         r.raise_for_status()
+
         return r.json()
+
     except json.JSONDecodeError:
-        print("❌ Response bukan JSON valid")
+        print("❌ Response bukan JSON")
         return {}
+
     except Exception as e:
-        print("❌ Request error:", e)
+        print(e)
         return {}
+
 
 # ==========================
 # Main
 # ==========================
 def main():
+
+    if not URL:
+        print("URL kosong.")
+        return
+
     headers = {
         "User-Agent": USER_AGENT
     }
 
-    if not URL:
-        print("❌ URL kosong di config")
-        return
-
     data = safe_json_request(URL, headers)
+
     events = data.get("events", [])
 
-    if not events:
-        print("⚠️ Tidak ada event ditemukan")
+    print("Total event:", len(events))
 
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+
         f.write("#EXTM3U\n\n")
 
         for event in events:
+
             channels = event.get("channels", [])
+
             if not channels:
                 continue
 
-            channel_id = channels[0].get("id")
-            if not channel_id:
+            channel = channels[0]
+
+            stream_id = str(channel.get("id", "")).strip()
+
+            if not stream_id:
                 continue
 
             time_wib = to_wib(event.get("startTs", ""))
-            match_title = build_title(event)
 
-            comp = event.get("competition_en")
-            if not comp:
-                comp = translate_text(event.get("competition", ""))
+            title = build_title(event)
+
+            comp = (
+                event.get("competition_en")
+                or translate_text(event.get("competition", ""))
+            )
 
             f.write(
                 f'#EXTINF:-1 tvg-logo="{LOGO}" '
-                f'group-title="⚽️| LIVE EVENT",{time_wib} {match_title} ({comp})\n'
+                f'group-title="⚽️| LIVE EVENT",{time_wib} {title} ({comp})\n'
             )
 
             if UAM3U:
-                f.write(f'#EXTVLCOPT:http-user-agent={UAM3U}\n')
+                f.write(
+                    f"#EXTVLCOPT:http-user-agent={UAM3U}\n"
+                )
 
-            f.write(f'{WORKER_URL}/index.m3u8?id={channel_id}\n\n')
+            stream_url = (
+                f"{WORKER_URL}/stream/{stream_id}/index.m3u8"
+            )
+
+            f.write(stream_url + "\n\n")
 
     print("✅ CONGOR.m3u berhasil dibuat")
+
 
 if __name__ == "__main__":
     main()
