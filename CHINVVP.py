@@ -187,34 +187,6 @@ def replace_group_title(content, new_group):
 
 
 # ===============================
-# PLAYLIST 2
-# ===============================
-print("\n▶️ Mengambil playlist 2...")
-
-playlist2_text = fetch_playlist(API_URL2)
-
-if not playlist2_text:
-    print("[!] Playlist 2 gagal diambil")
-    sys.exit()
-
-print("▶️ Mengganti semua group-title playlist 2...")
-
-modified_playlist2 = replace_group_title(
-    playlist2_text,
-    "🧧|CH CUBMU2"
-)
-
-playlist2_lines = []
-
-for line in modified_playlist2.splitlines():
-
-    if line.strip().startswith("#EXTM3U"):
-        continue
-
-    playlist2_lines.append(line)
-
-
-# ===============================
 # PLAYLIST 4
 # ===============================
 playlist4_lines = get_playlist4()
@@ -230,11 +202,6 @@ final_output.append("")
 
 # Playlist 1
 final_output.extend(output1)
-
-# Playlist 2
-if playlist2_lines:
-    final_output.append("")
-    final_output.extend(playlist2_lines)
 
 # Playlist 4
 if playlist4_lines:
