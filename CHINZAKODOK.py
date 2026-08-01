@@ -168,7 +168,8 @@ async def parse_matches(html):
 
 async def main():
     async with aiohttp.ClientSession() as session:
-		print(f"Fetching: {TARGET_URL}")
+        print(f"Fetching: {TARGET_URL}")
+
         html = await fetch_html(session, TARGET_URL)
         if not html:
             print(f"⚠️ Failed to fetch HTML from: {TARGET_URL}")
@@ -180,11 +181,14 @@ async def main():
             with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
                 f.write("#EXTM3U\n")
                 f.write("\n".join(lines))
-            print(f"✅ Total matches parsed: {len(lines)//4}")
+
+            print(f"✅ Total matches parsed: {len(lines) // 4}")
             print(f"File M3U created at: {OUTPUT_FILE.resolve()}")
+
         else:
             with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
                 f.write("#EXTM3U\n")
+
             print("⚠️ M3U kosong, skip push ke privat")
             print(f"Minimal file created at: {OUTPUT_FILE.resolve()}")
 
