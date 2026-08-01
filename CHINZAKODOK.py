@@ -54,12 +54,53 @@ async def translate_zh_to_en(text):
 
 async def fetch_html(session, url):
     try:
-        async with session.get(url, headers=HEADERS, ssl=False, timeout=15) as response:
-            return await response.text()
-    except Exception as e:
-        print(f"Fetch error: {e}")
+        async with session.get(
+            url,
+            headers=HEADERS,
+            ssl=False,
+            timeout=aiohttp.ClientTimeout(total=20),
+            allow_redirects=True,
+        ) as response:
+
+            print(f"GET : {response.url}")
+            print(f"HTTP: {response.status}")
+
+            if response.history:
+                print("Redirects:")
+                for r in response.history:
+                    print(f"  {r.status} -> {r.url}")
+
+            text = await response.text(errors="ignore")
+
+            if response.status != 200:
+                print(f"Response (first 500 chars):\n{text[:500]}")
+                return ""
+
+            return text
+
+    except asyncio.TimeoutError:
+        print(f"Fetch timeout: {url}")
         return ""
 
+    except aiohttp.ClientConnectorError as e:
+        print(f"Connection error: {e.host}:{e.port}")
+        print(repr(e))
+        return ""
+
+    except aiohttp.ClientResponseError as e:
+        print(f"HTTP error: {e.status}")
+        print(repr(e))
+        return ""
+
+    except aiohttp.ClientError as e:
+        print(f"aiohttp error: {type(e).__name__}")
+        print(repr(e))
+        return ""
+
+    except Exception as e:
+        print(f"Unexpected error: {type(e).__name__}")
+        print(repr(e))
+        return ""
 
 async def parse_matches(html):
     soup = BeautifulSoup(html, "html.parser")
@@ -127,9 +168,10 @@ async def parse_matches(html):
 
 async def main():
     async with aiohttp.ClientSession() as session:
+		print(f"Fetching: {TARGET_URL}")
         html = await fetch_html(session, TARGET_URL)
         if not html:
-            print("⚠️ Failed to fetch HTML. Exiting.")
+            print(f"⚠️ Failed to fetch HTML from: {TARGET_URL}")
             return
 
         lines = await parse_matches(html)
