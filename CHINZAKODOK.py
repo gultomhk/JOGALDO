@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 from datetime import datetime, timezone, timedelta
 from deep_translator import GoogleTranslator
 from pathlib import Path
+from urllib.parse import urlparse
 
 # ==========================
 # Timezone
@@ -51,6 +52,12 @@ async def translate_zh_to_en(text):
         print(f"Translate error for '{text}': {e}")
         return text
 
+def safe_url(url):
+    try:
+        p = urlparse(url)
+        return f"{p.scheme}://{p.netloc}/***"
+    except Exception:
+        return "***"
 
 async def fetch_html(session, url):
     try:
@@ -62,7 +69,7 @@ async def fetch_html(session, url):
             allow_redirects=True,
         ) as response:
 
-            print(f"GET : {response.url}")
+            print(f"GET : {safe_url(str(response.url))}")
             print(f"HTTP: {response.status}")
 
             if response.history:
@@ -168,11 +175,11 @@ async def parse_matches(html):
 
 async def main():
     async with aiohttp.ClientSession() as session:
-        print(f"Fetching: {TARGET_URL}")
+        print(f"Fetching: {safe_url(TARGET_URL)}")
 
         html = await fetch_html(session, TARGET_URL)
         if not html:
-            print(f"⚠️ Failed to fetch HTML from: {TARGET_URL}")
+            print(f"⚠️ Failed to fetch HTML from: {safe_url(TARGET_URL)}")
             return
 
         lines = await parse_matches(html)
