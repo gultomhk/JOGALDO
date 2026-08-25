@@ -61,15 +61,18 @@ HEADERS = {
 # =========================================================
 TRANSLATION_CACHE = {}
 
-TRANSLATE_CONCURRENCY = 5
+# Kurangi concurrency untuk menghindari rate limit
+TRANSLATE_CONCURRENCY = 2  # Turunkan dari 5 ke 2
 
 translate_semaphore = asyncio.Semaphore(
     TRANSLATE_CONCURRENCY
 )
 
+# Tambahkan delay antar request
+TRANSLATE_DELAY = 0.5  # 500ms delay antar request
+
 
 async def translate_zh_to_en(session, text):
-
     if not text:
         return ""
 
@@ -90,9 +93,12 @@ async def translate_zh_to_en(session, text):
     # LIMIT CONCURRENT REQUEST
     # ==========================
     async with translate_semaphore:
+        
+        # Tambahkan delay untuk menghindari rate limit
+        await asyncio.sleep(TRANSLATE_DELAY)
 
-        # Retry maksimal 4 kali
-        for attempt in range(4):
+        # Retry maksimal 6 kali (tambah dari 4)
+        for attempt in range(6):
 
             try:
 
@@ -120,15 +126,15 @@ async def translate_zh_to_en(session, text):
                 ) as response:
 
                     # =================================
-                    # RATE LIMIT
+                    # RATE LIMIT - dengan exponential backoff lebih agresif
                     # =================================
                     if response.status == 429:
 
-                        wait_time = 2 ** attempt
+                        wait_time = (2 ** attempt) + 1  # +1 untuk delay tambahan
 
                         print(
                             f"⚠️ HTTP 429: {text} "
-                            f"-> retry {attempt + 1}/4 "
+                            f"-> retry {attempt + 1}/6 "
                             f"after {wait_time}s"
                         )
 
@@ -147,6 +153,13 @@ async def translate_zh_to_en(session, text):
                             f"⚠️ Translate HTTP "
                             f"{response.status}: {text}"
                         )
+                        
+                        # Jika error 5xx, retry
+                        if response.status >= 500:
+                            wait_time = (2 ** attempt) + 1
+                            print(f"⚠️ Server error, retry after {wait_time}s")
+                            await asyncio.sleep(wait_time)
+                            continue
 
                         return text
 
@@ -189,11 +202,11 @@ async def translate_zh_to_en(session, text):
 
             except asyncio.TimeoutError:
 
-                wait_time = 2 ** attempt
+                wait_time = (2 ** attempt) + 1
 
                 print(
                     f"⚠️ Translate timeout: {text} "
-                    f"-> retry {attempt + 1}/4"
+                    f"-> retry {attempt + 1}/6"
                 )
 
                 await asyncio.sleep(
@@ -202,12 +215,12 @@ async def translate_zh_to_en(session, text):
 
             except aiohttp.ClientError as e:
 
-                wait_time = 2 ** attempt
+                wait_time = (2 ** attempt) + 1
 
                 print(
                     f"⚠️ Translate connection error "
                     f"'{text}': {e} "
-                    f"-> retry {attempt + 1}/4"
+                    f"-> retry {attempt + 1}/6"
                 )
 
                 await asyncio.sleep(
@@ -237,10 +250,9 @@ async def translate_zh_to_en(session, text):
 
 
 # =========================================================
-# Translate semua nama tim secara PARALLEL
+# Translate semua nama tim secara BATCH (bukan paralel penuh)
 # =========================================================
 async def translate_all_teams(session, team_names):
-
     # ==========================
     # Hilangkan duplikat
     # ==========================
@@ -258,32 +270,39 @@ async def translate_all_teams(session, team_names):
     )
 
     # ==========================
-    # asyncio.gather
+    # Proses dalam BATCH untuk menghindari rate limit
     # ==========================
-    results = await asyncio.gather(
-        *[
-            translate_zh_to_en(session, name)
-            for name in unique_names
-        ],
-        return_exceptions=True
-    )
-
+    BATCH_SIZE = 10  # Proses 10 nama per batch
     translated = {}
-
-    for original, result in zip(unique_names, results):
-
-        if isinstance(result, Exception):
-
-            print(
-                f"⚠️ Translation exception "
-                f"'{original}': {result}"
-            )
-
-            translated[original] = original
-
-        else:
-
-            translated[original] = result
+    
+    for i in range(0, len(unique_names), BATCH_SIZE):
+        batch = unique_names[i:i + BATCH_SIZE]
+        
+        print(f"📦 Processing batch {i//BATCH_SIZE + 1}/{(len(unique_names)-1)//BATCH_SIZE + 1} ({len(batch)} names)")
+        
+        # Proses batch dengan concurrency rendah
+        results = await asyncio.gather(
+            *[
+                translate_zh_to_en(session, name)
+                for name in batch
+            ],
+            return_exceptions=True
+        )
+        
+        for original, result in zip(batch, results):
+            if isinstance(result, Exception):
+                print(
+                    f"⚠️ Translation exception "
+                    f"'{original}': {result}"
+                )
+                translated[original] = original
+            else:
+                translated[original] = result
+        
+        # Delay antar batch untuk memberi jeda
+        if i + BATCH_SIZE < len(unique_names):
+            print(f"⏳ Waiting 2 seconds before next batch...")
+            await asyncio.sleep(2)
 
     print(
         f"✅ Translation completed: "
@@ -297,15 +316,10 @@ async def translate_all_teams(session, team_names):
 # Safe URL
 # =========================================================
 def safe_url(url):
-
     try:
-
         p = urlparse(url)
-
         return f"{p.scheme}://{p.netloc}/***"
-
     except Exception:
-
         return "***"
 
 
@@ -313,9 +327,7 @@ def safe_url(url):
 # Fetch HTML
 # =========================================================
 async def fetch_html(session, url):
-
     try:
-
         async with session.get(
             url,
             headers=HEADERS,
@@ -323,21 +335,16 @@ async def fetch_html(session, url):
             timeout=aiohttp.ClientTimeout(total=20),
             allow_redirects=True,
         ) as response:
-
             print(
                 f"GET : {safe_url(str(response.url))}"
             )
-
             print(
                 f"HTTP: {response.status}"
             )
 
             if response.history:
-
                 print("Redirects:")
-
                 for r in response.history:
-
                     print(
                         f"  {r.status} -> {r.url}"
                     )
@@ -347,65 +354,49 @@ async def fetch_html(session, url):
             )
 
             if response.status != 200:
-
                 print(
                     "Response (first 500 chars):\n"
                     f"{text[:500]}"
                 )
-
                 return ""
 
             return text
 
     except asyncio.TimeoutError:
-
         print(
             f"Fetch timeout: {url}"
         )
-
         return ""
 
     except aiohttp.ClientConnectorError as e:
-
         print(
             f"Connection error: "
             f"{e.host}:{e.port}"
         )
-
         print(repr(e))
-
         return ""
 
     except aiohttp.ClientResponseError as e:
-
         print(
             f"HTTP error: {e.status}"
         )
-
         print(repr(e))
-
         return ""
 
     except aiohttp.ClientError as e:
-
         print(
             f"aiohttp error: "
             f"{type(e).__name__}"
         )
-
         print(repr(e))
-
         return ""
 
     except Exception as e:
-
         print(
             f"Unexpected error: "
             f"{type(e).__name__}"
         )
-
         print(repr(e))
-
         return ""
 
 
@@ -413,7 +404,6 @@ async def fetch_html(session, url):
 # Parse Matches
 # =========================================================
 async def parse_matches(html, session):
-
     soup = BeautifulSoup(
         html,
         "html.parser"
@@ -426,11 +416,9 @@ async def parse_matches(html, session):
     )
 
     if not a_tags:
-
         print(
             "⚠️ No matches found in the HTML."
         )
-
         return lines
 
     # =====================================================
@@ -438,11 +426,9 @@ async def parse_matches(html, session):
     # Ambil semua data pertandingan
     # =====================================================
     matches = []
-
     all_team_names = []
 
     for a_tag in a_tags:
-
         match_url = a_tag.get(
             "href",
             ""
@@ -534,14 +520,12 @@ async def parse_matches(html, session):
         event_time = ""
 
         if center_div:
-
             liga_tag = center_div.find(
                 "p",
                 class_="eventtime_wuy"
             )
 
             if liga_tag:
-
                 em = liga_tag.find("em")
                 i = liga_tag.find("i")
 
@@ -560,7 +544,6 @@ async def parse_matches(html, session):
         )
 
         try:
-
             dt_obj = datetime.strptime(
                 f"{data_time} {event_time}",
                 "%Y-%m-%d %H:%M"
@@ -579,7 +562,6 @@ async def parse_matches(html, session):
             )
 
         except Exception as e:
-
             print(
                 f"⚠️ Time parse error "
                 f"for {data_time} "
@@ -603,7 +585,7 @@ async def parse_matches(html, session):
 
     # =====================================================
     # STEP 2
-    # Translate SEMUA tim secara paralel
+    # Translate SEMUA tim secara paralel dengan batch
     # =====================================================
     translations = await translate_all_teams(
         session,
@@ -615,7 +597,6 @@ async def parse_matches(html, session):
     # Buat M3U
     # =====================================================
     for match in matches:
-
         home_team_en = translations.get(
             match["home_team"],
             match["home_team"]
@@ -660,7 +641,6 @@ async def parse_matches(html, session):
 # MAIN
 # =========================================================
 async def main():
-
     connector = aiohttp.TCPConnector(
         ssl=False,
         limit=30
@@ -674,7 +654,6 @@ async def main():
         connector=connector,
         timeout=timeout
     ) as session:
-
         print(
             f"Fetching: "
             f"{safe_url(TARGET_URL)}"
@@ -686,12 +665,10 @@ async def main():
         )
 
         if not html:
-
             print(
                 "⚠️ Failed to fetch HTML from: "
                 f"{safe_url(TARGET_URL)}"
             )
-
             return
 
         lines = await parse_matches(
@@ -700,17 +677,14 @@ async def main():
         )
 
         if lines:
-
             with open(
                 OUTPUT_FILE,
                 "w",
                 encoding="utf-8"
             ) as f:
-
                 f.write(
                     "#EXTM3U\n"
                 )
-
                 f.write(
                     "\n".join(lines)
                 )
@@ -726,13 +700,11 @@ async def main():
             )
 
         else:
-
             with open(
                 OUTPUT_FILE,
                 "w",
                 encoding="utf-8"
             ) as f:
-
                 f.write(
                     "#EXTM3U\n"
                 )
@@ -752,5 +724,4 @@ async def main():
 # START
 # =========================================================
 if __name__ == "__main__":
-
     asyncio.run(main())
