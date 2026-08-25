@@ -1,15 +1,21 @@
 import asyncio
 import json
+import re
+
 from bs4 import BeautifulSoup
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 from curl_cffi import requests
 
+import argostranslate.package
+import argostranslate.translate
+
 
 # =========================================================
 # TIMEZONE
 # =========================================================
+
 try:
     from zoneinfo import ZoneInfo
 
@@ -24,6 +30,7 @@ except Exception:
 # =========================================================
 # LOAD CONFIG
 # =========================================================
+
 GOGODATTVDATA_FILE = (
     Path.home() /
     "gogodattvdata_file.txt"
@@ -69,13 +76,17 @@ OUTPUT_FILE = (
 # =========================================================
 # HEADERS
 # =========================================================
+
+USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/136.0.0.0 Safari/537.36"
+)
+
+
 HEADERS = {
 
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/136.0.0.0 Safari/537.36"
-    ),
+    "User-Agent": USER_AGENT,
 
     "Accept": (
         "text/html,application/xhtml+xml,"
@@ -106,28 +117,31 @@ HEADERS = {
 
 
 # =========================================================
-# LIBRETRANSLATE
+# ARGOS CONFIG
 # =========================================================
-TRANSLATE_URL = (
-    "https://de.libretranslate.com/translate"
+
+ARGOS_FROM = "zh"
+ARGOS_TO = "en"
+
+# Jumlah translasi paralel.
+#
+# Argos lokal tidak kena HTTP 429.
+# Tetapi terlalu banyak thread bisa membebani CPU/RAM.
+#
+# 4 biasanya aman untuk GitHub Actions.
+ARGOS_CONCURRENCY = 4
+
+
+ARGOS_INDEX_URL = (
+    "https://raw.githubusercontent.com/"
+    "argosopentech/argospm-index/main/index.json"
 )
 
-TRANSLATE_SOURCE = "zh-Hans"
-TRANSLATE_TARGET = "en"
-
-TRANSLATE_API_KEY = ""
-
-# Jangan terlalu besar.
-# 3 berarti maksimal 3 request bersamaan.
-TRANSLATE_CONCURRENCY = 3
-
-# Retry ketika server rate-limit / error
-TRANSLATE_RETRIES = 4
-
 
 # =========================================================
-# TRANSLATION CACHE
+# CACHE
 # =========================================================
+
 CACHE_FILE = (
     Path(__file__).parent /
     "translation_cache.json"
@@ -199,6 +213,7 @@ def save_cache():
 # =========================================================
 # CHINESE CHECK
 # =========================================================
+
 def contains_chinese(text):
 
     if not text:
@@ -211,12 +226,305 @@ def contains_chinese(text):
 
 
 # =========================================================
-# LIBRETRANSLATE REQUEST
+# ARGOS LANGUAGE
 # =========================================================
-async def libre_translate(
-    session,
-    text,
-    semaphore
+
+def get_installed_languages():
+
+    try:
+
+        return (
+            argostranslate.translate
+            .get_installed_languages()
+        )
+
+    except Exception as e:
+
+        print(
+            f"⚠️ Failed to get Argos languages: "
+            f"{e}"
+        )
+
+        return []
+
+
+def get_argos_translator():
+
+    languages = get_installed_languages()
+
+    from_lang = None
+    to_lang = None
+
+    for lang in languages:
+
+        code = getattr(
+            lang,
+            "code",
+            ""
+        )
+
+        if code == ARGOS_FROM:
+            from_lang = lang
+
+        elif code == ARGOS_TO:
+            to_lang = lang
+
+
+    if not from_lang:
+
+        raise RuntimeError(
+            "Argos Chinese language "
+            "model not installed"
+        )
+
+
+    if not to_lang:
+
+        raise RuntimeError(
+            "Argos English language "
+            "model not installed"
+        )
+
+
+    try:
+
+        translator = (
+            from_lang
+            .get_translation(to_lang)
+        )
+
+    except Exception as e:
+
+        raise RuntimeError(
+            f"Unable to get Argos translator: {e}"
+        )
+
+
+    if not translator:
+
+        raise RuntimeError(
+            "Argos zh → en translator not found"
+        )
+
+
+    return translator
+
+
+# =========================================================
+# INSTALL ARGOS MODEL
+# =========================================================
+
+def install_argos_model():
+
+    print(
+        "🌐 Checking Argos "
+        "Chinese → English model..."
+    )
+
+
+    # -----------------------------------------------------
+    # CHECK EXISTING
+    # -----------------------------------------------------
+
+    try:
+
+        translator = get_argos_translator()
+
+        if translator:
+
+            print(
+                "✅ Argos zh → en "
+                "already installed"
+            )
+
+            return translator
+
+    except Exception:
+
+        pass
+
+
+    # -----------------------------------------------------
+    # DOWNLOAD PACKAGE LIST
+    # -----------------------------------------------------
+
+    print(
+        "📋 Loading Argos package list..."
+    )
+
+
+    try:
+
+        packages = (
+            argostranslate.package
+            .get_available_packages()
+        )
+
+    except Exception as e:
+
+        print(
+            f"❌ Failed to load Argos packages: "
+            f"{e}"
+        )
+
+        return None
+
+
+    if not packages:
+
+        print(
+            "❌ Argos package list empty"
+        )
+
+        return None
+
+
+    print(
+        f"📦 Available packages: "
+        f"{len(packages)}"
+    )
+
+
+    # -----------------------------------------------------
+    # FIND ZH -> EN
+    # -----------------------------------------------------
+
+    selected = None
+
+    for package in packages:
+
+        from_code = getattr(
+            package,
+            "from_code",
+            ""
+        )
+
+        to_code = getattr(
+            package,
+            "to_code",
+            ""
+        )
+
+        if (
+            from_code == "zh"
+            and
+            to_code == "en"
+        ):
+
+            selected = package
+            break
+
+
+    if selected is None:
+
+        print(
+            "❌ Argos zh → en package "
+            "not found"
+        )
+
+        return None
+
+
+    version = getattr(
+        selected,
+        "package_version",
+        "unknown"
+    )
+
+
+    print(
+        f"📦 Found Argos zh → en "
+        f"version {version}"
+    )
+
+
+    # -----------------------------------------------------
+    # DOWNLOAD
+    # -----------------------------------------------------
+
+    try:
+
+        print(
+            "📦 Downloading Argos "
+            "zh → en model..."
+        )
+
+
+        package_path = (
+            selected.download()
+        )
+
+
+        print(
+            f"📦 Package downloaded: "
+            f"{package_path}"
+        )
+
+
+        # -------------------------------------------------
+        # INSTALL
+        # -------------------------------------------------
+
+        print(
+            "📦 Installing Argos model..."
+        )
+
+
+        argostranslate.package.install_from_path(
+            package_path
+        )
+
+
+        print(
+            "✅ Argos model installed"
+        )
+
+
+    except Exception as e:
+
+        print(
+            f"❌ Argos installation failed: "
+            f"{type(e).__name__}: {e}"
+        )
+
+        return None
+
+
+    # -----------------------------------------------------
+    # VERIFY
+    # -----------------------------------------------------
+
+    try:
+
+        translator = get_argos_translator()
+
+        if translator:
+
+            print(
+                "✅ Verified: "
+                "Argos zh → en is ready"
+            )
+
+            return translator
+
+    except Exception as e:
+
+        print(
+            f"❌ Argos verification failed: "
+            f"{e}"
+        )
+
+
+    return None
+
+
+# =========================================================
+# ARGOS TRANSLATE ONE
+# =========================================================
+
+def translate_sync(
+    translator,
+    text
 ):
 
     text = text.strip()
@@ -224,23 +532,20 @@ async def libre_translate(
     if not text:
         return ""
 
-    # -----------------------------------------------------
-    # Cache
-    # -----------------------------------------------------
-    if text in translation_cache:
 
-        print(
-            f"💾 CACHE: "
-            f"{text} -> "
-            f"{translation_cache[text]}"
-        )
+    # -----------------------------------------------------
+    # CACHE
+    # -----------------------------------------------------
+
+    if text in translation_cache:
 
         return translation_cache[text]
 
 
     # -----------------------------------------------------
-    # Tidak ada Chinese
+    # NO CHINESE
     # -----------------------------------------------------
+
     if not contains_chinese(text):
 
         translation_cache[text] = text
@@ -249,218 +554,92 @@ async def libre_translate(
 
 
     # -----------------------------------------------------
-    # Semaphore
+    # ARGOS
     # -----------------------------------------------------
-    async with semaphore:
 
-        for attempt in range(
-            1,
-            TRANSLATE_RETRIES + 1
-        ):
+    try:
 
-            try:
-
-                payload = {
-                    "q": text,
-                    "source": TRANSLATE_SOURCE,
-                    "target": TRANSLATE_TARGET,
-                    "format": "text",
-                    "alternatives": 3,
-                    "api_key": TRANSLATE_API_KEY
-                }
+        translated = (
+            translator
+            .translate(text)
+        )
 
 
-                async with session.post(
-                    TRANSLATE_URL,
-                    json=payload
-                ) as response:
+        if translated:
 
-                    status = response.status
-
-                    # =====================================
-                    # SUCCESS
-                    # =====================================
-                    if status == 200:
-
-                        data = await response.json(
-                            content_type=None
-                        )
-
-                        translated = (
-                            data.get(
-                                "translatedText"
-                            )
-                            if isinstance(
-                                data,
-                                dict
-                            )
-                            else None
-                        )
+            translated = (
+                str(translated)
+                .replace("\n", " ")
+                .strip()
+            )
 
 
-                        if translated:
+            if translated:
 
-                            translated = (
-                                str(translated)
-                                .strip()
-                            )
-
-                            translation_cache[
-                                text
-                            ] = translated
-
-                            print(
-                                f"🌐 "
-                                f"{text} "
-                                f"→ "
-                                f"{translated}"
-                            )
-
-                            return translated
+                translation_cache[
+                    text
+                ] = translated
 
 
-                        print(
-                            f"⚠️ LibreTranslate "
-                            f"empty result: "
-                            f"{text}"
-                        )
-
-                        break
+                return translated
 
 
-                    # =====================================
-                    # RATE LIMIT
-                    # =====================================
-                    if status == 429:
+    except Exception as e:
 
-                        wait_time = (
-                            5 * attempt
-                        )
-
-                        retry_after = (
-                            response.headers.get(
-                                "Retry-After"
-                            )
-                        )
-
-                        if retry_after:
-
-                            try:
-
-                                wait_time = float(
-                                    retry_after
-                                )
-
-                            except Exception:
-                                pass
-
-
-                        print(
-                            f"⚠️ LibreTranslate "
-                            f"HTTP 429: {text} "
-                            f"→ retry "
-                            f"{attempt}/"
-                            f"{TRANSLATE_RETRIES} "
-                            f"after "
-                            f"{wait_time:g}s"
-                        )
-
-                        await asyncio.sleep(
-                            wait_time
-                        )
-
-                        continue
-
-
-                    # =====================================
-                    # SERVER ERROR
-                    # =====================================
-                    if status >= 500:
-
-                        wait_time = (
-                            3 * attempt
-                        )
-
-                        print(
-                            f"⚠️ LibreTranslate "
-                            f"HTTP {status}: "
-                            f"{text} "
-                            f"→ retry "
-                            f"{attempt}/"
-                            f"{TRANSLATE_RETRIES}"
-                        )
-
-                        await asyncio.sleep(
-                            wait_time
-                        )
-
-                        continue
-
-
-                    # =====================================
-                    # OTHER ERROR
-                    # =====================================
-                    body = await response.text()
-
-                    print(
-                        f"⚠️ LibreTranslate "
-                        f"HTTP {status}: "
-                        f"{text}"
-                    )
-
-                    print(
-                        f"   Response: "
-                        f"{body[:300]}"
-                    )
-
-                    break
-
-
-            except Exception as e:
-
-                wait_time = (
-                    2 * attempt
-                )
-
-                print(
-                    f"⚠️ Translate exception "
-                    f"'{text}': "
-                    f"{type(e).__name__}: "
-                    f"{e}"
-                )
-
-                if attempt < TRANSLATE_RETRIES:
-
-                    await asyncio.sleep(
-                        wait_time
-                    )
-
-                    continue
-
-                break
+        print(
+            f"⚠️ Argos failed: "
+            f"{text} -> {e}"
+        )
 
 
     # -----------------------------------------------------
     # FALLBACK
     # -----------------------------------------------------
-    print(
-        f"⚠️ Translation unavailable: "
-        f"{text}"
-    )
 
-    translation_cache[text] = text
+    translation_cache[
+        text
+    ] = text
 
     return text
 
 
 # =========================================================
-# TRANSLATE ALL UNIQUE NAMES
+# ASYNC TRANSLATE ONE
 # =========================================================
-async def translate_all(
-    texts
+
+async def translate_one(
+    translator,
+    text,
+    semaphore
 ):
 
-    # unique
+    async with semaphore:
+
+        result = await asyncio.to_thread(
+            translate_sync,
+            translator,
+            text
+        )
+
+        return (
+            text,
+            result
+        )
+
+
+# =========================================================
+# TRANSLATE ALL
+# =========================================================
+
+async def translate_all(
+    texts,
+    translator
+):
+
+    # -----------------------------------------------------
+    # UNIQUE
+    # -----------------------------------------------------
+
     unique_texts = list(
         dict.fromkeys(
             x.strip()
@@ -470,17 +649,28 @@ async def translate_all(
     )
 
 
-    # hanya yang perlu translate
+    # -----------------------------------------------------
+    # NEED TRANSLATION
+    # -----------------------------------------------------
+
     need_translation = [
+
         x
+
         for x in unique_texts
-        if x not in translation_cache
-        and contains_chinese(x)
+
+        if (
+            x not in translation_cache
+            and
+            contains_chinese(x)
+        )
+
     ]
 
 
+    print()
     print(
-        f"\n📦 Total unique names: "
+        f"📦 Total unique names: "
         f"{len(unique_texts)}"
     )
 
@@ -490,10 +680,15 @@ async def translate_all(
     )
 
 
+    # -----------------------------------------------------
+    # NOTHING TO DO
+    # -----------------------------------------------------
+
     if not need_translation:
 
         print(
-            "✅ Semua tersedia di cache"
+            "✅ Semua nama sudah ada "
+            "di cache"
         )
 
         return {
@@ -505,106 +700,113 @@ async def translate_all(
         }
 
 
-    # =====================================================
-    # SESSION
-    # =====================================================
+    print()
+    print(
+        f"🚀 Translating "
+        f"{len(need_translation)} "
+        f"names with local Argos..."
+    )
+
+    print(
+        f"⚙️ Parallel workers: "
+        f"{ARGOS_CONCURRENCY}"
+    )
+
+
     semaphore = asyncio.Semaphore(
-        TRANSLATE_CONCURRENCY
+        ARGOS_CONCURRENCY
     )
 
 
-    timeout = 30
+    # -----------------------------------------------------
+    # CREATE TASKS
+    # -----------------------------------------------------
+
+    tasks = [
+
+        translate_one(
+            translator,
+            text,
+            semaphore
+        )
+
+        for text in need_translation
+
+    ]
 
 
-    import aiohttp
+    # -----------------------------------------------------
+    # ASYNCIO GATHER
+    # -----------------------------------------------------
 
-    connector = aiohttp.TCPConnector(
-        limit=TRANSLATE_CONCURRENCY,
-        ssl=False
+    results = await asyncio.gather(
+        *tasks,
+        return_exceptions=True
     )
 
 
-    async with aiohttp.ClientSession(
-        connector=connector,
-        timeout=aiohttp.ClientTimeout(
-            total=timeout
-        ),
-        headers={
-            "Content-Type":
-                "application/json",
+    # -----------------------------------------------------
+    # SAVE RESULTS
+    # -----------------------------------------------------
 
-            "Accept":
-                "application/json",
+    completed = 0
 
-            "User-Agent":
-                HEADERS["User-Agent"]
-        }
-    ) as session:
+    for item in results:
 
+        if isinstance(
+            item,
+            Exception
+        ):
 
-        # =================================================
-        # TASK
-        # =================================================
-        async def worker(text):
-
-            result = await libre_translate(
-                session,
-                text,
-                semaphore
+            print(
+                f"⚠️ Worker error: "
+                f"{item}"
             )
 
-            return (
-                text,
-                result
-            )
+            continue
 
 
-        tasks = [
-            worker(text)
-            for text in need_translation
-        ]
+        text, translated = item
 
 
-        # =================================================
-        # GATHER
-        # =================================================
-        results = await asyncio.gather(
-            *tasks,
-            return_exceptions=True
+        translation_cache[
+            text
+        ] = translated
+
+
+        completed += 1
+
+
+        print(
+            f"[{completed}/"
+            f"{len(need_translation)}] "
+            f"{text} → {translated}"
         )
 
 
-        for item in results:
+        # Save periodically
+        if completed % 25 == 0:
 
-            if isinstance(
-                item,
-                Exception
-            ):
+            save_cache()
 
-                print(
-                    f"⚠️ Worker error: "
-                    f"{item}"
-                )
-
-                continue
+            print(
+                f"💾 Cache saved: "
+                f"{completed}"
+            )
 
 
-            text, translated = item
+    # -----------------------------------------------------
+    # FINAL CACHE
+    # -----------------------------------------------------
 
-            translation_cache[
-                text
-            ] = translated
-
-
-    # =====================================================
-    # SAVE
-    # =====================================================
     save_cache()
 
 
+    print()
     print(
         f"✅ Translation finished: "
-        f"{len(need_translation)} names"
+        f"{completed}/"
+        f"{len(need_translation)}"
     )
 
 
@@ -620,6 +822,7 @@ async def translate_all(
 # =========================================================
 # DECODE HTML
 # =========================================================
+
 def decode_html(raw):
 
     encodings = [
@@ -661,6 +864,7 @@ def decode_html(raw):
 
 
         except Exception:
+
             pass
 
 
@@ -677,20 +881,47 @@ def decode_html(raw):
 
 
 # =========================================================
+# SAFE URL
+# =========================================================
+
+def safe_url(url):
+
+    try:
+
+        from urllib.parse import urlparse
+
+        p = urlparse(url)
+
+        return (
+            f"{p.scheme}://"
+            f"{p.netloc}/***"
+        )
+
+    except Exception:
+
+        return "***"
+
+
+# =========================================================
 # FETCH HTML
 # =========================================================
+
 async def fetch_html(url):
 
     test_urls = [
+
         url,
+
         url.replace(
             "https://",
             "http://"
         ),
+
         url.replace(
             "www.",
             ""
-        ),
+        )
+
     ]
 
 
@@ -698,13 +929,15 @@ async def fetch_html(url):
 
         try:
 
+            print()
             print(
-                f"\nTrying: "
-                f"{test_url}"
+                f"🌐 Fetching: "
+                f"{safe_url(test_url)}"
             )
 
 
             response = requests.get(
+
                 test_url,
 
                 headers=HEADERS,
@@ -728,11 +961,12 @@ async def fetch_html(url):
 
             print(
                 f"Final URL: "
-                f"{response.url}"
+                f"{safe_url(str(response.url))}"
             )
 
 
             raw = response.content
+
 
             text = decode_html(
                 raw
@@ -740,25 +974,19 @@ async def fetch_html(url):
 
 
             print(
-                "\n===== HTML PREVIEW ====="
-            )
-
-            print(
-                text[:500]
-            )
-
-            print(
-                "========================\n"
+                f"📄 HTML length: "
+                f"{len(text):,}"
             )
 
 
             if (
                 response.status_code == 200
-                and len(text) > 5000
+                and
+                len(text) > 5000
             ):
 
                 print(
-                    "✅ Success"
+                    "✅ HTML fetch success"
                 )
 
                 return text
@@ -772,7 +1000,9 @@ async def fetch_html(url):
         except Exception as e:
 
             print(
-                f"Fetch error: {e}"
+                f"❌ Fetch error: "
+                f"{type(e).__name__}: "
+                f"{e}"
             )
 
 
@@ -780,9 +1010,33 @@ async def fetch_html(url):
 
 
 # =========================================================
+# CLEAN TEXT
+# =========================================================
+
+def clean_text(text):
+
+    if not text:
+        return ""
+
+    text = str(text)
+
+    text = re.sub(
+        r"\s+",
+        " ",
+        text
+    )
+
+    return text.strip()
+
+
+# =========================================================
 # PARSE MATCHES
 # =========================================================
-async def parse_matches(html):
+
+async def parse_matches(
+    html,
+    translator
+):
 
     soup = BeautifulSoup(
         html,
@@ -800,8 +1054,9 @@ async def parse_matches(html):
     )
 
 
+    print()
     print(
-        f"Found possible matches: "
+        f"📺 Found possible matches: "
         f"{len(a_tags)}"
     )
 
@@ -822,14 +1077,15 @@ async def parse_matches(html):
 
     # =====================================================
     # FIRST PASS
-    # Ambil semua data dulu
     # =====================================================
+
     for a_tag in a_tags:
 
         try:
 
             match_url = (
-                a_tag.get(
+                a_tag
+                .get(
                     "href",
                     ""
                 )
@@ -849,6 +1105,7 @@ async def parse_matches(html):
 
 
             if match_id in parsed_ids:
+
                 continue
 
 
@@ -860,7 +1117,9 @@ async def parse_matches(html):
             # =============================================
             # HOME
             # =============================================
+
             home_team = ""
+
 
             home_div = a_tag.find(
                 "div",
@@ -874,9 +1133,10 @@ async def parse_matches(html):
                     "p"
                 )
 
+
                 if p:
 
-                    home_team = (
+                    home_team = clean_text(
                         p.get_text(
                             strip=True
                         )
@@ -886,7 +1146,9 @@ async def parse_matches(html):
             # =============================================
             # AWAY
             # =============================================
+
             away_team = ""
+
 
             away_div = a_tag.find(
                 "div",
@@ -900,9 +1162,10 @@ async def parse_matches(html):
                     "p"
                 )
 
+
                 if p:
 
-                    away_team = (
+                    away_team = clean_text(
                         p.get_text(
                             strip=True
                         )
@@ -919,8 +1182,9 @@ async def parse_matches(html):
 
 
             # =============================================
-            # LEAGUE + TIME
+            # LEAGUE
             # =============================================
+
             liga_name = ""
             event_time = ""
 
@@ -952,7 +1216,7 @@ async def parse_matches(html):
 
                     if em:
 
-                        liga_name = (
+                        liga_name = clean_text(
                             em.get_text(
                                 strip=True
                             )
@@ -961,7 +1225,7 @@ async def parse_matches(html):
 
                     if i_tag:
 
-                        event_time = (
+                        event_time = clean_text(
                             i_tag.get_text(
                                 strip=True
                             )
@@ -977,6 +1241,7 @@ async def parse_matches(html):
 
 
             matches.append({
+
                 "match_id":
                     match_id,
 
@@ -997,20 +1262,22 @@ async def parse_matches(html):
                         "data-time",
                         ""
                     ).strip()
+
             })
 
 
         except Exception as e:
 
             print(
-                f"Parse match error: "
+                f"⚠️ Parse match error: "
                 f"{e}"
             )
 
 
     # =====================================================
-    # COLLECT ALL TEXT
+    # COLLECT ALL NAMES
     # =====================================================
+
     all_names = []
 
 
@@ -1030,16 +1297,19 @@ async def parse_matches(html):
 
 
     # =====================================================
-    # TRANSLATE PARALLEL
+    # TRANSLATE ALL
     # =====================================================
+
     translations = await translate_all(
-        all_names
+        all_names,
+        translator
     )
 
 
     # =====================================================
     # BUILD M3U
     # =====================================================
+
     for match in matches:
 
         home_team_en = translations.get(
@@ -1063,9 +1333,11 @@ async def parse_matches(html):
         # ===============================================
         # TIME
         # ===============================================
+
         try:
 
             dt_obj = datetime.strptime(
+
                 f'{match["data_time"]} '
                 f'{match["event_time"]}',
 
@@ -1105,9 +1377,13 @@ async def parse_matches(html):
         # ===============================================
         # TITLE
         # ===============================================
+
         title = (
-            f"{home_team_en} vs "
+
+            f"{home_team_en} "
+            f"vs "
             f"{away_team_en}"
+
         )
 
 
@@ -1118,39 +1394,48 @@ async def parse_matches(html):
             )
 
 
+        title = clean_text(
+            title
+        )
+
+
         # ===============================================
         # M3U
         # ===============================================
+
         lines.append(
+
             f'#EXTINF:-1 '
             f'group-title="⚽️| LIVE EVENT" '
             f'tvg-logo="{LOGO_URL}",'
             f'{dt_str} {title}'
+
         )
 
 
         lines.append(
+
             f'#EXTVLCOPT:'
             f'http-user-agent='
-            f'{HEADERS["User-Agent"]}'
+            f'{USER_AGENT}'
+
         )
 
 
         lines.append(
+
             f'#EXTVLCOPT:'
             f'http-referrer='
             f'{BASE_URL}'
+
         )
 
 
         lines.append(
+
             f"{WORKER_URL}"
             f"{match['match_id']}"
-        )
 
-
-        print(
-            f"✅ Parsed: {title}"
         )
 
 
@@ -1160,18 +1445,60 @@ async def parse_matches(html):
 # =========================================================
 # MAIN
 # =========================================================
+
 async def main():
+
+    print(
+        "========================================"
+    )
+
+    print(
+        "🚀 GOGODATV"
+    )
+
+    print(
+        "🌐 LOCAL ARGOS TRANSLATION"
+    )
+
+    print(
+        "========================================"
+    )
+
+
+    # =====================================================
+    # INSTALL / LOAD ARGOS
+    # =====================================================
+
+    translator = install_argos_model()
+
+
+    if not translator:
+
+        print(
+            "❌ Argos translator unavailable"
+        )
+
+        return
+
+
+    print(
+        "✅ Local zh → en translator ready"
+    )
+
+
+    # =====================================================
+    # FETCH
+    # =====================================================
 
     html = ""
 
 
-    # =====================================================
-    # FETCH RETRY
-    # =====================================================
     for i in range(3):
 
+        print()
         print(
-            f"\nRetry {i+1}/3"
+            f"🔄 Fetch retry "
+            f"{i + 1}/3"
         )
 
 
@@ -1181,6 +1508,7 @@ async def main():
 
 
         if html:
+
             break
 
 
@@ -1192,15 +1520,16 @@ async def main():
     if not html:
 
         print(
-            "⚠️ Failed to fetch HTML. "
+            "❌ Failed to fetch HTML. "
             "Exiting."
         )
 
         return
 
 
+    print()
     print(
-        f"HTML length: "
+        f"📄 HTML length: "
         f"{len(html):,}"
     )
 
@@ -1208,14 +1537,17 @@ async def main():
     # =====================================================
     # PARSE
     # =====================================================
+
     lines = await parse_matches(
-        html
+        html,
+        translator
     )
 
 
     # =====================================================
     # WRITE M3U
     # =====================================================
+
     with open(
         OUTPUT_FILE,
         "w",
@@ -1237,19 +1569,29 @@ async def main():
     # =====================================================
     # RESULT
     # =====================================================
+
+    print()
+    print(
+        "========================================"
+    )
+
+
     if lines:
 
         print(
-            f"✅ Total matches parsed: "
+            f"✅ Total matches: "
             f"{len(lines) // 4}"
         )
 
-
         print(
-            f"✅ M3U saved: "
+            f"💾 M3U: "
             f"{OUTPUT_FILE.resolve()}"
         )
 
+        print(
+            f"💾 Cache: "
+            f"{CACHE_FILE.resolve()}"
+        )
 
     else:
 
@@ -1257,16 +1599,21 @@ async def main():
             "⚠️ No valid matches found."
         )
 
-
         print(
-            f"⚠️ Empty M3U created: "
+            f"💾 Empty M3U: "
             f"{OUTPUT_FILE.resolve()}"
         )
+
+
+    print(
+        "========================================"
+    )
 
 
 # =========================================================
 # START
 # =========================================================
+
 if __name__ == "__main__":
 
     asyncio.run(
