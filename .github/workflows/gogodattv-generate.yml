@@ -25,7 +25,7 @@ jobs:
 
       - name: Install Python dependencies
         run: |
-          pip install beautifulsoup4 curl_cffi aiohttp
+          pip install beautifulsoup4 curl_cffi argostranslate
 
       - name: 📁 Ambil file konfigurasi dari repo privat
         shell: bash
