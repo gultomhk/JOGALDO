@@ -2,7 +2,6 @@ import aiohttp
 import asyncio
 from bs4 import BeautifulSoup
 from datetime import datetime, timezone, timedelta
-from deep_translator import GoogleTranslator
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -52,52 +51,71 @@ async def translate_zh_to_en(text):
 
     text = text.strip()
 
-    # Kalau sudah pernah diterjemahkan
+    # Cache
     if text in TRANSLATION_CACHE:
         return TRANSLATION_CACHE[text]
 
-    # Kalau bukan karakter China, tidak perlu translate
+    # Tidak ada karakter China
     if not any("\u4e00" <= c <= "\u9fff" for c in text):
         TRANSLATION_CACHE[text] = text
         return text
 
-    # ==========================
-    # 1. Google -> English
-    # ==========================
     try:
-        result = GoogleTranslator(
-            source="zh-CN",
-            target="en"
-        ).translate(text)
+        encoded = urllib.parse.quote(text)
 
-        if result and result.strip() and result.strip() != text:
-            result = result.strip()
-            TRANSLATION_CACHE[text] = result
-            return result
+        url = (
+            "https://translate.googleapis.com/translate_a/single"
+            f"?client=gtx"
+            f"&sl=zh-CN"
+            f"&tl=en"
+            f"&dt=t"
+            f"&q={encoded}"
+        )
+
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                url,
+                headers={
+                    "User-Agent": HEADERS["User-Agent"]
+                },
+                timeout=aiohttp.ClientTimeout(total=10)
+            ) as response:
+
+                if response.status != 200:
+                    print(
+                        f"Translate HTTP {response.status}: {text}"
+                    )
+                    TRANSLATION_CACHE[text] = text
+                    return text
+
+                data = await response.json()
+
+                # Google response:
+                # [[["Charleston Battery","查尔斯顿电池",...]]]
+                result = ""
+
+                if data and isinstance(data[0], list):
+                    for item in data[0]:
+                        if item and len(item) >= 1:
+                            result += item[0]
+
+                result = result.strip()
+
+                if result:
+                    TRANSLATION_CACHE[text] = result
+
+                    print(
+                        f"🌐 Translate: {text} -> {result}"
+                    )
+
+                    return result
 
     except Exception as e:
-        print(f"Google EN failed '{text}': {e}")
+        print(
+            f"Translate request failed '{text}': "
+            f"{type(e).__name__}: {e}"
+        )
 
-    # ==========================
-    # 2. Google -> Indonesian
-    # ==========================
-    try:
-        result = GoogleTranslator(
-            source="zh-CN",
-            target="id"
-        ).translate(text)
-
-        if result and result.strip():
-            result = result.strip()
-            TRANSLATION_CACHE[text] = result
-            return result
-
-    except Exception as e:
-        print(f"Google ID failed '{text}': {e}")
-
-    # ==========================
-    # 3. Fallback
-    # ==========================
     print(f"⚠️ Translation unavailable: {text}")
 
     TRANSLATION_CACHE[text] = text
