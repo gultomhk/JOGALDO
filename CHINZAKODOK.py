@@ -61,10 +61,13 @@ HEADERS = {
 # =========================================================
 TRANSLATION_CACHE = {}
 
+TRANSLATE_CONCURRENCY = 5
 
-# =========================================================
-# Translate Chinese -> English
-# =========================================================
+translate_semaphore = asyncio.Semaphore(
+    TRANSLATE_CONCURRENCY
+)
+
+
 async def translate_zh_to_en(session, text):
 
     if not text:
@@ -73,91 +76,162 @@ async def translate_zh_to_en(session, text):
     text = text.strip()
 
     # ==========================
-    # Cache
+    # CACHE
     # ==========================
     if text in TRANSLATION_CACHE:
         return TRANSLATION_CACHE[text]
 
-    # ==========================
-    # Tidak mengandung karakter China
-    # ==========================
+    # Tidak ada karakter Mandarin
     if not any("\u4e00" <= c <= "\u9fff" for c in text):
         TRANSLATION_CACHE[text] = text
         return text
 
-    try:
+    # ==========================
+    # LIMIT CONCURRENT REQUEST
+    # ==========================
+    async with translate_semaphore:
 
-        encoded = quote(text)
+        # Retry maksimal 4 kali
+        for attempt in range(4):
 
-        url = (
-            "https://translate.googleapis.com/translate_a/single"
-            "?client=gtx"
-            "&sl=zh-CN"
-            "&tl=en"
-            "&dt=t"
-            f"&q={encoded}"
-        )
+            try:
 
-        async with session.get(
-            url,
-            headers={
-                "User-Agent": HEADERS["User-Agent"],
-                "Accept": "application/json",
-            },
-            timeout=aiohttp.ClientTimeout(total=10),
-        ) as response:
+                encoded = quote(text)
 
-            if response.status != 200:
-
-                print(
-                    f"⚠️ Translate HTTP {response.status}: {text}"
+                url = (
+                    "https://translate.googleapis.com/"
+                    "translate_a/single"
+                    "?client=gtx"
+                    "&sl=zh-CN"
+                    "&tl=en"
+                    "&dt=t"
+                    f"&q={encoded}"
                 )
 
-                TRANSLATION_CACHE[text] = text
+                async with session.get(
+                    url,
+                    headers={
+                        "User-Agent": HEADERS["User-Agent"],
+                        "Accept": "application/json",
+                    },
+                    timeout=aiohttp.ClientTimeout(
+                        total=15
+                    ),
+                ) as response:
+
+                    # =================================
+                    # RATE LIMIT
+                    # =================================
+                    if response.status == 429:
+
+                        wait_time = 2 ** attempt
+
+                        print(
+                            f"⚠️ HTTP 429: {text} "
+                            f"-> retry {attempt + 1}/4 "
+                            f"after {wait_time}s"
+                        )
+
+                        await asyncio.sleep(
+                            wait_time
+                        )
+
+                        continue
+
+                    # =================================
+                    # ERROR LAIN
+                    # =================================
+                    if response.status != 200:
+
+                        print(
+                            f"⚠️ Translate HTTP "
+                            f"{response.status}: {text}"
+                        )
+
+                        return text
+
+                    # =================================
+                    # PARSE RESPONSE
+                    # =================================
+                    data = await response.json(
+                        content_type=None
+                    )
+
+                    result = ""
+
+                    if (
+                        data
+                        and isinstance(data[0], list)
+                    ):
+
+                        for item in data[0]:
+
+                            if item and len(item) > 0:
+                                result += item[0]
+
+                    result = result.strip()
+
+                    if result:
+
+                        TRANSLATION_CACHE[text] = result
+
+                        print(
+                            f"🌐 {text} -> {result}"
+                        )
+
+                        return result
+
+                    print(
+                        f"⚠️ Empty translation: {text}"
+                    )
+
+                    return text
+
+            except asyncio.TimeoutError:
+
+                wait_time = 2 ** attempt
+
+                print(
+                    f"⚠️ Translate timeout: {text} "
+                    f"-> retry {attempt + 1}/4"
+                )
+
+                await asyncio.sleep(
+                    wait_time
+                )
+
+            except aiohttp.ClientError as e:
+
+                wait_time = 2 ** attempt
+
+                print(
+                    f"⚠️ Translate connection error "
+                    f"'{text}': {e} "
+                    f"-> retry {attempt + 1}/4"
+                )
+
+                await asyncio.sleep(
+                    wait_time
+                )
+
+            except Exception as e:
+
+                print(
+                    f"⚠️ Translate failed "
+                    f"'{text}': "
+                    f"{type(e).__name__}: {e}"
+                )
 
                 return text
 
-            data = await response.json(content_type=None)
-
-            result = ""
-
-            # ==========================
-            # Parse Google response
-            # ==========================
-            if data and isinstance(data[0], list):
-
-                for item in data[0]:
-
-                    if item and len(item) > 0:
-                        result += item[0]
-
-            result = result.strip()
-
-            if result:
-
-                TRANSLATION_CACHE[text] = result
-
-                print(
-                    f"🌐 {text} -> {result}"
-                )
-
-                return result
-
-    except Exception as e:
-
-        print(
-            f"⚠️ Translate failed '{text}': "
-            f"{type(e).__name__}: {e}"
-        )
-
     # ==========================
-    # Fallback nama asli
+    # Gagal setelah semua retry
     # ==========================
-    TRANSLATION_CACHE[text] = text
-
     print(
         f"⚠️ Translation unavailable: {text}"
     )
+
+    TRANSLATION_CACHE[text] = text
 
     return text
 
