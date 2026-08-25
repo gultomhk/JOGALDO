@@ -50,6 +50,7 @@ OUTPUT_FILE = Path(__file__).parent / "CHINZAKODOK.m3u"
 # ==========================
 # Headers
 # ==========================
+
 HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -64,6 +65,13 @@ HEADERS = {
     "Accept-Language": "en-US,en;q=0.9",
     "Connection": "keep-alive",
 }
+
+# =========================================================
+# USER AGENT
+# =========================================================
+
+USER_AGENT = HEADERS["User-Agent"]
+
 
 DEBUG_HTML_FILE = (
     Path(__file__).parent /
