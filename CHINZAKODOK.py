@@ -43,14 +43,65 @@ HEADERS = {
 }
 
 
+TRANSLATION_CACHE = {}
+
+
 async def translate_zh_to_en(text):
     if not text:
         return ""
-    try:
-        return GoogleTranslator(source='zh-CN', target='en').translate(text)
-    except Exception as e:
-        print(f"Translate error for '{text}': {e}")
+
+    text = text.strip()
+
+    # Kalau sudah pernah diterjemahkan
+    if text in TRANSLATION_CACHE:
+        return TRANSLATION_CACHE[text]
+
+    # Kalau bukan karakter China, tidak perlu translate
+    if not any("\u4e00" <= c <= "\u9fff" for c in text):
+        TRANSLATION_CACHE[text] = text
         return text
+
+    # ==========================
+    # 1. Google -> English
+    # ==========================
+    try:
+        result = GoogleTranslator(
+            source="zh-CN",
+            target="en"
+        ).translate(text)
+
+        if result and result.strip() and result.strip() != text:
+            result = result.strip()
+            TRANSLATION_CACHE[text] = result
+            return result
+
+    except Exception as e:
+        print(f"Google EN failed '{text}': {e}")
+
+    # ==========================
+    # 2. Google -> Indonesian
+    # ==========================
+    try:
+        result = GoogleTranslator(
+            source="zh-CN",
+            target="id"
+        ).translate(text)
+
+        if result and result.strip():
+            result = result.strip()
+            TRANSLATION_CACHE[text] = result
+            return result
+
+    except Exception as e:
+        print(f"Google ID failed '{text}': {e}")
+
+    # ==========================
+    # 3. Fallback
+    # ==========================
+    print(f"⚠️ Translation unavailable: {text}")
+
+    TRANSLATION_CACHE[text] = text
+    return text
 
 def safe_url(url):
     try:
