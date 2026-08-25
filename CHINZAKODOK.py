@@ -485,36 +485,103 @@ def get_argos_translator():
 # =========================================================
 
 async def fetch_html(url):
+
     print(f"🌐 Fetching: {safe_url(url)}")
 
-    headers = {
-        "User-Agent": USER_AGENT,
-        "Referer": BASE_URL,
-        "Accept": (
-            "text/html,application/xhtml+xml,"
-            "application/xml;q=0.9,image/webp,*/*;q=0.8"
-        ),
-        "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
-    }
-
     try:
-        timeout = aiohttp.ClientTimeout(total=60)
 
-        async with aiohttp.ClientSession(headers=headers, timeout=timeout) as session:
-            async with session.get(url, allow_redirects=True) as response:
-                print(f"🌐 HTTP: {response.status}")
+        timeout = aiohttp.ClientTimeout(
+            total=60
+        )
+
+        async with aiohttp.ClientSession(
+            headers=HEADERS,
+            timeout=timeout
+        ) as session:
+
+            async with session.get(
+                url,
+                allow_redirects=True,
+                ssl=False
+            ) as response:
+
+                print(
+                    f"🌐 HTTP: {response.status}"
+                )
+
+                print(
+                    f"🔗 Final URL: "
+                    f"{safe_url(str(response.url))}"
+                )
+
+                if response.history:
+
+                    print("↪️ Redirects:")
+
+                    for r in response.history:
+
+                        print(
+                            f"   {r.status} -> "
+                            f"{safe_url(str(r.url))}"
+                        )
+
                 response.raise_for_status()
 
-                html = await response.text(encoding="utf-8", errors="ignore")
-                print(f"✅ HTML: {len(html):,} bytes")
+                html = await response.text(
+                    encoding="utf-8",
+                    errors="ignore"
+                )
 
-                DEBUG_HTML_FILE.write_text(html, encoding="utf-8")
-                print(f"💾 HTML saved: {DEBUG_HTML_FILE}")
+                print(
+                    f"✅ HTML: "
+                    f"{len(html):,} bytes"
+                )
+
+                DEBUG_HTML_FILE.write_text(
+                    html,
+                    encoding="utf-8"
+                )
+
+                print(
+                    f"💾 HTML saved: "
+                    f"{DEBUG_HTML_FILE}"
+                )
 
                 return html
 
+    except asyncio.TimeoutError:
+
+        print(
+            "❌ Fetch timeout"
+        )
+
+        return ""
+
+    except aiohttp.ClientResponseError as e:
+
+        print(
+            f"❌ HTTP error: "
+            f"{e.status}"
+        )
+
+        return ""
+
+    except aiohttp.ClientError as e:
+
+        print(
+            f"❌ aiohttp error: "
+            f"{type(e).__name__}: {e}"
+        )
+
+        return ""
+
     except Exception as e:
-        print(f"❌ Fetch error: {type(e).__name__}: {e}")
+
+        print(
+            f"❌ Fetch error: "
+            f"{type(e).__name__}: {e}"
+        )
+
         return ""
 
 
