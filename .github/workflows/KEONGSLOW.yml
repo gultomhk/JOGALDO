@@ -32,8 +32,7 @@ jobs:
         shell: bash
         run: |
           python -m pip install --upgrade pip
-          pip install playwright beautifulsoup4 deep-translator
-          playwright install --with-deps
+          pip install requests beautifulsoup4 urllib3 argostranslate
 
       - name: 📁 Ambil file konfigurasi dari repo privat
         shell: bash
