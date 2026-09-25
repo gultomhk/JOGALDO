@@ -92,7 +92,6 @@ def simpan_cache_gagal(proxy):
     with FAILED_FILE.open("a") as f:
         f.write(proxy + "\n")
 
-
 # ===============================
 # OUTPUT PLAYLIST (MULTI STREAM)
 # ===============================
@@ -111,7 +110,10 @@ def tampilkan_playlist(data, constants, mapping, default):
         start_time = attr.get("start_time")
 
         livestreaming_id = str(
-            meta.get("livestreaming_id") or attr.get("content_id") or item.get("id") or ""
+            meta.get("livestreaming_id")
+            or attr.get("content_id")
+            or item.get("id")
+            or ""
         ).strip()
 
         if not livestreaming_id or not start_time:
@@ -119,65 +121,159 @@ def tampilkan_playlist(data, constants, mapping, default):
 
         try:
             dt = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
-            waktu = dt.astimezone(timezone(timedelta(hours=7))).strftime("%d/%m-%H.%M")
+            waktu = dt.astimezone(
+                timezone(timedelta(hours=7))
+            ).strftime("%d/%m-%H.%M")
         except Exception:
             waktu = "JADWAL"
-
-        # =============================
-        # USER-AGENT PRIORITY
-        # =============================
-        ua = default.get("user-agent")
-        ref = None
-
-        if livestreaming_id in mapping:
-            first_stream = mapping[livestreaming_id][0]
-            ua = first_stream.get("user-agent") or ua
-            ref = first_stream.get("referer")
 
         # =============================
         # MULTI STREAM OUTPUT
         # =============================
         if livestreaming_id in mapping:
+
             streams = mapping[livestreaming_id]
 
             for stream in streams:
-                license_type = stream.get("license_type", "com.widevine.alpha")
-                license_key = stream.get("license", "").replace("{id}", livestreaming_id)
-                stream_url = stream.get("url", "").replace("{id}", livestreaming_id)
-                manifest_type = "dash" if stream.get("type") == "dash" else "hls"
 
-                label = f" [{manifest_type.upper()}]" if len(streams) > 1 else ""
+                # ==========================================
+                # USER-AGENT / REFERER HARUS PER STREAM
+                # ==========================================
+                ua = stream.get("user-agent") or default.get("user-agent")
+                ref = stream.get("referer") or default.get("referer")
 
-                print(f'#EXTINF:-1 tvg-logo="{logo}" group-title="⚽️| LIVE EVENT",{waktu} {title}{label}')
+                # ==========================================
+                # STREAM CONFIG
+                # ==========================================
+                stream_type = stream.get("type", "").lower().strip()
 
+                if stream_type == "dash":
+                    manifest_type = "dash"
+                elif stream_type == "hls":
+                    manifest_type = "hls"
+                else:
+                    manifest_type = "hls"
+
+                license_type = stream.get(
+                    "license_type",
+                    "com.widevine.alpha"
+                )
+
+                license_key = stream.get(
+                    "license",
+                    ""
+                ).replace("{id}", livestreaming_id)
+
+                stream_url = stream.get(
+                    "url",
+                    ""
+                ).replace("{id}", livestreaming_id)
+
+                label = (
+                    f" [{manifest_type.upper()}]"
+                    if len(streams) > 1
+                    else ""
+                )
+
+                # ==========================================
+                # EXTINF
+                # ==========================================
+                print(
+                    f'#EXTINF:-1 tvg-logo="{logo}" '
+                    f'group-title="⚽️| LIVE EVENT",'
+                    f'{waktu} {title}{label}'
+                )
+
+                # ==========================================
+                # USER-AGENT KHUSUS STREAM INI
+                # ==========================================
                 if ua:
-                    print(f'#EXTVLCOPT:http-user-agent={ua}')
-                if ref:
-                    print(f'#EXTVLCOPT:http-referrer={ref}')
+                    print(
+                        f'#EXTVLCOPT:http-user-agent={ua}'
+                    )
 
-                print(f'#KODIPROP:inputstream.adaptive.manifest_type={manifest_type}')
-                print(f'#KODIPROP:inputstream.adaptive.license_type={license_type}')
-                print(f'#KODIPROP:inputstream.adaptive.license_key={license_key}')
+                # ==========================================
+                # REFERER KHUSUS STREAM INI
+                # ==========================================
+                if ref:
+                    print(
+                        f'#EXTVLCOPT:http-referrer={ref}'
+                    )
+
+                # ==========================================
+                # KODIPROP
+                # ==========================================
+                print(
+                    f'#KODIPROP:inputstream.adaptive.manifest_type={manifest_type}'
+                )
+
+                # License hanya relevan jika memang tersedia
+                if license_type:
+                    print(
+                        f'#KODIPROP:inputstream.adaptive.license_type={license_type}'
+                    )
+
+                if license_key:
+                    print(
+                        f'#KODIPROP:inputstream.adaptive.license_key={license_key}'
+                    )
+
+                # ==========================================
+                # URL
+                # ==========================================
                 print(stream_url)
                 print()
 
         else:
-            # fallback default
-            license_key = default.get("license", "").replace("{id}", livestreaming_id)
-            dash_url = default.get("url", "").replace("{id}", livestreaming_id)
+            # ==========================================
+            # FALLBACK DEFAULT
+            # ==========================================
+            ua = default.get("user-agent")
+            ref = default.get("referer")
 
-            print(f'#EXTINF:-1 tvg-logo="{logo}" group-title="⚽️| LIVE EVENT",{waktu} {title}')
+            license_key = default.get(
+                "license",
+                ""
+            ).replace("{id}", livestreaming_id)
+
+            dash_url = default.get(
+                "url",
+                ""
+            ).replace("{id}", livestreaming_id)
+
+            print(
+                f'#EXTINF:-1 tvg-logo="{logo}" '
+                f'group-title="⚽️| LIVE EVENT",'
+                f'{waktu} {title}'
+            )
+
             if ua:
-                print(f'#EXTVLCOPT:http-user-agent={ua}')
+                print(
+                    f'#EXTVLCOPT:http-user-agent={ua}'
+                )
+
             if ref:
-                print(f'#EXTVLCOPT:http-referrer={ref}')
-            print('#KODIPROP:inputstreamaddon=inputstream.adaptive')
-            print('#KODIPROP:inputstream.adaptive.manifest_type=dash')
-            print('#KODIPROP:inputstream.adaptive.license_type=com.widevine.alpha')
-            print(f'#KODIPROP:inputstream.adaptive.license_key={license_key}')
+                print(
+                    f'#EXTVLCOPT:http-referrer={ref}'
+                )
+
+            print(
+                '#KODIPROP:inputstreamaddon=inputstream.adaptive'
+            )
+            print(
+                '#KODIPROP:inputstream.adaptive.manifest_type=dash'
+            )
+            print(
+                '#KODIPROP:inputstream.adaptive.license_type=com.widevine.alpha'
+            )
+
+            if license_key:
+                print(
+                    f'#KODIPROP:inputstream.adaptive.license_key={license_key}'
+                )
+
             print(dash_url)
             print()
-
 
 # ===============================
 # MAIN
