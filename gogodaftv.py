@@ -5,6 +5,7 @@ import re
 from bs4 import BeautifulSoup
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
+from urllib.parse import urlparse, urlunparse
 
 from curl_cffi import requests
 
@@ -17,74 +18,36 @@ import argostranslate.translate
 # =========================================================
 
 try:
-
     from zoneinfo import ZoneInfo
 
     SHANGHAI = ZoneInfo("Asia/Shanghai")
     JAKARTA = ZoneInfo("Asia/Jakarta")
 
 except Exception:
-
-    SHANGHAI = timezone(
-        timedelta(hours=8)
-    )
-
-    JAKARTA = timezone(
-        timedelta(hours=7)
-    )
+    SHANGHAI = timezone(timedelta(hours=8))
+    JAKARTA = timezone(timedelta(hours=7))
 
 
 # =========================================================
 # LOAD CONFIG
 # =========================================================
 
-GOGODATTVDATA_FILE = (
-    Path.home() /
-    "gogodattvdata_file.txt"
-)
+GOGODATTVDATA_FILE = Path.home() / "gogodattvdata_file.txt"
 
 config_vars = {}
 
-
-with open(
-    GOGODATTVDATA_FILE,
-    "r",
-    encoding="utf-8"
-) as f:
-
+with open(GOGODATTVDATA_FILE, "r", encoding="utf-8") as f:
     code = f.read()
-
-    exec(
-        code,
-        config_vars
-    )
+    exec(code, config_vars)
 
 
-BASE_URL = config_vars.get(
-    "BASE_URL",
-    ""
-).strip()
-
-
-WORKER_URL = config_vars.get(
-    "WORKER_URL",
-    ""
-).strip()
-
-
-LOGO_URL = config_vars.get(
-    "LOGO_URL",
-    ""
-).strip()
-
+BASE_URL = config_vars.get("BASE_URL", "").strip()
+WORKER_URL = config_vars.get("WORKER_URL", "").strip()
+LOGO_URL = config_vars.get("LOGO_URL", "").strip()
 
 TARGET_URL = BASE_URL
 
-
-OUTPUT_FILE = (
-    Path(__file__).parent /
-    "gogodatv.m3u"
-)
+OUTPUT_FILE = Path(__file__).parent / "gogodatv.m3u"
 
 
 # =========================================================
@@ -99,35 +62,18 @@ USER_AGENT = (
 
 
 HEADERS = {
-
-    "User-Agent":
-        USER_AGENT,
-
+    "User-Agent": USER_AGENT,
     "Accept": (
         "text/html,application/xhtml+xml,"
         "application/xml;q=0.9,image/webp,*/*;q=0.8"
     ),
-
-    "Accept-Language":
-        "zh-CN,zh;q=0.9,en;q=0.8",
-
-    "Accept-Encoding":
-        "gzip, deflate",
-
-    "Cache-Control":
-        "no-cache",
-
-    "Pragma":
-        "no-cache",
-
-    "Connection":
-        "keep-alive",
-
-    "Referer":
-        BASE_URL,
-
-    "Origin":
-        BASE_URL.rstrip("/")
+    "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+    "Accept-Encoding": "gzip, deflate",
+    "Cache-Control": "no-cache",
+    "Pragma": "no-cache",
+    "Connection": "keep-alive",
+    "Referer": BASE_URL,
+    "Origin": BASE_URL.rstrip("/"),
 }
 
 
@@ -136,56 +82,90 @@ HEADERS = {
 # =========================================================
 
 ARGOS_FROM = "zh"
-
 ARGOS_TO = "en"
-
 
 # Jumlah translation worker
 ARGOS_CONCURRENCY = 4
 
 
 # =========================================================
+# SAFE URL
+# =========================================================
+
+def safe_url(url):
+    """
+    Kembalikan representasi URL yang aman untuk log.
+    Hanya scheme + host + (port opsional).
+    Path, query, fragment, username, password disembunyikan.
+    """
+    try:
+        if url is None:
+            return "[URL disembunyikan]"
+
+        url_str = str(url).strip()
+        if not url_str:
+            return "[URL disembunyikan]"
+
+        p = urlparse(url_str)
+
+        if not p.scheme or not p.netloc:
+            return "[URL disembunyikan]"
+
+        host = p.hostname or "hidden-host"
+        if p.port:
+            host = f"{host}:{p.port}"
+
+        return f"{p.scheme}://{host}/***"
+
+    except Exception:
+        return "[URL disembunyikan]"
+
+
+# =========================================================
+# SAFE ERROR
+# =========================================================
+
+URL_REGEX = re.compile(r"https?://[^\s'\"<>\)\]]+")
+
+
+def safe_error(e):
+    """
+    Kembalikan string error yang sudah di-mask URL-nya.
+    """
+    try:
+        msg = str(e) if e is not None else ""
+        msg = URL_REGEX.sub(
+            lambda m: safe_url(m.group(0)),
+            msg
+        )
+        name = type(e).__name__ if e is not None else "Error"
+        if msg:
+            return f"{name}: {msg}"
+        return name
+    except Exception:
+        return "Error"
+
+
+# =========================================================
 # CACHE
 # =========================================================
 
-CACHE_FILE = (
-    Path(__file__).parent /
-    "translation_cache.json"
-)
+CACHE_FILE = Path(__file__).parent / "translation_cache.json"
 
 
 def load_cache():
-
     if not CACHE_FILE.exists():
-
         return {}
 
-
     try:
-
-        with open(
-            CACHE_FILE,
-            "r",
-            encoding="utf-8"
-        ) as f:
-
+        with open(CACHE_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
 
-
-            if isinstance(
-                data,
-                dict
-            ):
-
+            if isinstance(data, dict):
                 return data
 
-
     except Exception as e:
-
-        print(
-            f"⚠️ Cache read error: {e}"
-        )
-
+        print(f"⚠️ Cache read error: {safe_error(e)}")
 
     return {}
 
@@ -194,22 +174,10 @@ translation_cache = load_cache()
 
 
 def save_cache():
-
     try:
+        tmp_file = CACHE_FILE.with_suffix(".tmp")
 
-        tmp_file = (
-            CACHE_FILE.with_suffix(
-                ".tmp"
-            )
-        )
-
-
-        with open(
-            tmp_file,
-            "w",
-            encoding="utf-8"
-        ) as f:
-
+        with open(tmp_file, "w", encoding="utf-8") as f:
             json.dump(
                 translation_cache,
                 f,
@@ -217,17 +185,10 @@ def save_cache():
                 indent=2
             )
 
-
-        tmp_file.replace(
-            CACHE_FILE
-        )
-
+        tmp_file.replace(CACHE_FILE)
 
     except Exception as e:
-
-        print(
-            f"⚠️ Cache save error: {e}"
-        )
+        print(f"⚠️ Cache save error: {safe_error(e)}")
 
 
 # =========================================================
@@ -235,122 +196,41 @@ def save_cache():
 # =========================================================
 
 def contains_chinese(text):
-
     if not text:
-
         return False
 
-
-    return any(
-
-        "\u4e00" <= c <= "\u9fff"
-
-        for c in text
-
-    )
+    return any("\u4e00" <= c <= "\u9fff" for c in text)
 
 
 # =========================================================
-# CLEAN TEXT
-#
-# DIPERTAHANKAN SAAT PARSING
-#
-# Fungsi ini hanya merapikan whitespace.
-# Tidak menghapus punctuation.
+# CLEAN TEXT (parsing)
 # =========================================================
 
 def clean_text(text):
-
     if not text:
-
         return ""
 
-
     text = str(text)
-
-
-    # Normalisasi whitespace
-    text = re.sub(
-        r"\s+",
-        " ",
-        text
-    )
-
+    text = re.sub(r"\s+", " ", text)
 
     return text.strip()
 
 
 # =========================================================
-# CLEAN TEAM / LEAGUE NAME
-#
-# DIPAKAI SETELAH TRANSLATION
-# SEBELUM MASUK M3U
+# CLEAN TEAM / LEAGUE NAME (setelah translation)
 # =========================================================
 
 def clean_team_name(text):
-
     if not text:
-
         return ""
-
 
     text = str(text)
 
-
-    # -----------------------------------------------------
-    # Normalisasi whitespace
-    # -----------------------------------------------------
-
-    text = re.sub(
-        r"\s+",
-        " ",
-        text
-    )
-
-
-    # -----------------------------------------------------
-    # Hapus tanda baca
-    # -----------------------------------------------------
-
-    text = re.sub(
-        r"""[,\.:;!?/\\|_\=\+\*\#@]""",
-        " ",
-        text
-    )
-
-
-    # -----------------------------------------------------
-    # Hapus tanda kurung / bracket
-    # -----------------------------------------------------
-
-    text = re.sub(
-        r"[\(\)\[\]\{\}]",
-        " ",
-        text
-    )
-
-
-    # -----------------------------------------------------
-    # Hapus tanda kutip
-    # -----------------------------------------------------
-
-    text = re.sub(
-        r"""["'`´]""",
-        "",
-        text
-    )
-
-
-    # -----------------------------------------------------
-    # Rapikan spasi lagi
-    # -----------------------------------------------------
-
-    text = re.sub(
-        r"\s+",
-        " ",
-        text
-    ).strip()
-
+    text = re.sub(r"\s+", " ", text)
+    text = re.sub(r"""[,\.:;!?/\\|_\=\+\*\#@]""", " ", text)
+    text = re.sub(r"[\(\)\[\]\{\}]", " ", text)
+    text = re.sub(r"""["'`´]""", "", text)
+    text = re.sub(r"\s+", " ", text).strip()
 
     return text
 
@@ -360,22 +240,11 @@ def clean_team_name(text):
 # =========================================================
 
 def get_installed_languages():
-
     try:
-
-        return (
-            argostranslate.translate
-            .get_installed_languages()
-        )
-
+        return argostranslate.translate.get_installed_languages()
 
     except Exception as e:
-
-        print(
-            f"⚠️ Failed to get Argos languages: "
-            f"{e}"
-        )
-
+        print(f"⚠️ Failed to get Argos languages: {safe_error(e)}")
         return []
 
 
@@ -384,76 +253,41 @@ def get_installed_languages():
 # =========================================================
 
 def get_argos_translator():
-
-    languages = (
-        get_installed_languages()
-    )
-
+    languages = get_installed_languages()
 
     from_lang = None
-
     to_lang = None
 
-
     for lang in languages:
-
-        code = getattr(
-            lang,
-            "code",
-            ""
-        )
-
+        code = getattr(lang, "code", "")
 
         if code == ARGOS_FROM:
-
             from_lang = lang
-
-
         elif code == ARGOS_TO:
-
             to_lang = lang
 
-
     if not from_lang:
-
         raise RuntimeError(
-            "Argos Chinese language "
-            "model not installed"
+            "Argos Chinese language model not installed"
         )
-
 
     if not to_lang:
-
         raise RuntimeError(
-            "Argos English language "
-            "model not installed"
+            "Argos English language model not installed"
         )
-
 
     try:
-
-        translator = (
-            from_lang
-            .get_translation(
-                to_lang
-            )
-        )
-
+        translator = from_lang.get_translation(to_lang)
 
     except Exception as e:
-
         raise RuntimeError(
-            "Unable to get Argos translator: "
-            f"{e}"
+            f"Unable to get Argos translator: {safe_error(e)}"
         )
 
-
     if not translator:
-
         raise RuntimeError(
             "Argos zh → en translator not found"
         )
-
 
     return translator
 
@@ -463,219 +297,80 @@ def get_argos_translator():
 # =========================================================
 
 def install_argos_model():
-
     print()
-    print(
-        "🌐 Checking Argos "
-        "Chinese → English model..."
-    )
+    print("🌐 Checking Argos Chinese → English model...")
 
-
-    # -----------------------------------------------------
     # CHECK EXISTING
-    # -----------------------------------------------------
-
     try:
-
-        translator = (
-            get_argos_translator()
-        )
-
+        translator = get_argos_translator()
 
         if translator:
-
-            print(
-                "✅ Argos zh → en "
-                "already installed"
-            )
-
+            print("✅ Argos zh → en already installed")
             return translator
-
 
     except Exception:
-
         pass
 
-
-    # -----------------------------------------------------
     # LOAD PACKAGE LIST
-    # -----------------------------------------------------
-
-    print(
-        "📋 Loading Argos package list..."
-    )
-
+    print("📋 Loading Argos package list...")
 
     try:
-
-        packages = (
-            argostranslate.package
-            .get_available_packages()
-        )
-
+        packages = argostranslate.package.get_available_packages()
 
     except Exception as e:
-
-        print(
-            f"❌ Failed to load Argos packages: "
-            f"{e}"
-        )
-
+        print(f"❌ Failed to load Argos packages: {safe_error(e)}")
         return None
-
 
     if not packages:
-
-        print(
-            "❌ Argos package list empty"
-        )
-
+        print("❌ Argos package list empty")
         return None
 
+    print(f"📦 Available packages: {len(packages)}")
 
-    print(
-        f"📦 Available packages: "
-        f"{len(packages)}"
-    )
-
-
-    # -----------------------------------------------------
     # FIND ZH → EN
-    # -----------------------------------------------------
-
     selected = None
 
-
     for package in packages:
+        from_code = getattr(package, "from_code", "")
+        to_code = getattr(package, "to_code", "")
 
-        from_code = getattr(
-            package,
-            "from_code",
-            ""
-        )
-
-
-        to_code = getattr(
-            package,
-            "to_code",
-            ""
-        )
-
-
-        if (
-            from_code == "zh"
-            and
-            to_code == "en"
-        ):
-
+        if from_code == "zh" and to_code == "en":
             selected = package
-
             break
 
-
     if selected is None:
-
-        print(
-            "❌ Argos zh → en package "
-            "not found"
-        )
-
+        print("❌ Argos zh → en package not found")
         return None
 
+    version = getattr(selected, "package_version", "unknown")
+    print(f"📦 Found Argos zh → en version {version}")
 
-    version = getattr(
-        selected,
-        "package_version",
-        "unknown"
-    )
-
-
-    print(
-        f"📦 Found Argos zh → en "
-        f"version {version}"
-    )
-
-
-    # -----------------------------------------------------
     # DOWNLOAD
-    # -----------------------------------------------------
-
     try:
+        print("📦 Downloading Argos zh → en model...")
+        package_path = selected.download()
 
-        print(
-            "📦 Downloading Argos "
-            "zh → en model..."
-        )
+        # Jangan tampilkan path mentah
+        print("📦 Package downloaded")
 
-
-        package_path = (
-            selected.download()
-        )
-
-
-        print(
-            f"📦 Package downloaded: "
-            f"{package_path}"
-        )
-
-
-        # -------------------------------------------------
-        # INSTALL
-        # -------------------------------------------------
-
-        print(
-            "📦 Installing Argos model..."
-        )
-
-
-        argostranslate.package.install_from_path(
-            package_path
-        )
-
-
-        print(
-            "✅ Argos model installed"
-        )
-
+        print("📦 Installing Argos model...")
+        argostranslate.package.install_from_path(package_path)
+        print("✅ Argos model installed")
 
     except Exception as e:
-
-        print(
-            f"❌ Argos installation failed: "
-            f"{type(e).__name__}: {e}"
-        )
-
+        print(f"❌ Argos installation failed: {safe_error(e)}")
         return None
 
-
-    # -----------------------------------------------------
     # VERIFY
-    # -----------------------------------------------------
-
     try:
-
-        translator = (
-            get_argos_translator()
-        )
-
+        translator = get_argos_translator()
 
         if translator:
-
-            print(
-                "✅ Verified: "
-                "Argos zh → en is ready"
-            )
-
+            print("✅ Verified: Argos zh → en is ready")
             return translator
 
-
     except Exception as e:
-
-        print(
-            f"❌ Argos verification failed: "
-            f"{e}"
-        )
-
+        print(f"❌ Argos verification failed: {safe_error(e)}")
 
     return None
 
@@ -684,91 +379,39 @@ def install_argos_model():
 # ARGOS TRANSLATE ONE
 # =========================================================
 
-def translate_sync(
-    translator,
-    text
-):
-
+def translate_sync(translator, text):
     text = text.strip()
 
-
     if not text:
-
         return ""
 
-
-    # -----------------------------------------------------
     # CACHE
-    # -----------------------------------------------------
-
     if text in translation_cache:
+        return translation_cache[text]
 
-        return translation_cache[
-            text
-        ]
-
-
-    # -----------------------------------------------------
     # NO CHINESE
-    # -----------------------------------------------------
-
     if not contains_chinese(text):
-
-        translation_cache[
-            text
-        ] = text
-
+        translation_cache[text] = text
         return text
 
-
-    # -----------------------------------------------------
     # ARGOS
-    # -----------------------------------------------------
-
     try:
-
-        translated = (
-            translator
-            .translate(text)
-        )
-
+        translated = translator.translate(text)
 
         if translated:
-
-            translated = (
-                str(translated)
-                .replace("\n", " ")
-                .strip()
-            )
-
+            translated = str(translated).replace("\n", " ").strip()
 
             if translated:
-
-                translation_cache[
-                    text
-                ] = translated
-
-
+                translation_cache[text] = translated
                 return translated
 
-
     except Exception as e:
+        # Nama tim mungkin bisa memuat karakter aneh, tapi bukan URL.
+        # Tetap pakai safe_error untuk jaga-jaga.
+        print(f"⚠️ Argos failed: {safe_error(e)}")
 
-        print(
-            f"⚠️ Argos failed: "
-            f"{text} -> {e}"
-        )
-
-
-    # -----------------------------------------------------
     # FALLBACK
-    # -----------------------------------------------------
-
-    translation_cache[
-        text
-    ] = text
-
-
+    translation_cache[text] = text
     return text
 
 
@@ -776,246 +419,102 @@ def translate_sync(
 # ASYNC TRANSLATE ONE
 # =========================================================
 
-async def translate_one(
-    translator,
-    text,
-    semaphore
-):
-
+async def translate_one(translator, text, semaphore):
     async with semaphore:
-
         result = await asyncio.to_thread(
-
             translate_sync,
-
             translator,
-
             text
-
         )
 
-
-        return (
-            text,
-            result
-        )
+        return (text, result)
 
 
 # =========================================================
 # TRANSLATE ALL
 # =========================================================
 
-async def translate_all(
-    texts,
-    translator
-):
-
-    # -----------------------------------------------------
-    # UNIQUE
-    # -----------------------------------------------------
-
+async def translate_all(texts, translator):
     unique_texts = list(
-
         dict.fromkeys(
-
             x.strip()
-
             for x in texts
-
             if x and x.strip()
-
         )
-
     )
-
-
-    # -----------------------------------------------------
-    # NEED TRANSLATION
-    # -----------------------------------------------------
 
     need_translation = [
-
         x
-
         for x in unique_texts
-
         if (
             x not in translation_cache
-            and
-            contains_chinese(x)
+            and contains_chinese(x)
         )
-
     ]
 
-
     print()
-
-    print(
-        f"📦 Total unique names: "
-        f"{len(unique_texts)}"
-    )
-
-
-    print(
-        f"📦 Need translation: "
-        f"{len(need_translation)}"
-    )
-
-
-    # -----------------------------------------------------
-    # NOTHING TO TRANSLATE
-    # -----------------------------------------------------
+    print(f"📦 Total unique names: {len(unique_texts)}")
+    print(f"📦 Need translation: {len(need_translation)}")
 
     if not need_translation:
-
-        print(
-            "✅ Semua nama sudah ada "
-            "di cache"
-        )
-
+        print("✅ Semua nama sudah ada di cache")
 
         return {
-
-            x: translation_cache.get(
-                x,
-                x
-            )
-
+            x: translation_cache.get(x, x)
             for x in unique_texts
-
         }
 
-
     print()
-
     print(
-        f"🚀 Translating "
-        f"{len(need_translation)} "
+        f"🚀 Translating {len(need_translation)} "
         f"names with local Argos..."
     )
+    print(f"⚙️ Parallel workers: {ARGOS_CONCURRENCY}")
 
-
-    print(
-        f"⚙️ Parallel workers: "
-        f"{ARGOS_CONCURRENCY}"
-    )
-
-
-    semaphore = asyncio.Semaphore(
-        ARGOS_CONCURRENCY
-    )
-
-
-    # -----------------------------------------------------
-    # TASK
-    # -----------------------------------------------------
+    semaphore = asyncio.Semaphore(ARGOS_CONCURRENCY)
 
     tasks = [
-
-        translate_one(
-            translator,
-            text,
-            semaphore
-        )
-
+        translate_one(translator, text, semaphore)
         for text in need_translation
-
     ]
 
-
-    # -----------------------------------------------------
-    # GATHER
-    # -----------------------------------------------------
-
     results = await asyncio.gather(
-
         *tasks,
-
         return_exceptions=True
-
     )
-
-
-    # -----------------------------------------------------
-    # SAVE RESULTS
-    # -----------------------------------------------------
 
     completed = 0
 
-
     for item in results:
-
-        if isinstance(
-            item,
-            Exception
-        ):
-
-            print(
-                f"⚠️ Worker error: "
-                f"{item}"
-            )
-
+        if isinstance(item, Exception):
+            print(f"⚠️ Worker error: {safe_error(item)}")
             continue
-
 
         text, translated = item
 
-
-        translation_cache[
-            text
-        ] = translated
-
-
+        translation_cache[text] = translated
         completed += 1
 
-
         print(
-            f"[{completed}/"
-            f"{len(need_translation)}] "
+            f"[{completed}/{len(need_translation)}] "
             f"{text} → {translated}"
         )
 
-
-        # -------------------------------------------------
-        # PERIODIC CACHE
-        # -------------------------------------------------
-
         if completed % 25 == 0:
-
             save_cache()
-
-
-            print(
-                f"💾 Cache saved: "
-                f"{completed}"
-            )
-
-
-    # -----------------------------------------------------
-    # FINAL CACHE
-    # -----------------------------------------------------
+            print(f"💾 Cache saved: {completed}")
 
     save_cache()
 
-
     print()
-
     print(
         f"✅ Translation finished: "
-        f"{completed}/"
-        f"{len(need_translation)}"
+        f"{completed}/{len(need_translation)}"
     )
 
-
     return {
-
-        x: translation_cache.get(
-            x,
-            x
-        )
-
+        x: translation_cache.get(x, x)
         for x in unique_texts
-
     }
 
 
@@ -1024,214 +523,148 @@ async def translate_all(
 # =========================================================
 
 def decode_html(raw):
-
-    encodings = [
-
-        "utf-8",
-
-        "gb18030",
-
-        "gbk",
-
-        "gb2312",
-
-        "big5"
-
-    ]
-
+    encodings = ["utf-8", "gb18030", "gbk", "gb2312", "big5"]
 
     for enc in encodings:
-
         try:
-
-            decoded = raw.decode(
-                enc
-            )
-
+            decoded = raw.decode(enc)
 
             if any(
-
                 x in decoded
-
-                for x in [
-
-                    "直播",
-                    "足球",
-                    "联赛",
-                    "女",
-                    "队",
-                    "VS"
-
-                ]
-
+                for x in ["直播", "足球", "联赛", "女", "队", "VS"]
             ):
-
-                print(
-                    f"✅ Decoded with: "
-                    f"{enc}"
-                )
-
-
+                print(f"✅ Decoded with: {enc}")
                 return decoded
 
-
         except Exception:
-
             pass
 
-
     try:
-
-        return raw.decode(
-            "utf-8",
-            errors="ignore"
-        )
-
+        return raw.decode("utf-8", errors="ignore")
 
     except Exception:
-
         return ""
 
 
 # =========================================================
-# SAFE URL
-# =========================================================
-
-def safe_url(url):
-
-    try:
-
-        from urllib.parse import urlparse
-
-
-        p = urlparse(
-            url
-        )
-
-
-        return (
-            f"{p.scheme}://"
-            f"{p.netloc}/***"
-        )
-
-
-    except Exception:
-
-        return "***"
-
-
-# =========================================================
-# FETCH HTML
+# FETCH HTML - SMART RETRY + LONGER TIMEOUT
 # =========================================================
 
 async def fetch_html(url):
+    parsed = urlparse(url)
 
-    test_urls = [
+    candidates = [url]
 
-        url,
-
-        url.replace(
-            "https://",
-            "http://"
-        ),
-
-        url.replace(
-            "www.",
-            ""
+    if parsed.scheme == "https":
+        candidates.append(
+            urlunparse(parsed._replace(scheme="http"))
         )
 
-    ]
+    if parsed.hostname and parsed.hostname.startswith("www."):
+        no_www = parsed.hostname[4:]
 
+        for candidate in list(candidates):
+            p = urlparse(candidate)
+            candidates.append(
+                urlunparse(
+                    p._replace(
+                        netloc=no_www + (
+                            f":{p.port}" if p.port else ""
+                        )
+                    )
+                )
+            )
 
-    for test_url in test_urls:
+    # Hilangkan duplikat dengan urutan tetap.
+    candidates = list(dict.fromkeys(candidates))
 
-        try:
+    max_retries = 2
 
-            print()
+    for attempt in range(1, max_retries + 1):
+        print()
+        print(f"🔄 Fetch attempt {attempt}/{max_retries}")
 
+        for index, test_url in enumerate(candidates, start=1):
             print(
-                f"🌐 Fetching: "
+                f"🌐 Fetching [{index}/{len(candidates)}]: "
                 f"{safe_url(test_url)}"
             )
 
-
-            response = requests.get(
-
-                test_url,
-
-                headers=HEADERS,
-
-                impersonate="chrome136",
-
-                timeout=30,
-
-                verify=False,
-
-                allow_redirects=True,
-
-                http_version=1
-
-            )
-
-
-            print(
-                f"HTTP Status: "
-                f"{response.status_code}"
-            )
-
-
-            print(
-                f"Final URL: "
-                f"{safe_url(str(response.url))}"
-            )
-
-
-            raw = response.content
-
-
-            text = decode_html(
-                raw
-            )
-
-
-            print(
-                f"📄 HTML length: "
-                f"{len(text):,}"
-            )
-
-
-            if (
-
-                response.status_code == 200
-
-                and
-
-                len(text) > 5000
-
-            ):
-
-                print(
-                    "✅ HTML fetch success"
+            try:
+                response = await asyncio.to_thread(
+                    requests.get,
+                    test_url,
+                    headers=HEADERS,
+                    impersonate="chrome136",
+                    timeout=75,
+                    verify=False,
+                    allow_redirects=True,
+                    http_version=1,
                 )
 
+                print(f"🌐 HTTP Status: {response.status_code}")
+                print(
+                    "🔗 Final URL: "
+                    f"{safe_url(str(response.url))}"
+                )
 
-                return text
+                if response.status_code != 200:
+                    print(
+                        f"⚠️ HTTP {response.status_code}; "
+                        "mencoba alamat berikutnya."
+                    )
+                    continue
 
+                raw = response.content
+                byte_count = len(raw)
 
-            print(
-                "⚠️ Invalid response"
-            )
+                print(f"📦 Downloaded: {byte_count:,} bytes")
 
+                if not raw:
+                    print("⚠️ Respons kosong.")
+                    continue
 
-        except Exception as e:
+                html = decode_html(raw)
 
-            print(
-                f"❌ Fetch error: "
-                f"{type(e).__name__}: "
-                f"{e}"
-            )
+                print(f"📄 HTML length: {len(html):,} characters")
 
+                if len(html.strip()) < 1000:
+                    print("⚠️ HTML terlalu pendek; mencoba berikutnya.")
+                    continue
 
+                # Simpan HTML untuk pemeriksaan lokal.
+                debug_file = (
+                    Path(__file__).parent / "original_debug.html"
+                )
+
+                debug_file.write_text(html, encoding="utf-8")
+
+                print("✅ HTML fetch success")
+                print("💾 Debug HTML: original_debug.html")
+
+                return html
+
+            except Exception as e:
+                error_name = type(e).__name__
+                error_text = str(e).lower()
+
+                if "timeout" in error_text or "timed out" in error_text:
+                    print(
+                        f"⏱️ Timeout ({error_name}); "
+                        "mencoba alamat berikutnya."
+                    )
+                else:
+                    print(
+                        f"❌ Fetch error ({error_name}); "
+                        "detail disembunyikan."
+                    )
+
+        if attempt < max_retries:
+            delay = 3
+            print(f"⏳ Menunggu {delay} detik sebelum retry...")
+            await asyncio.sleep(delay)
+
+    print("❌ Semua percobaan fetch gagal.")
     return ""
 
 
@@ -1239,532 +672,193 @@ async def fetch_html(url):
 # PARSE MATCHES
 # =========================================================
 
-async def parse_matches(
-    html,
-    translator
-):
-
-    soup = BeautifulSoup(
-
-        html,
-
-        "html.parser"
-
-    )
-
+async def parse_matches(html, translator):
+    soup = BeautifulSoup(html, "html.parser")
 
     lines = []
 
-
     a_tags = soup.find_all(
-
         "a",
-
-        href=lambda x:
-            x and "/detail/" in x
-
+        href=lambda x: x and "/detail/" in x
     )
-
 
     print()
-
-    print(
-        f"📺 Found possible matches: "
-        f"{len(a_tags)}"
-    )
-
+    print(f"📺 Found possible matches: {len(a_tags)}")
 
     if not a_tags:
-
-        print(
-            "⚠️ No matches found."
-        )
-
+        print("⚠️ No matches found.")
         return lines
 
-
     parsed_ids = set()
-
     matches = []
-
 
     # =====================================================
     # FIRST PASS
-    #
-    # Ambil data mentah + clean_text()
     # =====================================================
 
     for a_tag in a_tags:
-
         try:
-
-            match_url = (
-
-                a_tag
-
-                .get(
-                    "href",
-                    ""
-                )
-
-                .strip()
-
-            )
-
+            match_url = a_tag.get("href", "").strip()
 
             if not match_url:
-
                 continue
 
-
-            match_id = (
-
-                match_url
-
-                .rstrip("/")
-
-                .split("/")[-1]
-
-            )
-
+            match_id = match_url.rstrip("/").split("/")[-1]
 
             if match_id in parsed_ids:
-
                 continue
 
+            parsed_ids.add(match_id)
 
-            parsed_ids.add(
-                match_id
-            )
-
-
-            # =============================================
             # HOME TEAM
-            # =============================================
-
             home_team = ""
 
-
-            home_div = a_tag.find(
-
-                "div",
-
-                class_="team zhudui"
-
-            )
-
+            home_div = a_tag.find("div", class_="team zhudui")
 
             if home_div:
-
-                p = home_div.find(
-                    "p"
-                )
-
+                p = home_div.find("p")
 
                 if p:
+                    home_team = clean_text(p.get_text(strip=True))
 
-                    # -------------------------------------
-                    # clean_text() TETAP DIPAKAI DI SINI
-                    # -------------------------------------
-
-                    home_team = clean_text(
-
-                        p.get_text(
-                            strip=True
-                        )
-
-                    )
-
-
-            # =============================================
             # AWAY TEAM
-            # =============================================
-
             away_team = ""
 
-
-            away_div = a_tag.find(
-
-                "div",
-
-                class_="team kedui"
-
-            )
-
+            away_div = a_tag.find("div", class_="team kedui")
 
             if away_div:
-
-                p = away_div.find(
-                    "p"
-                )
-
+                p = away_div.find("p")
 
                 if p:
+                    away_team = clean_text(p.get_text(strip=True))
 
-                    # -------------------------------------
-                    # clean_text() TETAP DIPAKAI DI SINI
-                    # -------------------------------------
-
-                    away_team = clean_text(
-
-                        p.get_text(
-                            strip=True
-                        )
-
-                    )
-
-
-            if (
-
-                not home_team
-
-                and
-
-                not away_team
-
-            ):
-
+            if not home_team and not away_team:
                 continue
 
-
-            # =============================================
             # LEAGUE + TIME
-            # =============================================
-
             liga_name = ""
-
             event_time = ""
 
-
-            center_div = a_tag.find(
-
-                "div",
-
-                class_="center"
-
-            )
-
+            center_div = a_tag.find("div", class_="center")
 
             if center_div:
-
                 liga_tag = center_div.find(
-
-                    "p",
-
-                    class_="eventtime_wuy"
-
+                    "p", class_="eventtime_wuy"
                 )
 
-
                 if liga_tag:
-
-                    em = liga_tag.find(
-                        "em"
-                    )
-
-                    i_tag = liga_tag.find(
-                        "i"
-                    )
-
+                    em = liga_tag.find("em")
+                    i_tag = liga_tag.find("i")
 
                     if em:
-
-                        # ---------------------------------
-                        # clean_text() TETAP DIPAKAI
-                        # ---------------------------------
-
                         liga_name = clean_text(
-
-                            em.get_text(
-                                strip=True
-                            )
-
+                            em.get_text(strip=True)
                         )
-
 
                     if i_tag:
-
                         event_time = clean_text(
-
-                            i_tag.get_text(
-                                strip=True
-                            )
-
+                            i_tag.get_text(strip=True)
                         )
 
-
             print(
-
-                f"RAW: "
-                f"{home_team} vs "
-                f"{away_team} "
-                f"({liga_name})"
-
+                f"RAW: {home_team} vs {away_team} ({liga_name})"
             )
-
 
             matches.append({
-
-                "match_id":
-                    match_id,
-
-                "home_team":
-                    home_team,
-
-                "away_team":
-                    away_team,
-
-                "liga_name":
-                    liga_name,
-
-                "event_time":
-                    event_time,
-
-                "data_time":
-                    a_tag.get(
-                        "data-time",
-                        ""
-                    ).strip()
-
+                "match_id": match_id,
+                "home_team": home_team,
+                "away_team": away_team,
+                "liga_name": liga_name,
+                "event_time": event_time,
+                "data_time": a_tag.get("data-time", "").strip(),
             })
 
-
         except Exception as e:
-
-            print(
-
-                f"⚠️ Parse match error: "
-                f"{e}"
-
-            )
-
+            print(f"⚠️ Parse match error: {safe_error(e)}")
 
     # =====================================================
     # COLLECT ALL NAMES
-    #
-    # Yang dikirim ke Argos masih hasil clean_text(),
-    # BUKAN clean_team_name().
     # =====================================================
 
     all_names = []
 
-
     for match in matches:
-
-        all_names.append(
-            match["home_team"]
-        )
-
-        all_names.append(
-            match["away_team"]
-        )
-
-        all_names.append(
-            match["liga_name"]
-        )
-
+        all_names.append(match["home_team"])
+        all_names.append(match["away_team"])
+        all_names.append(match["liga_name"])
 
     # =====================================================
     # TRANSLATE ALL
     # =====================================================
 
-    translations = await translate_all(
-
-        all_names,
-
-        translator
-
-    )
-
+    translations = await translate_all(all_names, translator)
 
     # =====================================================
     # BUILD M3U
     # =====================================================
 
     for match in matches:
-
-        # -------------------------------------------------
-        # GET TRANSLATION
-        # -------------------------------------------------
-
         home_team_en = translations.get(
-
-            match["home_team"],
-
-            match["home_team"]
-
+            match["home_team"], match["home_team"]
         )
-
-
         away_team_en = translations.get(
-
-            match["away_team"],
-
-            match["away_team"]
-
+            match["away_team"], match["away_team"]
         )
-
-
         liga_name_en = translations.get(
-
-            match["liga_name"],
-
-            match["liga_name"]
-
+            match["liga_name"], match["liga_name"]
         )
 
-
-        # =================================================
         # CLEAN SETELAH TRANSLATE
-        #
-        # INI BARU clean_team_name()
-        # =================================================
+        home_team_en = clean_team_name(home_team_en)
+        away_team_en = clean_team_name(away_team_en)
+        liga_name_en = clean_team_name(liga_name_en)
 
-        home_team_en = clean_team_name(
-
-            home_team_en
-
-        )
-
-
-        away_team_en = clean_team_name(
-
-            away_team_en
-
-        )
-
-
-        liga_name_en = clean_team_name(
-
-            liga_name_en
-
-        )
-
-
-        # ===============================================
         # TIME
-        # ===============================================
-
         try:
-
             dt_obj = datetime.strptime(
-
-                f'{match["data_time"]} '
-                f'{match["event_time"]}',
-
+                f'{match["data_time"]} {match["event_time"]}',
                 "%Y-%m-%d %H:%M"
-
             )
 
+            dt_obj = dt_obj.replace(tzinfo=SHANGHAI)
+            dt_obj = dt_obj.astimezone(JAKARTA)
 
-            dt_obj = dt_obj.replace(
-
-                tzinfo=SHANGHAI
-
-            )
-
-
-            dt_obj = dt_obj.astimezone(
-
-                JAKARTA
-
-            )
-
-
-            dt_str = dt_obj.strftime(
-
-                "%d/%m-%H.%M"
-
-            )
-
+            dt_str = dt_obj.strftime("%d/%m-%H.%M")
 
         except Exception as e:
-
-            print(
-
-                f"⚠️ Time parse error: "
-                f"{e}"
-
-            )
-
+            print(f"⚠️ Time parse error: {safe_error(e)}")
 
             dt_str = (
-
-                f'{match["data_time"]} '
-                f'{match["event_time"]}'
-
+                f'{match["data_time"]} {match["event_time"]}'
             )
 
-
-        # ===============================================
         # TITLE
-        #
-        # JANGAN clean_team_name() LAGI DI SINI
-        # supaya format (League) tetap ada.
-        # ===============================================
-
-        title = (
-
-            f"{home_team_en} "
-            f"vs "
-            f"{away_team_en}"
-
-        )
-
+        title = f"{home_team_en} vs {away_team_en}"
 
         if liga_name_en:
+            title += f" ({liga_name_en})"
 
-            title += (
-
-                f" ({liga_name_en})"
-
-            )
-
-
-        # ===============================================
         # M3U
-        # ===============================================
-
         lines.append(
-
             f'#EXTINF:-1 '
             f'group-title="⚽️| LIVE EVENT" '
             f'tvg-logo="{LOGO_URL}",'
             f'{dt_str} {title}'
-
         )
-
 
         lines.append(
-
-            f'#EXTVLCOPT:'
-            f'http-user-agent='
-            f'{USER_AGENT}'
-
+            f'#EXTVLCOPT:http-user-agent={USER_AGENT}'
         )
-
 
         lines.append(
-
-            f'#EXTVLCOPT:'
-            f'http-referrer='
-            f'{BASE_URL}'
-
+            f'#EXTVLCOPT:http-referrer={BASE_URL}'
         )
-
 
         lines.append(
-
-            f"{WORKER_URL}"
-            f"{match['match_id']}"
-
+            f"{WORKER_URL}{match['match_id']}"
         )
 
-
-        print(
-            f"✅ Parsed: {title}"
-        )
-
+        print(f"✅ Parsed: {title}")
 
     return lines
 
@@ -1774,205 +868,54 @@ async def parse_matches(
 # =========================================================
 
 async def main():
+    print("========================================")
+    print("🚀 GOGODATV")
+    print("🌐 LOCAL ARGOS TRANSLATION")
+    print("🧹 CLEAN AFTER TRANSLATION")
+    print("========================================")
 
-    print(
-        "========================================"
-    )
-
-    print(
-        "🚀 GOGODATV"
-    )
-
-    print(
-        "🌐 LOCAL ARGOS TRANSLATION"
-    )
-
-    print(
-        "🧹 CLEAN AFTER TRANSLATION"
-    )
-
-    print(
-        "========================================"
-    )
-
-
-    # =====================================================
     # INSTALL / LOAD ARGOS
-    # =====================================================
-
-    translator = (
-        install_argos_model()
-    )
-
+    translator = install_argos_model()
 
     if not translator:
-
-        print(
-            "❌ Argos translator unavailable"
-        )
-
+        print("❌ Argos translator unavailable")
         return
 
+    print("✅ Local zh → en translator ready")
 
-    print(
-        "✅ Local zh → en translator ready"
-    )
-
-
-    # =====================================================
     # FETCH
-    # =====================================================
-
-    html = ""
-
-
-    for i in range(3):
-
-        print()
-
-        print(
-            f"🔄 Fetch retry "
-            f"{i + 1}/3"
-        )
-
-
-        html = await fetch_html(
-
-            TARGET_URL
-
-        )
-
-
-        if html:
-
-            break
-
-
-        await asyncio.sleep(
-            5
-        )
-
+    html = await fetch_html(TARGET_URL)
 
     if not html:
-
-        print(
-
-            "❌ Failed to fetch HTML. "
-            "Exiting."
-
-        )
-
+        print("❌ Failed to fetch HTML. Exiting.")
         return
 
+    print(f"📄 HTML length: {len(html):,}")
 
-    print()
-
-    print(
-
-        f"📄 HTML length: "
-        f"{len(html):,}"
-
-    )
-
-
-    # =====================================================
     # PARSE
-    # =====================================================
+    lines = await parse_matches(html, translator)
 
-    lines = await parse_matches(
-
-        html,
-
-        translator
-
-    )
-
-
-    # =====================================================
     # WRITE M3U
-    # =====================================================
-
-    with open(
-
-        OUTPUT_FILE,
-
-        "w",
-
-        encoding="utf-8"
-
-    ) as f:
-
-        f.write(
-            "#EXTM3U\n"
-        )
-
+    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+        f.write("#EXTM3U\n")
 
         if lines:
+            f.write("\n".join(lines))
 
-            f.write(
-
-                "\n".join(
-                    lines
-                )
-
-            )
-
-
-    # =====================================================
     # RESULT
-    # =====================================================
-
     print()
-
-    print(
-        "========================================"
-    )
-
+    print("========================================")
 
     if lines:
-
-        print(
-
-            f"✅ Total matches: "
-            f"{len(lines) // 4}"
-
-        )
-
-
-        print(
-
-            f"💾 M3U: "
-            f"{OUTPUT_FILE.resolve()}"
-
-        )
-
-
-        print(
-
-            f"💾 Cache: "
-            f"{CACHE_FILE.resolve()}"
-
-        )
-
+        print(f"✅ Total matches: {len(lines) // 4}")
+        print(f"💾 M3U: {OUTPUT_FILE.resolve()}")
+        print(f"💾 Cache: {CACHE_FILE.resolve()}")
 
     else:
+        print("⚠️ No valid matches found.")
+        print(f"💾 Empty M3U: {OUTPUT_FILE.resolve()}")
 
-        print(
-            "⚠️ No valid matches found."
-        )
-
-
-        print(
-
-            f"💾 Empty M3U: "
-            f"{OUTPUT_FILE.resolve()}"
-
-        )
-
-
-    print(
-        "========================================"
-    )
+    print("========================================")
 
 
 # =========================================================
@@ -1980,7 +923,4 @@ async def main():
 # =========================================================
 
 if __name__ == "__main__":
-
-    asyncio.run(
-        main()
-    )
+    asyncio.run(main())
