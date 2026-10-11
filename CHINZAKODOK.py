@@ -481,109 +481,175 @@ def get_argos_translator():
 
 
 # =========================================================
-# BROWSER FETCH
+# FETCH HTML - RETRY + REQUESTS FALLBACK + DEBUG LOG
 # =========================================================
 
 async def fetch_html(url):
-
     print(f"🌐 Fetching: {safe_url(url)}")
 
-    try:
+    max_retries = 3
 
-        timeout = aiohttp.ClientTimeout(
-            total=60
-        )
+    # ----------------------------------------
+    # METHOD 1: AIOHTTP WITH RETRIES
+    # ----------------------------------------
+    for attempt in range(1, max_retries + 1):
+        try:
+            print(f"🔄 aiohttp attempt {attempt}/{max_retries}")
 
-        async with aiohttp.ClientSession(
-            headers=HEADERS,
-            timeout=timeout
-        ) as session:
+            timeout = aiohttp.ClientTimeout(
+                total=90,
+                connect=20,
+                sock_connect=20,
+                sock_read=60
+            )
 
-            async with session.get(
+            connector = aiohttp.TCPConnector(
+                ssl=False,
+                limit=10,
+                ttl_dns_cache=300
+            )
+
+            async with aiohttp.ClientSession(
+                headers=HEADERS,
+                timeout=timeout,
+                connector=connector,
+                trust_env=True
+            ) as session:
+
+                async with session.get(
+                    url,
+                    allow_redirects=True,
+                    ssl=False
+                ) as response:
+
+                    print(f"🌐 HTTP: {response.status}")
+                    print(
+                        f"🔗 Final URL: "
+                        f"{safe_url(str(response.url))}"
+                    )
+
+                    if response.history:
+                        print("↪️ Redirects:")
+                        for redirect in response.history:
+                            print(
+                                f"   {redirect.status} -> "
+                                f"{safe_url(str(redirect.url))}"
+                            )
+
+                    response.raise_for_status()
+
+                    raw = await response.read()
+                    encoding = response.charset or "utf-8"
+                    html = raw.decode(encoding, errors="replace")
+
+                    print(f"📦 HTML bytes: {len(raw):,}")
+                    print(f"📝 HTML chars: {len(html):,}")
+
+                    if not html.strip():
+                        raise RuntimeError("Server returned empty HTML")
+
+                    DEBUG_HTML_FILE.write_text(
+                        html,
+                        encoding="utf-8"
+                    )
+
+                    print(f"✅ HTML saved: {DEBUG_HTML_FILE}")
+                    print("✅ Fetch berhasil menggunakan aiohttp")
+
+                    return html
+
+        except asyncio.CancelledError:
+            raise
+
+        except Exception as e:
+            print(
+                f"❌ aiohttp attempt {attempt} gagal: "
+                f"{type(e).__name__}: {e}"
+            )
+
+            if attempt < max_retries:
+                delay = attempt * 3
+                print(f"⏳ Retry dalam {delay} detik...")
+                await asyncio.sleep(delay)
+
+    # ----------------------------------------
+    # METHOD 2: REQUESTS FALLBACK
+    # ----------------------------------------
+    print("➡️ aiohttp gagal, mencoba requests fallback...")
+
+    def requests_fetch():
+        try:
+            import urllib3
+
+            urllib3.disable_warnings(
+                urllib3.exceptions.InsecureRequestWarning
+            )
+        except Exception:
+            pass
+
+        try:
+            print("🔄 requests: mengirim HTTP request...")
+
+            response = requests.get(
                 url,
+                headers=HEADERS,
+                timeout=(20, 60),
                 allow_redirects=True,
-                ssl=False
-            ) as response:
+                verify=False
+            )
 
-                print(
-                    f"🌐 HTTP: {response.status}"
-                )
+            print(f"🌐 requests HTTP: {response.status_code}")
+            print(
+                f"🔗 requests final URL: "
+                f"{safe_url(response.url)}"
+            )
 
-                print(
-                    f"🔗 Final URL: "
-                    f"{safe_url(str(response.url))}"
-                )
+            if response.history:
+                print("↪️ requests redirects:")
+                for redirect in response.history:
+                    print(
+                        f"   {redirect.status_code} -> "
+                        f"{safe_url(redirect.url)}"
+                    )
 
-                if response.history:
+            response.raise_for_status()
 
-                    print("↪️ Redirects:")
+            raw = response.content
+            encoding = response.encoding or "utf-8"
+            html = raw.decode(encoding, errors="replace")
 
-                    for r in response.history:
+            print(f"📦 requests HTML bytes: {len(raw):,}")
+            print(f"📝 requests HTML chars: {len(html):,}")
 
-                        print(
-                            f"   {r.status} -> "
-                            f"{safe_url(str(r.url))}"
-                        )
+            if not html.strip():
+                raise RuntimeError("requests returned empty HTML")
 
-                response.raise_for_status()
+            DEBUG_HTML_FILE.write_text(
+                html,
+                encoding="utf-8"
+            )
 
-                html = await response.text(
-                    encoding="utf-8",
-                    errors="ignore"
-                )
+            print(f"✅ HTML saved: {DEBUG_HTML_FILE}")
+            print("✅ Fetch berhasil menggunakan requests")
 
-                print(
-                    f"✅ HTML: "
-                    f"{len(html):,} bytes"
-                )
+            return html
 
-                DEBUG_HTML_FILE.write_text(
-                    html,
-                    encoding="utf-8"
-                )
+        except Exception as e:
+            print(
+                f"❌ requests fallback gagal: "
+                f"{type(e).__name__}: {e}"
+            )
+            return ""
 
-                print(
-                    f"💾 HTML saved: "
-                    f"{DEBUG_HTML_FILE}"
-                )
-
-                return html
-
-    except asyncio.TimeoutError:
-
-        print(
-            "❌ Fetch timeout"
-        )
-
-        return ""
-
-    except aiohttp.ClientResponseError as e:
-
-        print(
-            f"❌ HTTP error: "
-            f"{e.status}"
-        )
-
-        return ""
-
-    except aiohttp.ClientError as e:
-
-        print(
-            f"❌ aiohttp error: "
-            f"{type(e).__name__}: {e}"
-        )
-
-        return ""
-
+    try:
+        html = await asyncio.to_thread(requests_fetch)
+        if html:
+            return html
     except Exception as e:
+        print(f"❌ Fallback error: {type(e).__name__}: {e}")
 
-        print(
-            f"❌ Fetch error: "
-            f"{type(e).__name__}: {e}"
-        )
-
-        return ""
-
+    print("❌ Semua metode fetch gagal.")
+    return ""
 
 # =========================================================
 # CLEAN TITLE / TEAM NAME
