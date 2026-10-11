@@ -95,37 +95,52 @@ ARGOS_INDEX_URL = (
 
 
 # =========================================================
-# SAFE URL  (diperkuat)
+# SAFE URL  (dengan label)
 # =========================================================
 
-def safe_url(url):
+def safe_url(url, label=None):
     """
-    Kembalikan representasi URL yang aman untuk log.
-    Hanya menampilkan scheme + host + (port opsional).
-    Path, query, fragment, username, password disembunyikan.
+    Kembalikan string aman untuk log, ditandai dengan label.
+    Tidak menampilkan scheme, host, path, query, atau fragment.
+
+    Label otomatis:
+      - chinzako*   -> (chinzakourl)
+      - gogo*       -> (gogourl)
+      - github*     -> (argosurl)
+      - argos*      -> (argosurl)
+      - lainnya     -> (url)
     """
     try:
         if url is None:
-            return "[URL disembunyikan]"
+            return f"({label})" if label else "[URL disembunyikan]"
 
         url_str = str(url).strip()
         if not url_str:
-            return "[URL disembunyikan]"
+            return f"({label})" if label else "[URL disembunyikan]"
 
         p = urlparse(url_str)
 
         if not p.scheme or not p.netloc:
-            return "[URL disembunyikan]"
+            return f"({label})" if label else "[URL disembunyikan]"
 
-        host = p.hostname or "hidden-host"
+        host = (p.hostname or "").lower()
 
-        if p.port:
-            host = f"{host}:{p.port}"
+        if not label:
+            if "chinzako" in host:
+                label = "chinzakourl"
+            elif "gogo" in host:
+                label = "gogourl"
+            elif "github" in host or "githubusercontent" in host:
+                label = "argosurl"
+            elif "argos" in host:
+                label = "argosurl"
+            else:
+                label = "url"
 
-        return f"{p.scheme}://{host}/***"
+        return f"({label})"
 
     except Exception:
-        return "[URL disembunyikan]"
+        return f"({label})" if label else "[URL disembunyikan]"
 
 
 # =========================================================
@@ -133,6 +148,7 @@ def safe_url(url):
 # =========================================================
 
 URL_REGEX = re.compile(r"https?://[^\s'\"<>\)\]]+")
+
 
 def safe_error(e):
     """
@@ -390,8 +406,8 @@ def install_using_index():
 
             print()
             print("📦 Downloading Argos zh → en model...")
-            # ⚠️ URL dimask
-            print(f"⬇️ URL: {safe_url(url)}")
+            # ⚠️ URL ditandai label, tidak bocor
+            print(f"⬇️ URL: {safe_url(url, 'argosurl')}")
 
             try:
                 if os.path.exists(package_path):
@@ -536,7 +552,7 @@ def get_argos_translator():
 # =========================================================
 
 async def fetch_html(url):
-    print(f"🌐 Fetching: {safe_url(url)}")
+    print(f"🌐 Fetching: {safe_url(url, 'chinzakourl')}")
 
     max_retries = 3
 
@@ -576,7 +592,7 @@ async def fetch_html(url):
                     print(f"🌐 HTTP: {response.status}")
                     print(
                         f"🔗 Final URL: "
-                        f"{safe_url(str(response.url))}"
+                        f"{safe_url(str(response.url), 'chinzakourl')}"
                     )
 
                     if response.history:
@@ -584,7 +600,7 @@ async def fetch_html(url):
                         for redirect in response.history:
                             print(
                                 f"   {redirect.status} -> "
-                                f"{safe_url(str(redirect.url))}"
+                                f"{safe_url(str(redirect.url), 'chinzakourl')}"
                             )
 
                     response.raise_for_status()
@@ -653,7 +669,7 @@ async def fetch_html(url):
             print(f"🌐 requests HTTP: {response.status_code}")
             print(
                 f"🔗 requests final URL: "
-                f"{safe_url(response.url)}"
+                f"{safe_url(response.url, 'chinzakourl')}"
             )
 
             if response.history:
@@ -661,7 +677,7 @@ async def fetch_html(url):
                 for redirect in response.history:
                     print(
                         f"   {redirect.status_code} -> "
-                        f"{safe_url(redirect.url)}"
+                        f"{safe_url(redirect.url, 'chinzakourl')}"
                     )
 
             response.raise_for_status()
