@@ -134,10 +134,23 @@ def save_translation_cache():
 
 def safe_url(url):
     try:
-        p = urlparse(url)
-        return f"{p.scheme}://{p.netloc}/***"
+        p = urlparse(str(url))
+
+        if not p.scheme or not p.netloc:
+            return "[URL disembunyikan]"
+
+        # Hanya tampilkan scheme dan hostname.
+        # Path, query, fragment, username, dan password disembunyikan.
+        host = p.hostname or "hidden-host"
+
+        # Pertahankan port jika ada, tanpa menampilkan kredensial.
+        if p.port:
+            host = f"{host}:{p.port}"
+
+        return f"{p.scheme}://{host}/***"
+
     except Exception:
-        return "***"
+        return "[URL disembunyikan]"
 
 
 # =========================================================
