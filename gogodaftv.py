@@ -84,41 +84,53 @@ HEADERS = {
 ARGOS_FROM = "zh"
 ARGOS_TO = "en"
 
-# Jumlah translation worker
 ARGOS_CONCURRENCY = 4
 
 
 # =========================================================
-# SAFE URL
+# SAFE URL  (dengan label)
 # =========================================================
 
-def safe_url(url):
+def safe_url(url, label=None):
     """
-    Kembalikan representasi URL yang aman untuk log.
-    Hanya scheme + host + (port opsional).
-    Path, query, fragment, username, password disembunyikan.
+    Kembalikan string aman untuk log, ditandai dengan label.
+    Tidak menampilkan scheme, host, path, query, atau fragment.
+
+    Label otomatis:
+      - gogo*      -> (gogourl)
+      - github*    -> (argosurl)
+      - argos*     -> (argosurl)
+      - lainnya    -> (url)
     """
     try:
         if url is None:
-            return "[URL disembunyikan]"
+            return f"({label})" if label else "[URL disembunyikan]"
 
         url_str = str(url).strip()
         if not url_str:
-            return "[URL disembunyikan]"
+            return f"({label})" if label else "[URL disembunyikan]"
 
         p = urlparse(url_str)
 
         if not p.scheme or not p.netloc:
-            return "[URL disembunyikan]"
+            return f"({label})" if label else "[URL disembunyikan]"
 
-        host = p.hostname or "hidden-host"
-        if p.port:
-            host = f"{host}:{p.port}"
+        host = (p.hostname or "").lower()
 
-        return f"{p.scheme}://{host}/***"
+        if not label:
+            if "gogo" in host:
+                label = "gogourl"
+            elif "github" in host or "githubusercontent" in host:
+                label = "argosurl"
+            elif "argos" in host:
+                label = "argosurl"
+            else:
+                label = "url"
+
+        return f"({label})"
 
     except Exception:
-        return "[URL disembunyikan]"
+        return f"({label})" if label else "[URL disembunyikan]"
 
 
 # =========================================================
@@ -348,6 +360,7 @@ def install_argos_model():
     # DOWNLOAD
     try:
         print("📦 Downloading Argos zh → en model...")
+
         package_path = selected.download()
 
         # Jangan tampilkan path mentah
@@ -406,8 +419,6 @@ def translate_sync(translator, text):
                 return translated
 
     except Exception as e:
-        # Nama tim mungkin bisa memuat karakter aneh, tapi bukan URL.
-        # Tetap pakai safe_error untuk jaga-jaga.
         print(f"⚠️ Argos failed: {safe_error(e)}")
 
     # FALLBACK
@@ -587,7 +598,7 @@ async def fetch_html(url):
         for index, test_url in enumerate(candidates, start=1):
             print(
                 f"🌐 Fetching [{index}/{len(candidates)}]: "
-                f"{safe_url(test_url)}"
+                f"{safe_url(test_url, 'gogourl')}"
             )
 
             try:
@@ -605,7 +616,7 @@ async def fetch_html(url):
                 print(f"🌐 HTTP Status: {response.status_code}")
                 print(
                     "🔗 Final URL: "
-                    f"{safe_url(str(response.url))}"
+                    f"{safe_url(str(response.url), 'gogourl')}"
                 )
 
                 if response.status_code != 200:
