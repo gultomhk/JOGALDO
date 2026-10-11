@@ -95,6 +95,65 @@ ARGOS_INDEX_URL = (
 
 
 # =========================================================
+# SAFE URL  (diperkuat)
+# =========================================================
+
+def safe_url(url):
+    """
+    Kembalikan representasi URL yang aman untuk log.
+    Hanya menampilkan scheme + host + (port opsional).
+    Path, query, fragment, username, password disembunyikan.
+    """
+    try:
+        if url is None:
+            return "[URL disembunyikan]"
+
+        url_str = str(url).strip()
+        if not url_str:
+            return "[URL disembunyikan]"
+
+        p = urlparse(url_str)
+
+        if not p.scheme or not p.netloc:
+            return "[URL disembunyikan]"
+
+        host = p.hostname or "hidden-host"
+
+        if p.port:
+            host = f"{host}:{p.port}"
+
+        return f"{p.scheme}://{host}/***"
+
+    except Exception:
+        return "[URL disembunyikan]"
+
+
+# =========================================================
+# SAFE ERROR  (mask URL di pesan exception)
+# =========================================================
+
+URL_REGEX = re.compile(r"https?://[^\s'\"<>\)\]]+")
+
+def safe_error(e):
+    """
+    Kembalikan string error yang sudah di-mask URL-nya.
+    Format: NamaException: pesan (URL dimask)
+    """
+    try:
+        msg = str(e) if e is not None else ""
+        msg = URL_REGEX.sub(
+            lambda m: safe_url(m.group(0)),
+            msg
+        )
+        name = type(e).__name__ if e is not None else "Error"
+        if msg:
+            return f"{name}: {msg}"
+        return name
+    except Exception:
+        return "Error"
+
+
+# =========================================================
 # LOAD CACHE
 # =========================================================
 
@@ -108,7 +167,7 @@ def load_translation_cache():
             if isinstance(data, dict):
                 return data
     except Exception as e:
-        print(f"⚠️ Cache read error: {e}")
+        print(f"⚠️ Cache read error: {safe_error(e)}")
 
     return {}
 
@@ -125,32 +184,7 @@ def save_translation_cache():
         with open(TRANSLATION_CACHE_FILE, "w", encoding="utf-8") as f:
             json.dump(TRANSLATION_CACHE, f, ensure_ascii=False, indent=2)
     except Exception as e:
-        print(f"⚠️ Cache save error: {e}")
-
-
-# =========================================================
-# SAFE URL
-# =========================================================
-
-def safe_url(url):
-    try:
-        p = urlparse(str(url))
-
-        if not p.scheme or not p.netloc:
-            return "[URL disembunyikan]"
-
-        # Hanya tampilkan scheme dan hostname.
-        # Path, query, fragment, username, dan password disembunyikan.
-        host = p.hostname or "hidden-host"
-
-        # Pertahankan port jika ada, tanpa menampilkan kredensial.
-        if p.port:
-            host = f"{host}:{p.port}"
-
-        return f"{p.scheme}://{host}/***"
-
-    except Exception:
-        return "[URL disembunyikan]"
+        print(f"⚠️ Cache save error: {safe_error(e)}")
 
 
 # =========================================================
@@ -171,7 +205,7 @@ def get_argos_languages():
     try:
         return argostranslate.translate.get_installed_languages()
     except Exception as e:
-        print(f"⚠️ Failed to read Argos languages: {type(e).__name__}: {e}")
+        print(f"⚠️ Failed to read Argos languages: {safe_error(e)}")
         return []
 
 
@@ -260,7 +294,8 @@ def install_using_argos_api():
             print("❌ Argos returned empty package path")
             return False
 
-        print(f"📦 Package downloaded: {package_path}")
+        # Jangan tampilkan path mentah (bisa memuat nama file / lokasi).
+        print("📦 Package downloaded")
         print("📦 Installing Argos model...")
 
         argostranslate.package.install_from_path(package_path)
@@ -275,7 +310,7 @@ def install_using_argos_api():
         return False
 
     except Exception as e:
-        print(f"⚠️ Argos API installation failed: {type(e).__name__}: {e}")
+        print(f"⚠️ Argos API installation failed: {safe_error(e)}")
         return False
 
 
@@ -355,7 +390,8 @@ def install_using_index():
 
             print()
             print("📦 Downloading Argos zh → en model...")
-            print(f"⬇️ URL: {url}")
+            # ⚠️ URL dimask
+            print(f"⬇️ URL: {safe_url(url)}")
 
             try:
                 if os.path.exists(package_path):
@@ -405,7 +441,7 @@ def install_using_index():
                     raise RuntimeError("Downloaded file is not a valid Argos package")
 
                 print("✅ Argos package verified")
-                print(f"📦 Installing: {package_path}")
+                print("📦 Installing Argos model...")
 
                 argostranslate.package.install_from_path(package_path)
                 print("✅ Argos model installed")
@@ -418,13 +454,13 @@ def install_using_index():
                 print("⚠️ Package installed but zh → en translator unavailable")
 
             except Exception as e:
-                print(f"⚠️ Download/install failed: {type(e).__name__}: {e}")
+                print(f"⚠️ Download/install failed: {safe_error(e)}")
                 continue
 
         return False
 
     except Exception as e:
-        print(f"⚠️ Argos index installation failed: {type(e).__name__}: {e}")
+        print(f"⚠️ Argos index installation failed: {safe_error(e)}")
         return False
 
 
@@ -442,7 +478,7 @@ def install_argos_model():
             print("✅ Argos zh → en already installed")
             return True
     except Exception as e:
-        print(f"⚠️ Existing model check failed: {type(e).__name__}: {e}")
+        print(f"⚠️ Existing model check failed: {safe_error(e)}")
 
     # SECOND: ARGOS NATIVE API
     if install_using_argos_api():
@@ -485,7 +521,9 @@ def get_argos_translator():
     try:
         translator = from_lang.get_translation(to_lang)
     except Exception as e:
-        raise RuntimeError(f"Unable to get Argos zh → en translator: {e}")
+        raise RuntimeError(
+            f"Unable to get Argos zh → en translator: {safe_error(e)}"
+        )
 
     if not translator:
         raise RuntimeError("Argos zh → en translator not found")
@@ -566,7 +604,8 @@ async def fetch_html(url):
                         encoding="utf-8"
                     )
 
-                    print(f"✅ HTML saved: {DEBUG_HTML_FILE}")
+                    # ⚠️ Jangan tampilkan path file debug
+                    print("✅ HTML saved (debug file)")
                     print("✅ Fetch berhasil menggunakan aiohttp")
 
                     return html
@@ -577,7 +616,7 @@ async def fetch_html(url):
         except Exception as e:
             print(
                 f"❌ aiohttp attempt {attempt} gagal: "
-                f"{type(e).__name__}: {e}"
+                f"{safe_error(e)}"
             )
 
             if attempt < max_retries:
@@ -642,7 +681,8 @@ async def fetch_html(url):
                 encoding="utf-8"
             )
 
-            print(f"✅ HTML saved: {DEBUG_HTML_FILE}")
+            # ⚠️ Jangan tampilkan path file debug
+            print("✅ HTML saved (debug file)")
             print("✅ Fetch berhasil menggunakan requests")
 
             return html
@@ -650,7 +690,7 @@ async def fetch_html(url):
         except Exception as e:
             print(
                 f"❌ requests fallback gagal: "
-                f"{type(e).__name__}: {e}"
+                f"{safe_error(e)}"
             )
             return ""
 
@@ -659,7 +699,7 @@ async def fetch_html(url):
         if html:
             return html
     except Exception as e:
-        print(f"❌ Fallback error: {type(e).__name__}: {e}")
+        print(f"❌ Fallback error: {safe_error(e)}")
 
     print("❌ Semua metode fetch gagal.")
     return ""
@@ -721,7 +761,7 @@ def translate_one(translator, text):
             return result
 
     except Exception as e:
-        print(f"⚠️ Argos failed '{text}': {e}")
+        print(f"⚠️ Argos failed '{text}': {safe_error(e)}")
 
     # FALLBACK ORIGINAL
     TRANSLATION_CACHE[text] = text
@@ -848,7 +888,7 @@ async def parse_matches(html, translator):
             dt_str = dt_obj.strftime("%d/%m-%H.%M")
 
         except Exception as e:
-            print(f"⚠️ Time error {data_time} {event_time}: {e}")
+            print(f"⚠️ Time error {data_time} {event_time}: {safe_error(e)}")
             dt_str = f"{data_time}-{event_time}"
 
         matches.append({
@@ -922,7 +962,7 @@ async def main():
     try:
         translator = get_argos_translator()
     except Exception as e:
-        print(f"❌ Translator initialization failed: {e}")
+        print(f"❌ Translator initialization failed: {safe_error(e)}")
         return
 
     print("✅ Local zh → en translator ready")
