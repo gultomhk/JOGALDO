@@ -558,38 +558,47 @@ def decode_html(raw):
 
 
 # =========================================================
-# FETCH HTML - SMART RETRY + LONGER TIMEOUT
+# FETCH HTML - SMART RETRY + DIAGNOSTIC
 # =========================================================
 
 async def fetch_html(url):
-    parsed = urlparse(url)
+    if not url or not str(url).strip():
+        print("❌ BASE_URL kosong. Periksa gogodattvdata_file.txt")
+        return ""
 
-    candidates = [url]
+    parsed = urlparse(url.strip())
 
+    if parsed.scheme not in ("http", "https") or not parsed.hostname:
+        print("❌ BASE_URL tidak valid. Harus menggunakan HTTP/HTTPS.")
+        return ""
+
+    # HTTPS tetap menjadi prioritas.
+    candidates = [url.strip()]
+
+    # Alternatif HTTP hanya jika URL awal HTTPS.
     if parsed.scheme == "https":
         candidates.append(
             urlunparse(parsed._replace(scheme="http"))
         )
 
-    if parsed.hostname and parsed.hostname.startswith("www."):
-        no_www = parsed.hostname[4:]
-
+    # Alternatif tanpa www.
+    if parsed.hostname.startswith("www."):
         for candidate in list(candidates):
             p = urlparse(candidate)
+            netloc = p.hostname[4:]
+
+            if p.port:
+                netloc += f":{p.port}"
+
             candidates.append(
-                urlunparse(
-                    p._replace(
-                        netloc=no_www + (
-                            f":{p.port}" if p.port else ""
-                        )
-                    )
-                )
+                urlunparse(p._replace(netloc=netloc))
             )
 
-    # Hilangkan duplikat dengan urutan tetap.
+    # Hilangkan duplikat tanpa mengubah urutan.
     candidates = list(dict.fromkeys(candidates))
 
     max_retries = 2
+    timeout_seconds = 30
 
     for attempt in range(1, max_retries + 1):
         print()
@@ -602,34 +611,36 @@ async def fetch_html(url):
             )
 
             try:
+                # Jalankan request dalam thread agar event loop
+                # asyncio tidak terblokir.
                 response = await asyncio.to_thread(
                     requests.get,
                     test_url,
                     headers=HEADERS,
-                    impersonate="chrome136",
-                    timeout=75,
-                    verify=False,
+                    impersonate="chrome",
+                    timeout=timeout_seconds,
+                    verify=True,
                     allow_redirects=True,
-                    http_version=1,
                 )
 
-                print(f"🌐 HTTP Status: {response.status_code}")
+                status = response.status_code
+                raw = response.content
+                byte_count = len(raw)
+
+                print(f"📡 HTTP Status: {status}")
+                print(f"📦 Response bytes: {byte_count:,}")
+
                 print(
                     "🔗 Final URL: "
                     f"{safe_url(str(response.url), 'gogourl')}"
                 )
 
-                if response.status_code != 200:
+                if status != 200:
                     print(
-                        f"⚠️ HTTP {response.status_code}; "
+                        f"⚠️ HTTP {status}; "
                         "mencoba alamat berikutnya."
                     )
                     continue
-
-                raw = response.content
-                byte_count = len(raw)
-
-                print(f"📦 Downloaded: {byte_count:,} bytes")
 
                 if not raw:
                     print("⚠️ Respons kosong.")
@@ -637,18 +648,25 @@ async def fetch_html(url):
 
                 html = decode_html(raw)
 
-                print(f"📄 HTML length: {len(html):,} characters")
+                print(
+                    f"📄 HTML length: {len(html):,} characters"
+                )
 
                 if len(html.strip()) < 1000:
-                    print("⚠️ HTML terlalu pendek; mencoba berikutnya.")
+                    print(
+                        "⚠️ HTML terlalu pendek; "
+                        "mencoba alamat berikutnya."
+                    )
                     continue
 
-                # Simpan HTML untuk pemeriksaan lokal.
                 debug_file = (
                     Path(__file__).parent / "original_debug.html"
                 )
 
-                debug_file.write_text(html, encoding="utf-8")
+                debug_file.write_text(
+                    html,
+                    encoding="utf-8"
+                )
 
                 print("✅ HTML fetch success")
                 print("💾 Debug HTML: original_debug.html")
@@ -656,23 +674,52 @@ async def fetch_html(url):
                 return html
 
             except Exception as e:
-                error_name = type(e).__name__
                 error_text = str(e).lower()
+                error_name = type(e).__name__
 
-                if "timeout" in error_text or "timed out" in error_text:
+                if (
+                    "timeout" in error_text
+                    or "timed out" in error_text
+                    or "curl: (28)" in error_text
+                ):
                     print(
                         f"⏱️ Timeout ({error_name}); "
                         "mencoba alamat berikutnya."
                     )
+
+                elif (
+                    "resolve" in error_text
+                    or "could not resolve" in error_text
+                    or "name or service not known" in error_text
+                ):
+                    print(
+                        f"🌐 DNS gagal ({error_name}); "
+                        "alamat berikutnya akan dicoba."
+                    )
+
+                elif (
+                    "ssl" in error_text
+                    or "certificate" in error_text
+                    or "tls" in error_text
+                ):
+                    print(
+                        f"🔒 TLS/SSL gagal ({error_name}); "
+                        "periksa sertifikat dan koneksi server."
+                    )
+
                 else:
+                    # Jangan tampilkan URL atau detail sensitif.
                     print(
                         f"❌ Fetch error ({error_name}); "
-                        "detail disembunyikan."
+                        f"detail: {safe_error(e)}"
                     )
 
         if attempt < max_retries:
             delay = 3
-            print(f"⏳ Menunggu {delay} detik sebelum retry...")
+            print(
+                f"⏳ Semua alamat gagal pada percobaan ini. "
+                f"Retry dalam {delay} detik..."
+            )
             await asyncio.sleep(delay)
 
     print("❌ Semua percobaan fetch gagal.")
