@@ -15,6 +15,7 @@ FAILED_FILE = Path("proxy_failed.txt")
 TIMEOUT = 15
 WIB = timezone(timedelta(hours=7))
 
+
 # ============================================================
 # PARSE COOL MAPPING
 # ============================================================
@@ -25,26 +26,18 @@ def parse_mapping_file(path):
     default = {}
 
     if not path.exists():
-        raise FileNotFoundError(
-            f"Mapping tidak ditemukan: {path}"
-        )
+        raise FileNotFoundError(f"Mapping tidak ditemukan: {path}")
 
     properties = {
-        "type",
-        "url",
-        "license",
-        "user-agent",
-        "referer",
-        "license_type",
+        "type", "url", "license",
+        "user-agent", "referer", "license_type",
     }
 
     with path.open("r", encoding="utf-8-sig") as f:
         for raw_line in f:
             line = raw_line.strip()
-
             if not line or line.startswith("#"):
                 continue
-
             if "=" not in line:
                 continue
 
@@ -52,17 +45,14 @@ def parse_mapping_file(path):
             key = key.strip()
             value = value.strip()
 
-            # Header global
             if key.startswith("HEADERS."):
                 headers[key[len("HEADERS."):]] = value
                 continue
 
-            # Konfigurasi default
             if key.startswith("default."):
                 default[key[len("default."):]] = value
                 continue
 
-            # Konfigurasi per ID
             if "." in key:
                 id_part, prop = key.split(".", 1)
                 id_part = id_part.strip()
@@ -70,35 +60,23 @@ def parse_mapping_file(path):
 
                 if id_part.isdigit() and prop in properties:
                     streams = mapping.setdefault(id_part, [])
-
-                    # Setiap type baru adalah stream baru.
                     if prop == "type":
-                        streams.append({
-                            "type": value.lower()
-                        })
+                        streams.append({"type": value.lower()})
                     else:
                         if not streams:
                             streams.append({})
-
                         streams[-1][prop] = value
-
                     continue
 
-            # Konstanta umum seperti URL dan PROXY_LIST_URL
             constants[key] = value
 
-    # Hapus entry kosong.
     for stream_id in list(mapping):
         mapping[stream_id] = [
-            stream for stream in mapping[stream_id]
-            if stream.get("type") or stream.get("url")
+            s for s in mapping[stream_id]
+            if s.get("type") or s.get("url")
         ]
 
-    print(
-        f"[✓] Mapping dimuat: {len(mapping)} ID",
-        file=sys.stderr
-    )
-
+    print(f"[✓] Mapping dimuat: {len(mapping)} ID", file=sys.stderr)
     return headers, constants, mapping, default
 
 
@@ -109,20 +87,14 @@ def normalize_type(stream_type, url=""):
     stream_type = (stream_type or "").strip().lower()
     url = (url or "").strip().lower()
 
-    # Periksa ekstensi URL terlebih dahulu.
-    # URL .mpd harus diperlakukan sebagai DASH.
     if ".mpd" in url:
         return "dash"
-
     if ".m3u8" in url:
         return "hls"
-
     if stream_type in ("dash", "mpd", "mpeg-dash"):
         return "dash"
-
     if stream_type in ("hls", "m3u8"):
         return "hls"
-
     return ""
 
 
@@ -135,231 +107,131 @@ def replace_id(value, stream_id):
 # ============================================================
 def get_proxy_list(url):
     if not url:
-        print(
-            "[i] PROXY_LIST_URL tidak disetel; "
-            "akan mencoba request langsung.",
-            file=sys.stderr
-        )
+        print("[i] PROXY_LIST_URL tidak disetel; mencoba request langsung.",
+              file=sys.stderr)
         return []
 
     try:
-        response = requests.get(
-            url,
-            timeout=TIMEOUT
-        )
+        response = requests.get(url, timeout=TIMEOUT)
         response.raise_for_status()
-
         proxies = [
-            line.strip()
-            for line in response.text.splitlines()
-            if line.strip()
-            and not line.strip().startswith("#")
+            line.strip() for line in response.text.splitlines()
+            if line.strip() and not line.strip().startswith("#")
         ]
-
-        print(
-            f"[✓] Jumlah proxy: {len(proxies)}",
-            file=sys.stderr
-        )
-
+        print(f"[✓] Jumlah proxy: {len(proxies)}", file=sys.stderr)
         return proxies
-
     except requests.RequestException as exc:
-        print(
-            f"[!] Gagal mengambil daftar proxy: {exc}",
-            file=sys.stderr
-        )
+        print(f"[!] Gagal mengambil daftar proxy: {exc}", file=sys.stderr)
         return []
 
 
 def try_proxy(api_url, proxy, headers):
     proxies = None
-
     if proxy:
-        proxies = {
-            "http": proxy,
-            "https": proxy,
-        }
+        proxies = {"http": proxy, "https": proxy}
 
     try:
         if proxy:
-            print(
-                "[•] Menguji proxy...",
-                file=sys.stderr
-            )
+            print("[•] Menguji proxy...", file=sys.stderr)
         else:
-            print(
-                "[•] Mencoba request langsung...",
-                file=sys.stderr
-            )
+            print("[•] Mencoba request langsung...", file=sys.stderr)
 
         response = requests.get(
-            api_url,
-            headers=headers,
-            proxies=proxies,
-            timeout=TIMEOUT,
+            api_url, headers=headers, proxies=proxies, timeout=TIMEOUT
         )
-
         response.raise_for_status()
         data = response.json()
 
         if not isinstance(data, dict):
-            raise ValueError(
-                "Respons API bukan objek JSON"
-            )
+            raise ValueError("Respons API bukan objek JSON")
 
-        print(
-            f"[✓] API berhasil: HTTP {response.status_code}",
-            file=sys.stderr
-        )
-
+        print(f"[✓] API berhasil: HTTP {response.status_code}", file=sys.stderr)
         return data
-
-    except (
-        requests.RequestException,
-        ValueError,
-    ) as exc:
-        print(
-            f"[×] Request gagal: {exc}",
-            file=sys.stderr
-        )
+    except (requests.RequestException, ValueError) as exc:
+        print(f"[×] Request gagal: {exc}", file=sys.stderr)
         return None
 
 
 def simpan_cache_berhasil(proxy):
     if not proxy:
         return
-
-    CACHE_FILE.write_text(
-        proxy,
-        encoding="utf-8"
-    )
-
-    print(
-        "[✓] Proxy disimpan ke cache.",
-        file=sys.stderr
-    )
+    CACHE_FILE.write_text(proxy, encoding="utf-8")
+    print("[✓] Proxy disimpan ke cache.", file=sys.stderr)
 
 
 def simpan_cache_gagal(proxy):
     if not proxy:
         return
-
-    with FAILED_FILE.open(
-        "a",
-        encoding="utf-8"
-    ) as f:
+    with FAILED_FILE.open("a", encoding="utf-8") as f:
         f.write(proxy + "\n")
 
 
 # ============================================================
-# OUTPUT SATU STREAM
+# OUTPUT SATU STREAM (fungsi tunggal, signature seragam)
 # ============================================================
-def emit_stream(
-    title,
-    logo,
-    waktu,
-    stream_id,
-    stream,
-    default,
-):
-    stream_url = replace_id(
-        stream.get("url", ""),
-        stream_id,
-    )
+def emit_stream(f, title, logo, group, stream, stream_id=None, default=None):
+    default = default or {}
 
-    manifest_type = normalize_type(
-        stream.get("type"),
-        stream_url,
-    )
-
-    if not manifest_type:
-        print(
-            f"[!] Tipe manifest tidak diketahui: {stream_id}",
-            file=sys.stderr
-        )
-        return False
-
+    stream_url = replace_id(stream.get("url", ""), stream_id).strip()
     if not stream_url:
-        print(
-            f"[!] URL kosong: {stream_id}",
-            file=sys.stderr
-        )
+        print(f"[!] URL kosong: {stream_id}", file=sys.stderr)
         return False
 
-    # Header khusus stream lebih diutamakan.
-    ua = (
-        stream.get("user-agent")
-        or default.get("user-agent")
+    manifest_type = normalize_type(stream.get("type", ""), stream_url)
+    if manifest_type not in ("hls", "dash"):
+        print(f"[!] Tipe manifest tidak diketahui: {stream_id}",
+              file=sys.stderr)
+        return False
+
+    ua = stream.get("user-agent") or default.get("user-agent") or ""
+    ref = stream.get("referer") or default.get("referer") or ""
+
+    label = manifest_type.upper()
+
+    f.write(
+        f'#EXTINF:-1 tvg-logo="{logo}" '
+        f'group-title="{group}",{title} [{label}]\n'
     )
 
-    ref = (
-        stream.get("referer")
-        or default.get("referer")
-    )
+    if ua:
+        f.write(f"#EXTVLCOPT:http-user-agent={ua}\n")
 
-    # Lisensi khusus stream lebih diutamakan.
+    # --------------------------------------------------------
+    # HLS: hanya manifest_type=hls + URL (tanpa addon/license)
+    # --------------------------------------------------------
+    if manifest_type == "hls":
+        f.write("#KODIPROP:inputstream.adaptive.manifest_type=hls\n")
+        if ref:
+            f.write(f"#EXTVLCOPT:http-referrer={ref}\n")
+        f.write(stream_url + "\n\n")
+        print(f"[✓] {stream_id} -> HLS", file=sys.stderr)
+        return True
+
+    # --------------------------------------------------------
+    # DASH: full inputstream + DRM
+    # --------------------------------------------------------
     license_type = (
         stream.get("license_type")
         or default.get("license_type")
         or "com.widevine.alpha"
     )
-
     license_key = replace_id(
-        stream.get("license")
-        or default.get("license", ""),
+        stream.get("license") or default.get("license", ""),
         stream_id,
     )
 
-    # Label selalu ditampilkan supaya MPD dan HLS
-    # mudah dibedakan dalam playlist.
-    label = manifest_type.upper()
+    f.write("#KODIPROP:inputstreamaddon=inputstream.adaptive\n")
+    f.write("#KODIPROP:inputstream.adaptive.manifest_type=mpd\n")
 
-    print(
-        f'#EXTINF:-1 tvg-logo="{logo}" '
-        f'group-title="⚽️| LIVE EVENT",'
-        f'{waktu} {title} [{label}]'
-    )
-
-    if ua:
-        print(
-            f"#EXTVLCOPT:http-user-agent={ua}"
-        )
-
-    if ref:
-        print(
-            f"#EXTVLCOPT:http-referrer={ref}"
-        )
-
-    print(
-        "#KODIPROP:inputstreamaddon=inputstream.adaptive"
-    )
-
-    print(
-        "#KODIPROP:inputstream.adaptive.manifest_type="
-        f"{manifest_type}"
-    )
-
-    # License hanya ditulis jika tersedia.
     if license_type:
-        print(
-            "#KODIPROP:inputstream.adaptive.license_type="
-            f"{license_type}"
-        )
-
+        f.write(f"#KODIPROP:inputstream.adaptive.license_type={license_type}\n")
     if license_key:
-        print(
-            "#KODIPROP:inputstream.adaptive.license_key="
-            f"{license_key}"
-        )
+        f.write(f"#KODIPROP:inputstream.adaptive.license_key={license_key}\n")
+    if ref:
+        f.write(f"#EXTVLCOPT:http-referrer={ref}\n")
 
-    print(stream_url)
-    print()
-
-    print(
-        f"[✓] {stream_id} -> {manifest_type.upper()}",
-        file=sys.stderr
-    )
-
+    f.write(stream_url + "\n\n")
+    print(f"[✓] {stream_id} -> DASH", file=sys.stderr)
     return True
 
 
@@ -367,21 +239,11 @@ def emit_stream(
 # MEMBENTUK KONFIGURASI STREAM DEFAULT MPD
 # ============================================================
 def build_default_dash(stream_id, default):
-    url = replace_id(
-        default.get("url", ""),
-        stream_id,
-    )
-
+    url = replace_id(default.get("url", ""), stream_id)
     if not url:
         return None
 
-    # Jangan menghasilkan MPD jika URL default
-    # ternyata URL HLS.
-    manifest_type = normalize_type(
-        default.get("type") or "dash",
-        url,
-    )
-
+    manifest_type = normalize_type(default.get("type") or "dash", url)
     if manifest_type != "dash":
         return None
 
@@ -389,137 +251,35 @@ def build_default_dash(stream_id, default):
         "type": "dash",
         "url": url,
         "license": default.get("license", ""),
-        "license_type": (
-            default.get("license_type")
-            or "com.widevine.alpha"
-        ),
+        "license_type": default.get("license_type") or "com.widevine.alpha",
         "user-agent": default.get("user-agent", ""),
         "referer": default.get("referer", ""),
     }
 
 
-
 # ============================================================
-# OUTPUT SATU STREAM
+# EKSTRAK EVENT DARI RESPON API
 # ============================================================
-def emit_stream(
-    title,
-    logo,
-    waktu,
-    stream_id,
-    stream,
-    default,
-):
-    stream_url = replace_id(
-        stream.get("url", ""),
-        stream_id,
-    ).strip()
+def extract_events(data):
+    """
+    Cari list event dari respons API.
+    Respons biasanya: {"included": [ {attributes, links, id}, ... ]}
+    atau {"data": [...]}.
+    """
+    if not isinstance(data, dict):
+        return []
 
-    if not stream_url:
-        print(
-            f"[!] URL kosong: {stream_id}",
-            file=sys.stderr
-        )
-        return False
+    for key in ("included", "data", "results", "items"):
+        value = data.get(key)
+        if isinstance(value, list):
+            return value
 
-    manifest_type = normalize_type(
-        stream.get("type", ""),
-        stream_url,
-    )
+    # Fallback: cari list pertama yang isinya dict dengan attributes
+    for value in data.values():
+        if isinstance(value, list) and value and isinstance(value[0], dict):
+            return value
 
-    if manifest_type not in ("hls", "dash"):
-        print(
-            f"[!] Tipe manifest tidak diketahui: {stream_id}",
-            file=sys.stderr
-        )
-        return False
-
-    # Header khusus stream diutamakan daripada default.
-    ua = (
-        stream.get("user-agent")
-        or default.get("user-agent")
-        or ""
-    )
-
-    # Label stream.
-    label = manifest_type.upper()
-
-    print(
-        f'#EXTINF:-1 tvg-logo="{logo}" '
-        f'group-title="⚽️| LIVE EVENT",'
-        f'{waktu} {title} [{label}]'
-    )
-
-    if ua:
-        print(f"#EXTVLCOPT:http-user-agent={ua}")
-
-    # --------------------------------------------------------
-    # HLS: cetak URL langsung.
-    # Jangan cetak referer, KODIPROP, atau lisensi.
-    # --------------------------------------------------------
-    if manifest_type == "hls":
-        print(stream_url)
-        print()
-
-        print(
-            f"[✓] {stream_id} -> HLS",
-            file=sys.stderr
-        )
-        return True
-
-    # --------------------------------------------------------
-    # DASH: konfigurasi inputstream dan DRM.
-    # --------------------------------------------------------
-    ref = (
-        stream.get("referer")
-        or default.get("referer")
-        or ""
-    )
-
-    license_type = (
-        stream.get("license_type")
-        or default.get("license_type")
-        or "com.widevine.alpha"
-    )
-
-    license_key = replace_id(
-        stream.get("license")
-        or default.get("license", ""),
-        stream_id,
-    )
-
-    print(
-        "#KODIPROP:inputstreamaddon=inputstream.adaptive"
-    )
-
-    print(
-        "#KODIPROP:inputstream.adaptive.manifest_type=mpd"
-    )
-
-    if license_type:
-        print(
-            "#KODIPROP:inputstream.adaptive.license_type="
-            f"{license_type}"
-        )
-
-    if license_key:
-        print(
-            "#KODIPROP:inputstream.adaptive.license_key="
-            f"{license_key}"
-        )
-
-    if ref:
-        print(f"#EXTVLCOPT:http-referrer={ref}")
-
-    print(stream_url)
-    print()
-
-    print(
-        f"[✓] {stream_id} -> DASH",
-        file=sys.stderr
-    )
-
-    return True
+    return []
 
 
 # ============================================================
@@ -539,14 +299,8 @@ def process_events(f, included, mapping, default, group):
         self_link = links.get("self") or {}
         meta = self_link.get("meta") or {}
 
-        title = str(
-            attr.get("title") or ""
-        ).strip().replace(":", "")
-
-        logo = str(
-            attr.get("cover_url") or ""
-        ).strip()
-
+        title = str(attr.get("title") or "").strip().replace(":", "")
+        logo = str(attr.get("cover_url") or "").strip()
         start_time = attr.get("start_time")
 
         stream_id = str(
@@ -559,22 +313,12 @@ def process_events(f, included, mapping, default, group):
         if not stream_id or not start_time:
             continue
 
-        # ----------------------------------------------------
-        # FORMAT WAKTU WIB
-        # ----------------------------------------------------
         try:
-            dt = datetime.fromisoformat(
-                str(start_time).replace("Z", "+00:00")
-            )
-
-            waktu = dt.astimezone(WIB).strftime(
-                "%d/%m-%H.%M"
-            )
-
+            dt = datetime.fromisoformat(str(start_time).replace("Z", "+00:00"))
+            waktu = dt.astimezone(WIB).strftime("%d/%m-%H.%M")
         except (ValueError, TypeError):
             waktu = "JADWAL"
 
-        # Gabungkan waktu ke judul agar sesuai output sebelumnya.
         display_title = f"{waktu} {title}".strip()
 
         streams = mapping.get(stream_id, [])
@@ -583,96 +327,35 @@ def process_events(f, included, mapping, default, group):
         # ID MEMILIKI MAPPING KHUSUS
         # ----------------------------------------------------
         if streams:
-            has_dash = False
-            has_hls = False
-
-            # Deteksi tipe berdasarkan mapping dan URL.
-            for stream in streams:
-                stream_type = normalize_type(
-                    stream.get("type", ""),
-                    stream.get("url", "")
-                )
-
-                if stream_type == "dash":
-                    has_dash = True
-                elif stream_type == "hls":
-                    has_hls = True
-
-            # Hitung event satu kali.
             total_events += 1
 
-            # Tulis semua stream mapping.
             for stream in streams:
                 stream_type = normalize_type(
-                    stream.get("type", ""),
-                    stream.get("url", "")
+                    stream.get("type", ""), stream.get("url", "")
                 )
-
                 success = emit_stream(
                     f=f,
                     title=display_title,
                     logo=logo,
                     group=group,
                     stream=stream,
-                    stream_id=stream_id
+                    stream_id=stream_id,
+                    default=default,
                 )
-
                 if success:
                     if stream_type == "dash":
                         total_dash += 1
                     elif stream_type == "hls":
                         total_hls += 1
-
-            # ------------------------------------------------
-            # MAPPING HLS TANPA DASH:
-            # Tambahkan DASH default bila tersedia.
-            # ------------------------------------------------
-            if has_hls and not has_dash:
-                default_dash = build_default_dash(
-                    stream_id,
-                    default
-                )
-
-                if default_dash:
-                    print(
-                        f"[+] Menambahkan MPD default "
-                        f"untuk ID {stream_id}",
-                        file=sys.stderr
-                    )
-
-                    if emit_stream(
-                        f=f,
-                        title=display_title,
-                        logo=logo,
-                        group=group,
-                        stream=default_dash,
-                        stream_id=stream_id
-                    ):
-                        total_dash += 1
-
-                else:
-                    print(
-                        f"[!] ID {stream_id} memiliki HLS, "
-                        "tetapi URL MPD default tidak tersedia.",
-                        file=sys.stderr
-                    )
-
             continue
 
         # ----------------------------------------------------
         # ID TANPA MAPPING KHUSUS: DASH DEFAULT
         # ----------------------------------------------------
-        default_dash = build_default_dash(
-            stream_id,
-            default
-        )
-
+        default_dash = build_default_dash(stream_id, default)
         if not default_dash:
-            print(
-                f"[!] Tidak ada URL MPD default "
-                f"untuk ID {stream_id}",
-                file=sys.stderr
-            )
+            print(f"[!] Tidak ada URL MPD default untuk ID {stream_id}",
+                  file=sys.stderr)
             continue
 
         if emit_stream(
@@ -681,7 +364,8 @@ def process_events(f, included, mapping, default, group):
             logo=logo,
             group=group,
             stream=default_dash,
-            stream_id=stream_id
+            stream_id=stream_id,
+            default=default,
         ):
             total_events += 1
             total_dash += 1
@@ -691,8 +375,24 @@ def process_events(f, included, mapping, default, group):
         f"{total_events} event diproses, "
         f"{total_dash} stream DASH, "
         f"{total_hls} stream HLS.",
-        file=sys.stderr
+        file=sys.stderr,
     )
+
+
+# ============================================================
+# TAMPILKAN PLAYLIST
+# ============================================================
+def tampilkan_playlist(data, constants, mapping, default):
+    group = constants.get("GROUP_TITLE", "⚽️| LIVE EVENT")
+    output_file = Path(constants.get("OUTPUT_FILE", "playlist.m3u"))
+
+    events = extract_events(data)
+
+    with output_file.open("w", encoding="utf-8") as f:
+        f.write("#EXTM3U\n")
+        process_events(f, events, mapping, default, group)
+
+    print(f"[✓] Playlist ditulis ke: {output_file}", file=sys.stderr)
 
 
 # ============================================================
@@ -700,122 +400,53 @@ def process_events(f, included, mapping, default, group):
 # ============================================================
 def main():
     try:
-        headers, constants, mapping, default = (
-            parse_mapping_file(MAPPING_FILE)
-        )
-
+        headers, constants, mapping, default = parse_mapping_file(MAPPING_FILE)
     except Exception as exc:
-        print(
-            f"[!] Gagal membaca mapping: {exc}",
-            file=sys.stderr
-        )
+        print(f"[!] Gagal membaca mapping: {exc}", file=sys.stderr)
         return 1
 
     api_url = constants.get("URL")
     proxy_url = constants.get("PROXY_LIST_URL")
 
     if not api_url:
-        print(
-            "[!] URL API tidak ditemukan di cool_mapping.txt.",
-            file=sys.stderr
-        )
+        print("[!] URL API tidak ditemukan di cool_mapping.txt.", file=sys.stderr)
         return 1
 
-    # Ambil daftar proxy jika dikonfigurasi.
     proxies = get_proxy_list(proxy_url)
     random.shuffle(proxies)
-
-    # Cache hanya digunakan jika proxy tersedia.
     tried = set()
 
     if CACHE_FILE.exists():
-        cached = CACHE_FILE.read_text(
-            encoding="utf-8"
-        ).strip()
-
+        cached = CACHE_FILE.read_text(encoding="utf-8").strip()
         if cached:
-            data = try_proxy(
-                api_url,
-                cached,
-                headers,
-            )
-
+            data = try_proxy(api_url, cached, headers)
             if data is not None:
                 simpan_cache_berhasil(cached)
-
-                tampilkan_playlist(
-                    data,
-                    constants,
-                    mapping,
-                    default,
-                )
-
-                print(
-                    "[✓] Playlist menggunakan proxy cache.",
-                    file=sys.stderr
-                )
+                tampilkan_playlist(data, constants, mapping, default)
+                print("[✓] Playlist menggunakan proxy cache.", file=sys.stderr)
                 return 0
-
             simpan_cache_gagal(cached)
             tried.add(cached)
 
-    # --------------------------------------------------------
-    # COBA PROXY YANG TERSEDIA
-    # --------------------------------------------------------
     for proxy in proxies:
         if proxy in tried:
             continue
-
-        data = try_proxy(
-            api_url,
-            proxy,
-            headers,
-        )
-
+        data = try_proxy(api_url, proxy, headers)
         if data is not None:
             simpan_cache_berhasil(proxy)
-
-            tampilkan_playlist(
-                data,
-                constants,
-                mapping,
-                default,
-            )
-
+            tampilkan_playlist(data, constants, mapping, default)
             return 0
-
         simpan_cache_gagal(proxy)
         tried.add(proxy)
         time.sleep(1)
 
-    # --------------------------------------------------------
-    # FALLBACK REQUEST LANGSUNG
-    # --------------------------------------------------------
-    print(
-        "[i] Mencoba API tanpa proxy...",
-        file=sys.stderr
-    )
-
-    data = try_proxy(
-        api_url,
-        None,
-        headers,
-    )
-
+    print("[i] Mencoba API tanpa proxy...", file=sys.stderr)
+    data = try_proxy(api_url, None, headers)
     if data is not None:
-        tampilkan_playlist(
-            data,
-            constants,
-            mapping,
-            default,
-        )
+        tampilkan_playlist(data, constants, mapping, default)
         return 0
 
-    print(
-        "[×] Semua percobaan request gagal.",
-        file=sys.stderr
-    )
-
+    print("[×] Semua percobaan request gagal.", file=sys.stderr)
     return 1
 
 
