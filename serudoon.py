@@ -398,26 +398,99 @@ def build_default_dash(stream_id, default):
     }
 
 
-# ============================================================
-# OUTPUT PLAYLIST MULTI STREAM
-# ============================================================
-def tampilkan_playlist(
-    data,
-    constants,
-    mapping,
-    default,
-):
-    print("#EXTM3U")
 
-    included = data.get("included", [])
+# ============================================================
+# OUTPUT STREAM M3U
+# ============================================================
+def emit_stream(f, title, logo, group, stream, stream_id=None):
+    url = str(stream.get("url") or "").strip()
 
-    if not isinstance(included, list):
+    if not url:
+        return False
+
+    stream_type = normalize_type(
+        stream.get("type", ""),
+        url
+    )
+
+    # Hindari tipe kosong atau tidak dikenal.
+    if stream_type not in ("hls", "dash"):
         print(
-            "[!] Format included API tidak valid.",
+            f"[!] Tipe stream tidak dikenal untuk ID "
+            f"{stream_id or '-'}: {stream_type}",
             file=sys.stderr
         )
-        return
+        return False
 
+    f.write(
+        f'#EXTINF:-1 tvg-logo="{logo}" '
+        f'group-title="{group}",{title} [{stream_type.upper()}]\n'
+    )
+
+    user_agent = str(
+        stream.get("user-agent") or ""
+    ).strip()
+
+    referer = str(
+        stream.get("referer") or ""
+    ).strip()
+
+    if user_agent:
+        f.write(
+            f"#EXTVLCOPT:http-user-agent={user_agent}\n"
+        )
+
+    # --------------------------------------------------------
+    # HLS: hanya User-Agent dan URL.
+    # Tidak menambahkan KODIPROP atau lisensi.
+    # --------------------------------------------------------
+    if stream_type == "hls":
+        f.write(url + "\n")
+        return True
+
+    # --------------------------------------------------------
+    # DASH: konfigurasi inputstream dan DRM.
+    # --------------------------------------------------------
+    f.write(
+        "#KODIPROP:inputstreamaddon=inputstream.adaptive\n"
+    )
+    f.write(
+        "#KODIPROP:inputstream.adaptive.manifest_type=mpd\n"
+    )
+
+    license_type = str(
+        stream.get("license_type") or ""
+    ).strip()
+
+    license_key = str(
+        stream.get("license") or ""
+    ).strip()
+
+    if license_type:
+        f.write(
+            "#KODIPROP:inputstream.adaptive.license_type="
+            f"{license_type}\n"
+        )
+
+    if license_key:
+        f.write(
+            "#KODIPROP:inputstream.adaptive.license_key="
+            f"{license_key}\n"
+        )
+
+    if referer:
+        f.write(
+            f"#EXTVLCOPT:http-referrer={referer}\n"
+        )
+
+    f.write(url + "\n")
+    return True
+
+
+# ============================================================
+# PROSES EVENT DAN PEMBUATAN PLAYLIST
+# ============================================================
+def process_events(f, included, mapping, default, group):
     total_events = 0
     total_hls = 0
     total_dash = 0
@@ -451,20 +524,23 @@ def tampilkan_playlist(
         if not stream_id or not start_time:
             continue
 
+        # ----------------------------------------------------
+        # FORMAT WAKTU WIB
+        # ----------------------------------------------------
         try:
             dt = datetime.fromisoformat(
-                str(start_time).replace(
-                    "Z",
-                    "+00:00"
-                )
+                str(start_time).replace("Z", "+00:00")
             )
 
-            waktu = dt.astimezone(
-                WIB
-            ).strftime("%d/%m-%H.%M")
+            waktu = dt.astimezone(WIB).strftime(
+                "%d/%m-%H.%M"
+            )
 
         except (ValueError, TypeError):
             waktu = "JADWAL"
+
+        # Gabungkan waktu ke judul agar sesuai output sebelumnya.
+        display_title = f"{waktu} {title}".strip()
 
         streams = mapping.get(stream_id, [])
 
@@ -472,16 +548,14 @@ def tampilkan_playlist(
         # ID MEMILIKI MAPPING KHUSUS
         # ----------------------------------------------------
         if streams:
-            total_events += 1
-
             has_dash = False
             has_hls = False
 
-            # Tentukan tipe berdasarkan tipe mapping dan URL.
+            # Deteksi tipe berdasarkan mapping dan URL.
             for stream in streams:
                 stream_type = normalize_type(
-                    stream.get("type"),
-                    stream.get("url", ""),
+                    stream.get("type", ""),
+                    stream.get("url", "")
                 )
 
                 if stream_type == "dash":
@@ -489,37 +563,39 @@ def tampilkan_playlist(
                 elif stream_type == "hls":
                     has_hls = True
 
-            # Keluarkan seluruh stream yang dikonfigurasi.
+            # Hitung event satu kali.
+            total_events += 1
+
+            # Tulis semua stream mapping.
             for stream in streams:
                 stream_type = normalize_type(
-                    stream.get("type"),
-                    stream.get("url", ""),
+                    stream.get("type", ""),
+                    stream.get("url", "")
                 )
 
-                if emit_stream(
-                    title=title,
+                success = emit_stream(
+                    f=f,
+                    title=display_title,
                     logo=logo,
-                    waktu=waktu,
-                    stream_id=stream_id,
+                    group=group,
                     stream=stream,
-                    default=default,
-                ):
+                    stream_id=stream_id
+                )
+
+                if success:
                     if stream_type == "dash":
                         total_dash += 1
                     elif stream_type == "hls":
                         total_hls += 1
 
             # ------------------------------------------------
-            # FIX UTAMA:
-            # Mapping hanya HLS -> tambahkan MPD default.
-            #
-            # Jika mapping sudah punya DASH, jangan membuat
-            # DASH default duplikat.
+            # MAPPING HLS TANPA DASH:
+            # Tambahkan DASH default bila tersedia.
             # ------------------------------------------------
             if has_hls and not has_dash:
                 default_dash = build_default_dash(
                     stream_id,
-                    default,
+                    default
                 )
 
                 if default_dash:
@@ -530,12 +606,12 @@ def tampilkan_playlist(
                     )
 
                     if emit_stream(
-                        title=title,
+                        f=f,
+                        title=display_title,
                         logo=logo,
-                        waktu=waktu,
-                        stream_id=stream_id,
+                        group=group,
                         stream=default_dash,
-                        default=default,
+                        stream_id=stream_id
                     ):
                         total_dash += 1
 
@@ -549,11 +625,11 @@ def tampilkan_playlist(
             continue
 
         # ----------------------------------------------------
-        # ID TANPA MAPPING KHUSUS -> DEFAULT MPD
+        # ID TANPA MAPPING KHUSUS: DASH DEFAULT
         # ----------------------------------------------------
         default_dash = build_default_dash(
             stream_id,
-            default,
+            default
         )
 
         if not default_dash:
@@ -564,16 +640,15 @@ def tampilkan_playlist(
             )
             continue
 
-        total_events += 1
-
         if emit_stream(
-            title=title,
+            f=f,
+            title=display_title,
             logo=logo,
-            waktu=waktu,
-            stream_id=stream_id,
+            group=group,
             stream=default_dash,
-            default=default,
+            stream_id=stream_id
         ):
+            total_events += 1
             total_dash += 1
 
     print(
