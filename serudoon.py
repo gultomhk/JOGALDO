@@ -400,90 +400,125 @@ def build_default_dash(stream_id, default):
 
 
 # ============================================================
-# OUTPUT STREAM M3U
+# OUTPUT SATU STREAM
 # ============================================================
-def emit_stream(f, title, logo, group, stream, stream_id=None):
-    url = str(stream.get("url") or "").strip()
+def emit_stream(
+    title,
+    logo,
+    waktu,
+    stream_id,
+    stream,
+    default,
+):
+    stream_url = replace_id(
+        stream.get("url", ""),
+        stream_id,
+    ).strip()
 
-    if not url:
-        return False
-
-    stream_type = normalize_type(
-        stream.get("type", ""),
-        url
-    )
-
-    # Hindari tipe kosong atau tidak dikenal.
-    if stream_type not in ("hls", "dash"):
+    if not stream_url:
         print(
-            f"[!] Tipe stream tidak dikenal untuk ID "
-            f"{stream_id or '-'}: {stream_type}",
+            f"[!] URL kosong: {stream_id}",
             file=sys.stderr
         )
         return False
 
-    f.write(
-        f'#EXTINF:-1 tvg-logo="{logo}" '
-        f'group-title="{group}",{title} [{stream_type.upper()}]\n'
+    manifest_type = normalize_type(
+        stream.get("type", ""),
+        stream_url,
     )
 
-    user_agent = str(
-        stream.get("user-agent") or ""
-    ).strip()
-
-    referer = str(
-        stream.get("referer") or ""
-    ).strip()
-
-    if user_agent:
-        f.write(
-            f"#EXTVLCOPT:http-user-agent={user_agent}\n"
+    if manifest_type not in ("hls", "dash"):
+        print(
+            f"[!] Tipe manifest tidak diketahui: {stream_id}",
+            file=sys.stderr
         )
+        return False
+
+    # Header khusus stream diutamakan daripada default.
+    ua = (
+        stream.get("user-agent")
+        or default.get("user-agent")
+        or ""
+    )
+
+    # Label stream.
+    label = manifest_type.upper()
+
+    print(
+        f'#EXTINF:-1 tvg-logo="{logo}" '
+        f'group-title="⚽️| LIVE EVENT",'
+        f'{waktu} {title} [{label}]'
+    )
+
+    if ua:
+        print(f"#EXTVLCOPT:http-user-agent={ua}")
 
     # --------------------------------------------------------
-    # HLS: hanya User-Agent dan URL.
-    # Tidak menambahkan KODIPROP atau lisensi.
+    # HLS: cetak URL langsung.
+    # Jangan cetak referer, KODIPROP, atau lisensi.
     # --------------------------------------------------------
-    if stream_type == "hls":
-        f.write(url + "\n")
+    if manifest_type == "hls":
+        print(stream_url)
+        print()
+
+        print(
+            f"[✓] {stream_id} -> HLS",
+            file=sys.stderr
+        )
         return True
 
     # --------------------------------------------------------
     # DASH: konfigurasi inputstream dan DRM.
     # --------------------------------------------------------
-    f.write(
-        "#KODIPROP:inputstreamaddon=inputstream.adaptive\n"
-    )
-    f.write(
-        "#KODIPROP:inputstream.adaptive.manifest_type=mpd\n"
+    ref = (
+        stream.get("referer")
+        or default.get("referer")
+        or ""
     )
 
-    license_type = str(
-        stream.get("license_type") or ""
-    ).strip()
+    license_type = (
+        stream.get("license_type")
+        or default.get("license_type")
+        or "com.widevine.alpha"
+    )
 
-    license_key = str(
-        stream.get("license") or ""
-    ).strip()
+    license_key = replace_id(
+        stream.get("license")
+        or default.get("license", ""),
+        stream_id,
+    )
+
+    print(
+        "#KODIPROP:inputstreamaddon=inputstream.adaptive"
+    )
+
+    print(
+        "#KODIPROP:inputstream.adaptive.manifest_type=mpd"
+    )
 
     if license_type:
-        f.write(
+        print(
             "#KODIPROP:inputstream.adaptive.license_type="
-            f"{license_type}\n"
+            f"{license_type}"
         )
 
     if license_key:
-        f.write(
+        print(
             "#KODIPROP:inputstream.adaptive.license_key="
-            f"{license_key}\n"
+            f"{license_key}"
         )
 
-    if referer:
-        f.write(
-            f"#EXTVLCOPT:http-referrer={referer}\n"
-        )
+    if ref:
+        print(f"#EXTVLCOPT:http-referrer={ref}")
 
-    f.write(url + "\n")
+    print(stream_url)
+    print()
+
+    print(
+        f"[✓] {stream_id} -> DASH",
+        file=sys.stderr
+    )
+
     return True
 
 
