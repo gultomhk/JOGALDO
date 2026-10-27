@@ -1,8 +1,7 @@
 name: GOGODATV get
 
 on:
-  schedule:
-    - cron: "0 * * * *"
+
   workflow_dispatch:
 
 permissions:
